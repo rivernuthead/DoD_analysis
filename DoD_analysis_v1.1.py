@@ -447,7 +447,9 @@ for h in range (0, len(files)-1):
         
 
 fig, ax = plt.subplots()
-ax.imshow(DoD_filt_nozero_rst, cmap='seismic',  vmin=-25, vmax=25)
+im = ax.imshow(np.where(DoD_filt_nozero_rst==NaN, np.nan, DoD_filt_nozero_rst), cmap='RdBu',  vmin=-25, vmax=25)
+plt.colorbar(im)
+plt.title(DoD_name[:-1], fontweight='bold')
 plt.show()
 
 
