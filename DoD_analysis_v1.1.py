@@ -380,7 +380,6 @@ for h in range (0, len(files)-1):
             pass
         
         if delta==1:
-            # np.dstack([DoD_stack,np.asarray(DoD_filt_nozero_rst).reshape(1, dim_x, dim_y)])
             DoD_stack[h,:,:] = DoD_filt_nozero_rst[:,:]
             
             
@@ -448,7 +447,7 @@ for h in range (0, len(files)-1):
         
 
 fig, ax = plt.subplots()
-ax.imshow(DoD_filt_nozero_rst)
+ax.imshow(DoD_filt_nozero_rst, cmap='seismic',  vmin=-25, vmax=25)
 plt.show()
 
 
