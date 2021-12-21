@@ -86,7 +86,6 @@ elif mask_mode==2: # Working downstream, masking upstream
 elif mask_mode==3: # Working upstream, masking downstream
     array_mask=np.where(array_mask.shape[1]<int(array_mask.shape[1]/2), array_mask, 0)
 
-
 ######################################################################################
 # LOOP OVER ALL DEMs COMBINATIONS
 ######################################################################################
@@ -115,13 +114,12 @@ for h in range (0, len(files)-1):
         output_name = 'script_outputs_' + DEM2_name[19:21] + '-' + DEM1_name[19:21] # Set outputs name
         output_dir = os.path.join(home_dir, 'DoDs') # Set outputs directory
         path_out = os.path.join(output_dir,  output_name) # Set outputs path
-        if os.path.exists(path_out): # Check if outputs path already exists
-            print('Outh path already exist')
-            pass
-        else:
-            # TODO aggiornare
-            # os.mkdir(output_dir)
+        if not(os.path.exists(output_dir)):
+            os.mkdir(output_dir)
+        if not(os.path.exists(path_out)):
             os.mkdir(path_out)
+                          
+                          
        
         ##############################################################################
         # DATA READING...
