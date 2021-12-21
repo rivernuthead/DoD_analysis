@@ -1,0 +1,7 @@
+north:            -537.50
+south:           -1247.50
+east:             2697.00
+west:              -93.00
+rows:                 144
+cols:                 279
+null:              -999.0
