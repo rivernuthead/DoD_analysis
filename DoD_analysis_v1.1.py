@@ -25,13 +25,13 @@ input_dir = os.path.join(home_dir, 'surveys')
 '''
 Mask mode:
     1 = mask the flume edge
-    2 = mask the half flume upstream
-    3 = mask the half flume downstream
+    2 = mask the upstream half flume
+    3 = mask the downstream half flume
 Process mode: (NB: set DEMs name)
     1 = batch process
     2 = single run process
 '''
-mask_mode=1
+mask_mode=3
 
 process_mode = 1
 DEM1_single_name = 'matrix_bed_norm_q07S5.txt' # DEM1 name
@@ -82,9 +82,13 @@ array_mask_nan = np.where(array_mask==0, np.nan, 1) # Convert in mask with np.na
 if mask_mode==1:
     pass
 elif mask_mode==2: # Working downstream, masking upstream
-    array_mask=np.where(array_mask.shape[1]>int(array_mask.shape[1]/2), array_mask, 0)
+   array_mask[:,:-int(array_mask.shape[1]/2)] = NaN
+   array_mask=np.where(array_mask==NaN, np.nan, array_mask)
+
 elif mask_mode==3: # Working upstream, masking downstream
-    array_mask=np.where(array_mask.shape[1]<int(array_mask.shape[1]/2), array_mask, 0)
+    array_mask[:,int(array_mask.shape[1]/2):] = NaN
+    array_mask=np.where(array_mask==NaN, np.nan, array_mask)
+        
 
 ######################################################################################
 # LOOP OVER ALL DEMs COMBINATIONS
@@ -333,8 +337,8 @@ for h in range (0, len(files)-1):
         
         # Active_pixel analysis
         #Resize DoD fpr photos matching
-        active_pixel_count = DoD_vol[:,153:]
-        active_pixel_count = np.where(active_pixel_count!=0, 1, 0)
+        # active_pixel_count = DoD_vol[:,:]
+        active_pixel_count = np.where(DoD_vol!=0, 1, 0)
         active_area = np.count_nonzero(active_pixel_count) *px_x*px_y
         print('Area_active: ', "{:.1f}".format(active_area), '[mm**2]')
         active_area_array = np.append(active_area_array, active_area)
@@ -445,7 +449,7 @@ for h in range (0, len(files)-1):
         with open(path_out + '/' + 'gis-' + DoD_name + 'filt_nozero_rst.txt', 'w') as fp:
             fp.write(DoD_filt_nozero_gis)
         
-
+# Print the last DoD outcome
 fig, ax = plt.subplots()
 im = ax.imshow(np.where(DoD_filt_nozero_rst==NaN, np.nan, DoD_filt_nozero_rst), cmap='RdBu',  vmin=-25, vmax=25)
 plt.colorbar(im)
@@ -478,10 +482,11 @@ with open(os.path.join(home_dir, 'report.txt'), 'w') as fp:
         fp.writelines(['\n'])
 fp.close()
 
-
+# Print scour volumes over increasing timestep:
 fig1, ax1 = plt.subplots()
-ax1.plot(abs(matrix_sco[0,:]))
+# ax1.bar(np.arange(0, len(matrix_sco[:,0]), 1),abs(matrix_sco[:,0]))
 # ax1.plot(t[int(len(t)/10):-int(len(t)/10)], m*t[int(len(t)/10):-int(len(t)/10)]+q)
+ax1.errorbar(np.arange(0, len(matrix_sco[:,0]), 1),abs(matrix_sco[:,0]), matrix_sco[:,-1],linestyle='--', marker='^')
 ax1.set_ylim(bottom=0)
 ax1.set_title('title')
 ax1.set_xlabel('Time')
