@@ -448,7 +448,7 @@ for h in range (0, len(files)-1):
         
         # AVOIDED ZERO SURROUNDED DoD
         # Print filtered DoD (with np.nan)...
-        np.savetxt(path_out + '/' + DoD_name + 'nozero_.txt', DoD_filt_nozero, fmt='%0.1f', delimiter='\t')
+        np.savetxt(path_out + '/' + DoD_name + 'nozero.txt', DoD_filt_nozero, fmt='%0.1f', delimiter='\t')
         # Print filtered DoD (with NaN as -999)
         np.savetxt(path_out + '/' + DoD_name + 'filt_nozero_rst.txt', DoD_filt_nozero_rst, fmt='%0.1f', delimiter='\t')
         
