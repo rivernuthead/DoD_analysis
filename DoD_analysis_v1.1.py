@@ -8,7 +8,31 @@ Created on Thu Apr 15 09:44:30 2021
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import optimize as opt
 # from matplotlib.colors import ListedColormap, BoundaryNorm
+
+
+
+######################################################################################
+# FUNCTIONS
+######################################################################################
+def interpolate(func, xData, yData, ic=None, bounds=(-np.inf, np.inf)):
+    # Interpolate data by fitting a given function, then returns the interpolated curve as a 1d array.
+    par, covar = opt.curve_fit(func, xData, yData, p0=ic, maxfev=8000, bounds=bounds)
+    if len(par) == 2:
+        intCurve = func(xData, par[0], par[1])
+    elif len(par) == 3:
+        intCurve = func(xData, par[0], par[1], par[2])
+    elif len(par) == 4:
+        intCurve = func(xData, par[0], par[1], par[2], par[3])
+    else:
+        print("Interpolation failed. The interpolation function must have 2 or 3 parameters")
+        intCurve = -1 * np.ones(len(xData))
+    return par, intCurve, covar
+
+def func(x,A,B):
+    y = A*(1-np.exp(-x/B))
+    return y
 
 
 ######################################################################################
@@ -65,7 +89,9 @@ sco_array=[] # Scour volume
 active_area_array=[] # Active area 
 matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
 matrix_dep=np.zeros((len(files)-1, len(files)+1)) # Deposition volume report matrix
-matrix_sco=np.zeros((len(files)-1, len(files)+1)) # Scour volume report matrix
+# matrix_sco=np.zeros((len(files)-1, len(files)+1)) # Scour volume report matrix
+matrix_sco=np.zeros((len(files)+3, len(files)+1)) # Scour volume report matrix
+interp_param_sco=np.zeros((len(files)-1,4))
 
 ######################################################################################
 # SETUP MASKS
@@ -373,6 +399,7 @@ for h in range (0, len(files)-1):
             matrix_volumes[delta-1,-1]=np.std(matrix_volumes[delta-1,:len(files)-delta])
             matrix_dep[delta-1,-1]=np.std(matrix_dep[delta-1,:len(files)-delta])
             matrix_sco[delta-1,-1]=np.std(matrix_sco[delta-1,:len(files)-delta])
+            
         else:
             pass
         
@@ -455,6 +482,24 @@ im = ax.imshow(np.where(DoD_filt_nozero_rst==NaN, np.nan, DoD_filt_nozero_rst), 
 plt.colorbar(im)
 plt.title(DoD_name[:-1], fontweight='bold')
 plt.show()
+
+
+###############################################################################
+# VOLUME INTERPOLATION PARAMETER
+###############################################################################
+#                       param_A    STD(A)    param_B    STD(B)
+# 1-0, 2-0, 3-0, 4-0 ...
+# 2-1, 3-1, 4-1, 5-1 ...
+# 3-2, 4-2. 5-2, 6-2 ...
+
+
+for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought interpolation skipped
+    xData = np.arange(0, len(files)-i-1, 1)
+    yData=np.np.absolute(matrix_sco[:len(files)-i-1,i])
+    par, intCurve, covar = interpolate(func, xData, yData)
+    matrix_sco[-4,i],  matrix_sco[-2,i]=  par[0], par[1] # Parameter A and B
+    matrix_sco[-3,i],  matrix_sco[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
+
 
 
 
