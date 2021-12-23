@@ -133,7 +133,6 @@ for h in range (0, len(files)-1):
             DEM1_name = DEM1_single_name
             DEM2_name = DEM2_single_name
         
-        
         # Specify DEMs path...
         path_DEM1 = os.path.join(input_dir, DEM1_name)
         path_DEM2 = os.path.join(input_dir, DEM2_name)
