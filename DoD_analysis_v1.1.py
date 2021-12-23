@@ -6,13 +6,13 @@ Created on Thu Apr 15 09:44:30 2021
 @author: erri
 """
 import os
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import optimize as opt
 # from matplotlib.colors import ListedColormap, BoundaryNorm
 
-
-
+start = time.time() # Set initial time
 ######################################################################################
 # FUNCTIONS
 ######################################################################################
@@ -55,7 +55,7 @@ Process mode: (NB: set DEMs name)
     1 = batch process
     2 = single run process
 '''
-mask_mode=3
+mask_mode=1
 
 process_mode = 1
 DEM1_single_name = 'matrix_bed_norm_q07S5.txt' # DEM1 name
@@ -87,11 +87,12 @@ volumes_array=[] # Tot volume
 dep_array=[] # Deposition volume
 sco_array=[] # Scour volume
 active_area_array=[] # Active area 
+# matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
 matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
-matrix_dep=np.zeros((len(files)-1, len(files)+1)) # Deposition volume report matrix
+# matrix_dep=np.zeros((len(files)-1, len(files)+1)) # Deposition volume report matrix
+matrix_dep=np.zeros((len(files)+3, len(files)+1)) # Deposition volume report matrix
 # matrix_sco=np.zeros((len(files)-1, len(files)+1)) # Scour volume report matrix
 matrix_sco=np.zeros((len(files)+3, len(files)+1)) # Scour volume report matrix
-interp_param_sco=np.zeros((len(files)-1,4))
 
 ######################################################################################
 # SETUP MASKS
@@ -249,11 +250,13 @@ for h in range (0, len(files)-1):
                                   [0, 1, 0]])
                     w_norm = w / (sum(sum(w)))  # Normalizing weight matrix
                     DoD_mean[i, j] = np.nansum(ker1 * w_norm)
-        
+        #TODO convert Array in a %.1f format
         # # Filtered array weighted average by nan.array mask
         # DoD_mean = DoD_mean * array_msk_nan
         # Create a GIS readable DoD mean (np.nan as -999)
+        DoD_mean = np.round(DoD_mean, 1) # Round data to 1 decimal precision
         DoD_mean_rst = np.where(np.isnan(DoD_mean), NaN, DoD_mean)
+        
         
         
         # Threshold and Neighbourhood analysis process
@@ -273,7 +276,7 @@ for h in range (0, len(files)-1):
                         # So if the nature of the selected cell is not confirmed...
                         DoD_filt[i,j] = 0
                         
-        # DoD_out = DoD_filt # * array_msk_nan
+        DoD_filt = np.round(DoD_filt, 1) # Round data to 1 decimal precision
         # Create a GIS readable filtered DoD (np.nann as -999)
         DoD_filt_rst = np.where(np.isnan(DoD_filt), NaN, DoD_filt)
                         
@@ -373,15 +376,19 @@ for h in range (0, len(files)-1):
         
         
         # Create output matrix as below:
-        # DoD step0 1-0 2-1 3-2 4-3 5-4 6-5 7-6 8-7 9-8 average STDEV
-        # DoD step1 2-0 3-1 4-2 5-3 6-4 7-5 8-6 9-7     average STDEV
-        # DoD step2 3-0 4-1 5-2 6-3 7-4 8-5 9-6         average STDEV
-        # DoD step3 4-0 5-1 6-2 7-3 8-4 9-5             average STDEV
-        # DoD step4 5-0 6-1 7-2 8-3 9-4                 average STDEV
-        # DoD step5 6-0 7-1 8-2 9-3                     average STDEV
-        # DoD step6 7-0 8-1 9-2                         average STDEV
-        # DoD step7 8-0 9-1                             average STDEV
-        # DoD step8 9-0                                 average STDEV
+        # DoD step0  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  average STDEV
+        # DoD step1  2-0   3-1   4-2   5-3   6-4   7-5   8-6   9-7        average STDEV
+        # DoD step2  3-0   4-1   5-2   6-3   7-4   8-5   9-6              average STDEV
+        # DoD step3  4-0   5-1   6-2   7-3   8-4   9-5                    average STDEV
+        # DoD step4  5-0   6-1   7-2   8-3   9-4                          average STDEV
+        # DoD step5  6-0   7-1   8-2   9-3                                average STDEV
+        # DoD step6  7-0   8-1   9-2                                      average STDEV
+        # DoD step7  8-0   9-1                                            average STDEV
+        # DoD step8  9-0                                                  average STDEV
+        #             A     A     A     A     A     A     A     A     A
+        #           SD(A) SD(A) SD(A) SD(A) SD(A) SD(A) SD(A) SD(A) SD(A)
+        #             B     B     B     B     B     B     B     B     B
+        #           SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B)
         
         DEM1_num=DEM1_name[20:21]
         DEM2_num=DEM2_name[20:21]
@@ -404,7 +411,7 @@ for h in range (0, len(files)-1):
             pass
         
         
-        # Stack consecutive DoDs
+        # Stack consecutive DoDs in a 3D array
         if h==0 and k==0: # initialize the first array with the DEM shape
             DoD_stack = np.zeros([len(files)-1, dim_x, dim_y])
         else:
@@ -452,14 +459,14 @@ for h in range (0, len(files)-1):
         # Print DoD and filtered DoD (with NaN as -999) in a GIS readable format (ASCII grid):
         with open(path_out + '/' + DoD_name + 'header.txt') as f_head:
             w_header = f_head.read()    # Header
-        with open(path_out + '/' + DoD_name + 'raw_rst.txt') as DoD:
-            w_DoD_raw= DoD.read()   # Raw DoD
-        with open(path_out + '/' + DoD_name + 'mean_rst.txt') as DoD_mean:
-            w_DoD_mean = DoD_mean.read()    # Mean DoD
-        with open(path_out + '/' + DoD_name + 'filt_rst.txt') as DoD_filt:
-            w_DoD_filt = DoD_filt.read()    # Filtered DoD
-        with open(path_out + '/' + DoD_name + 'filt_nozero_rst.txt') as DoD_filt_nozero:
-            w_DoD_filt_nozero = DoD_filt_nozero.read()    # Avoided zero surrounded pixel DoD
+        with open(path_out + '/' + DoD_name + 'raw_rst.txt') as f_DoD:
+            w_DoD_raw= f_DoD.read()   # Raw DoD
+        with open(path_out + '/' + DoD_name + 'mean_rst.txt') as f_DoD_mean:
+            w_DoD_mean = f_DoD_mean.read()    # Mean DoD
+        with open(path_out + '/' + DoD_name + 'filt_rst.txt') as f_DoD_filt:
+            w_DoD_filt = f_DoD_filt.read()    # Filtered DoD
+        with open(path_out + '/' + DoD_name + 'filt_nozero_rst.txt') as f_DoD_filt_nozero:
+            w_DoD_filt_nozero = f_DoD_filt_nozero.read()    # Avoided zero surrounded pixel DoD
             
             # Print GIS readable raster [raw DoD, mean DoD, filtered DoD]
             DoD_raw_gis = w_header + w_DoD_raw
@@ -487,15 +494,17 @@ plt.show()
 ###############################################################################
 # VOLUME INTERPOLATION PARAMETER
 ###############################################################################
-#                       param_A    STD(A)    param_B    STD(B)
-# 1-0, 2-0, 3-0, 4-0 ...
-# 2-1, 3-1, 4-1, 5-1 ...
-# 3-2, 4-2. 5-2, 6-2 ...
-
 
 for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought interpolation skipped
     xData = np.arange(0, len(files)-i-1, 1)
-    yData=np.np.absolute(matrix_sco[:len(files)-i-1,i])
+    #Fill deposition matrix
+    yData=np.multiply(np.absolute(matrix_dep[:len(files)-i-1,i]), 1/np.max(matrix_dep[:len(files)-i-1,i]))
+    par, intCurve, covar = interpolate(func, xData, yData)
+    matrix_dep[-4,i],  matrix_dep[-2,i]=  par[0], par[1] # Parameter A and B
+    matrix_dep[-3,i],  matrix_dep[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
+    
+    # Fill scour matrix
+    yData=np.multiply(np.absolute(matrix_sco[:len(files)-i-1,i]), 1/np.max(np.absolute(matrix_sco[:len(files)-i-1,i])))
     par, intCurve, covar = interpolate(func, xData, yData)
     matrix_sco[-4,i],  matrix_sco[-2,i]=  par[0], par[1] # Parameter A and B
     matrix_sco[-3,i],  matrix_sco[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
@@ -531,9 +540,13 @@ fp.close()
 fig1, ax1 = plt.subplots()
 # ax1.bar(np.arange(0, len(matrix_sco[:,0]), 1),abs(matrix_sco[:,0]))
 # ax1.plot(t[int(len(t)/10):-int(len(t)/10)], m*t[int(len(t)/10):-int(len(t)/10)]+q)
-ax1.errorbar(np.arange(0, len(matrix_sco[:,0]), 1),abs(matrix_sco[:,0]), matrix_sco[:,-1],linestyle='--', marker='^')
+ax1.errorbar(np.arange(0, len(files)-1, 1),abs(matrix_sco[:len(files)-1,0]), matrix_sco[:len(files)-1,-1],linestyle='--', marker='^')
 ax1.set_ylim(bottom=0)
 ax1.set_title('title')
 ax1.set_xlabel('Time')
 ax1.set_ylabel('yData')
 plt.show()
+
+end = time.time()
+print()
+print('Execution time: ', (end-start), 's')
