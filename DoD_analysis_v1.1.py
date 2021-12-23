@@ -34,7 +34,6 @@ def func(x,A,B):
     y = A*(1-np.exp(-x/B))
     return y
 
-
 ######################################################################################
 # SETUP FOLDERS
 ######################################################################################
@@ -87,6 +86,7 @@ volumes_array=[] # Tot volume
 dep_array=[] # Deposition volume
 sco_array=[] # Scour volume
 active_area_array=[] # Active area 
+report_matrix = [] #Report matrix
 # matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
 matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
 # matrix_dep=np.zeros((len(files)-1, len(files)+1)) # Deposition volume report matrix
@@ -116,7 +116,6 @@ elif mask_mode==3: # Working upstream, masking downstream
     array_mask[:,int(array_mask.shape[1]/2):] = NaN
     array_mask=np.where(array_mask==NaN, np.nan, array_mask)
         
-
 ######################################################################################
 # LOOP OVER ALL DEMs COMBINATIONS
 ######################################################################################
@@ -151,7 +150,6 @@ for h in range (0, len(files)-1):
             os.mkdir(path_out)
                           
                           
-       
         ##############################################################################
         # DATA READING...
         ##############################################################################
@@ -257,8 +255,7 @@ for h in range (0, len(files)-1):
         DoD_mean = np.round(DoD_mean, 1) # Round data to 1 decimal precision
         DoD_mean_rst = np.where(np.isnan(DoD_mean), NaN, DoD_mean)
         
-        
-        
+
         # Threshold and Neighbourhood analysis process
         DoD_filt = np.copy(DoD_mean) # Initialize filtered DoD array as a copy of the averaged one
         DoD_filt_domain = np.pad(DoD_filt, 1, mode='edge') # Create neighbourhood analysis domain
@@ -295,12 +292,9 @@ for h in range (0, len(files)-1):
                         DoD_filt_nozero[i,j] = 0
                     else:
                         pass
-        
-        # Masking DoD_filt_nozero to avoid 
-        
+
         # Create GIS-readable DoD filtered and zero-surrounded avoided
         DoD_filt_nozero_rst = np.where(np.isnan(DoD_filt_nozero), NaN, DoD_filt_nozero)
-        
         
         '''
         Output files:
@@ -313,10 +307,7 @@ for h in range (0, len(files)-1):
             DoD_filt_nozero: DoD_filt with an avoiding zero-surrounded process applied
             DoD_filt_nozero_rst: the same for DoD_filt_nozero but with np.nan=NaN
         '''
-        
-        
 
-        
         ##############################################################################
         # PLOT RAW DOD, MEAN DOD AND FILTERED DOD
         ##############################################################################
@@ -350,6 +341,7 @@ for h in range (0, len(files)-1):
         # DoD filtered name: DoD_filt
         # Create new raster where apply volume calculation
         # DoD>0 --> Deposition, DoD<0 --> Scour
+        # =+SUMIFS(A1:JS144, A1:JS144,">0")*5*50(LibreCalc function)
         DoD_vol = np.where(np.isnan(DoD_filt_nozero), 0, DoD_filt_nozero)
         DEP = (DoD_vol>0)*DoD_vol
         SCO = (DoD_vol<0)*DoD_vol
@@ -366,14 +358,12 @@ for h in range (0, len(files)-1):
         
         # Active_pixel analysis
         #Resize DoD fpr photos matching
-        # active_pixel_count = DoD_vol[:,:]
         active_pixel_count = np.where(DoD_vol!=0, 1, 0)
         active_area = np.count_nonzero(active_pixel_count) *px_x*px_y
         print('Area_active: ', "{:.1f}".format(active_area), '[mm**2]')
         active_area_array = np.append(active_area_array, active_area)
         print()
         print()
-        
         
         # Create output matrix as below:
         # DoD step0  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  average STDEV
@@ -410,7 +400,6 @@ for h in range (0, len(files)-1):
         else:
             pass
         
-        
         # Stack consecutive DoDs in a 3D array
         if h==0 and k==0: # initialize the first array with the DEM shape
             DoD_stack = np.zeros([len(files)-1, dim_x, dim_y])
@@ -420,10 +409,6 @@ for h in range (0, len(files)-1):
         if delta==1:
             DoD_stack[h,:,:] = DoD_filt_nozero_rst[:,:]
             
-            
-        
-        
-        
         ##############################################################################
         # SAVE DATA
         ##############################################################################
@@ -451,10 +436,6 @@ for h in range (0, len(files)-1):
         np.savetxt(path_out + '/' + DoD_name + 'nozero.txt', DoD_filt_nozero, fmt='%0.1f', delimiter='\t')
         # Print filtered DoD (with NaN as -999)
         np.savetxt(path_out + '/' + DoD_name + 'filt_nozero_rst.txt', DoD_filt_nozero_rst, fmt='%0.1f', delimiter='\t')
-        
-        
-        
-        
         
         # Print DoD and filtered DoD (with NaN as -999) in a GIS readable format (ASCII grid):
         with open(path_out + '/' + DoD_name + 'header.txt') as f_head:
@@ -490,7 +471,6 @@ plt.colorbar(im)
 plt.title(DoD_name[:-1], fontweight='bold')
 plt.show()
 
-
 ###############################################################################
 # VOLUME INTERPOLATION PARAMETER
 ###############################################################################
@@ -509,20 +489,12 @@ for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: n
     matrix_sco[-4,i],  matrix_sco[-2,i]=  par[0], par[1] # Parameter A and B
     matrix_sco[-3,i],  matrix_sco[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
 
-
-
-
 ###############################################################################
 # SAVE DATA MATRIX
 ###############################################################################
-# create report matrix data
-report_matrix = []
-
-# comb_test=comb.astype(str)
-
+# Create report matrix
 report_matrix = np.array(np.transpose(np.stack((comb, DoD_count_array, volumes_array, dep_array, sco_array, active_area_array))))
 header = 'DoD_combination, Active pixels, Total volume [mm^3], Deposition volume [mm^3], Scour volume [mm^3], Active area [mm^2]'
-
 
 with open(os.path.join(home_dir, 'report.txt'), 'w') as fp:
     fp.write(header)
