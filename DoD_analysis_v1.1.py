@@ -30,6 +30,7 @@ def interpolate(func, xData, yData, ic=None, bounds=(-np.inf, np.inf)):
         intCurve = -1 * np.ones(len(xData))
     return par, intCurve, covar
 
+# Scour and deposition volumes interpolation function
 def func(x,A,B):
     y = A*(1-np.exp(-x/B))
     return y
@@ -38,8 +39,10 @@ def func(x,A,B):
 # SETUP FOLDERS
 ######################################################################################
 # setup working directory and DEM's name
+run = 'q07'
 home_dir = os.getcwd()
-input_dir = os.path.join(home_dir, 'surveys')
+input_dir = os.path.join(home_dir, 'surveys', run)
+report_dir = os.path.join(home_dir, 'output')
 
 ##############################################################################
 # SETUP SCRIPT PARAMETERS
@@ -55,7 +58,6 @@ Process mode: (NB: set DEMs name)
     2 = single run process
 '''
 mask_mode=1
-
 process_mode = 1
 DEM1_single_name = 'matrix_bed_norm_q07S5.txt' # DEM1 name
 DEM2_single_name = 'matrix_bed_norm_q07S6.txt' # DEM2 name
@@ -71,6 +73,10 @@ px_y = 5 # [mm]
 
 # Not a number raster value (NaN)
 NaN = -999
+
+# Run parameters
+dt = 47 # dt between runs in minutes (real time)
+dt_xnr = 0.5 # temporal discretization in terms of Exner time (Texner between runs)
 
 files=[] # initializing filenames list
 # Creating array with file names:
@@ -102,6 +108,7 @@ matrix_sco=np.zeros((len(files)+3, len(files)+1)) # Scour volume report matrix
 array_mask_name, array_mask_path = 'array_mask.txt', home_dir
 # Load array:
 array_mask = np.loadtxt(os.path.join(array_mask_path, array_mask_name))
+
 array_mask = np.where(np.isnan(array_mask), 0, 1) # Convert in mask with 0 and 1
 array_mask_nan = np.where(array_mask==0, np.nan, 1) # Convert in mask with np.nan and 1
 
@@ -195,9 +202,15 @@ for h in range (0, len(files)-1):
             print('reshaping mask...')
             print()
             print()
-            
-            array_mask=array_mask[0:arr_shape[0], 0:arr_shape[1]] # Reshape mask 0,1
-            array_mask_nan=array_mask[0:arr_shape[0], 0:arr_shape[1]] # Reshape mask np.nan,1
+            if array_mask.shape[0]>=arr_shape[0] and array_mask.shape[1]>=arr_shape[1]:
+                array_mask=array_mask[0:arr_shape[0], 0:arr_shape[1]] # Reshape mask 0,1
+                array_mask_nan=array_mask[0:arr_shape[0], 0:arr_shape[1]] # Reshape mask np.nan,1
+            else:
+                # TODO optimize for all DoD dimension, non only for q07 runs DoD
+                array_mask_reshaped=np.zeros(arr_shape) # Create a zeros array DEM shapes
+                array_mask_reshaped[2:-2,:]=array_mask[:, 0:arr_shape[1]]
+                array_mask=array_mask_reshaped
+                array_mask_nan=np.where(array_mask==0, np.nan, array_mask)
         
         ##############################################################################
         # PERFORM DEM OF DIFFERENCE - DEM2-DEM1
@@ -473,11 +486,56 @@ plt.show()
 ###############################################################################
 # VOLUME INTERPOLATION PARAMETER
 ###############################################################################
+'''
+Interpolation performed all over the volume data.
+Standard deviation is then applied to function parameters
+'''
 
-for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought interpolation skipped
+xData=[]
+yData_dep=[]
+yData_sco=[]
+for i in range(0,len(files)-1):
+    xData=np.append(xData, np.ones(len(files)-i-1)*(i+1)*dt) # Create xData array for all the volume points
+    yData_dep=np.append(yData_dep, matrix_dep[i,:len(files)-i-1]) # deposition volumes (unroll yData)
+    yData_sco=np.append(yData_sco, abs(matrix_sco[i,:len(files)-i-1])) # scour volumes (unroll yData)
+
+ic_dep=np.array([np.mean(yData_dep),np.min(xData)]) # Initial deposition parameter guess
+ic_sco=np.array([np.mean(yData_sco),np.min(xData)]) # Initial scour parameter guess
+par_dep, intCurve_dep, covar_dep = interpolate(func, xData, yData_dep, ic_dep)
+par_sco, intCurve_sco, covar_sco = interpolate(func, xData, yData_sco, ic_sco)
+
+# Print scour and deposition matrix the interpolation parameters of the all data interpolation
+# matrix_dep[len(files)]
+
+print()
+print('All points interpolation parameters:')
+print('Deposition interpolation parameters')
+print('A=', par_dep[0], 'Variance=', covar_dep[0,0])
+print('B=', par_dep[1], 'Variance=', covar_dep[1,1])
+print('Scour interpolation parameters')
+print('A=', par_sco[0], 'Variance=', covar_sco[0,0])
+print('B=', par_sco[1], 'Variance=', covar_sco[1,1])
+
+fig1, axs = plt.subplots(2,1,dpi=100, sharex=True, tight_layout=True)
+axs[0].plot(xData, yData_dep, 'o')
+axs[0].plot(xData, intCurve_dep, c='red')
+axs[0].set_title('Deposition volumes interpolation')
+axs[0].set_xlabel('xData')
+axs[0].set_ylabel('yData')
+axs[1].plot(xData, yData_sco, 'o')
+axs[1].plot(xData, intCurve_sco, c='red')
+axs[1].set_title('Scour volumes interpolation')
+axs[1].set_xlabel('xData')
+axs[1].set_ylabel('yData')
+plt.show()
+
+
+
+for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought -> interpolation skipped
     xData = np.arange(0, len(files)-i-1, 1)
+    
     #Fill deposition matrix
-    yData=np.multiply(np.absolute(matrix_dep[:len(files)-i-1,i]), 1/np.max(matrix_dep[:len(files)-i-1,i]))
+    yData=np.absolute(matrix_dep[:len(files)-i-1,i])
     par, intCurve, covar = interpolate(func, xData, yData)
     matrix_dep[-4,i],  matrix_dep[-2,i]=  par[0], par[1] # Parameter A and B
     matrix_dep[-3,i],  matrix_dep[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
@@ -493,10 +551,11 @@ for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: n
 ###############################################################################
 # Create report matrix
 report_matrix = np.array(np.transpose(np.stack((comb, DoD_count_array, volumes_array, dep_array, sco_array, active_area_array))))
-header = 'DoD_combination, Active pixels, Total volume [mm^3], Deposition volume [mm^3], Scour volume [mm^3], Active area [mm^2]'
+report_header = 'DoD_combination, Active pixels, Total volume [mm^3], Deposition volume [mm^3], Scour volume [mm^3], Active area [mm^2]'
 
-with open(os.path.join(home_dir, 'report.txt'), 'w') as fp:
-    fp.write(header)
+report_name = run + '_report.txt'
+with open(os.path.join(report_dir , report_name), 'w') as fp:
+    fp.write(report_header)
     fp.writelines(['\n'])
     for i in range(0,len(report_matrix[:,0])):
         for j in range(0, len(report_matrix[0,:])):
@@ -507,13 +566,25 @@ with open(os.path.join(home_dir, 'report.txt'), 'w') as fp:
         fp.writelines(['\n'])
 fp.close()
 
+# Create deposition report matrix
+report_dep_name = os.path.join(report_dir, run +'_dep_report.txt')
+np.savetxt(report_dep_name, matrix_dep, fmt='%.3f', delimiter=',', newline='\n')
+
+# Create scour report matrix
+report_sco_name = os.path.join(report_dir, run +'_sco_report.txt')
+np.savetxt(report_sco_name, matrix_sco, fmt='%.3f', delimiter=',', newline='\n')
+
+
 # Print scour volumes over increasing timestep:
 fig1, ax1 = plt.subplots()
 # ax1.bar(np.arange(0, len(matrix_sco[:,0]), 1),abs(matrix_sco[:,0]))
 # ax1.plot(t[int(len(t)/10):-int(len(t)/10)], m*t[int(len(t)/10):-int(len(t)/10)]+q)
-ax1.errorbar(np.arange(0, len(files)-1, 1),abs(matrix_sco[:len(files)-1,0]), matrix_sco[:len(files)-1,-1],linestyle='--', marker='^')
+xData=np.arange(0, len(files)-1, 1)
+yData=np.absolute(matrix_sco[:len(files)-1,0])
+yError=matrix_sco[:len(files)-1,-1]
+ax1.errorbar(xData,yData, yError, linestyle='--', marker='^')
 ax1.set_ylim(bottom=0)
-ax1.set_title('title')
+ax1.set_title(run)
 ax1.set_xlabel('Time')
 ax1.set_ylabel('yData')
 plt.show()
