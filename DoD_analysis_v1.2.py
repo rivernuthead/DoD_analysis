@@ -101,30 +101,61 @@ matrix_dep=np.zeros((len(files)+3, len(files)+1)) # Deposition volume report mat
 matrix_sco=np.zeros((len(files)+3, len(files)+1)) # Scour volume report matrix
 
 ######################################################################################
+# CHECK DEMs SHAPE
+######################################################################################
+# Due to differences between DEMs shape (not the same ScanArea.txt laser survey file)
+# a preliminary loop over the all DEMs is required in order to define the target
+# dimension of the reshaping operation
+array_dim_x = []
+array_dim_y = []  
+for f in files:
+    path_DEM = os.path.join(input_dir, f)
+    DEM = np.loadtxt(path_DEM,
+                      # delimiter=',',
+                      skiprows=8
+                      )
+    array_dim_x = np.append(array_dim_x, DEM.shape[0])
+    array_dim_y = np.append(array_dim_y, DEM.shape[1])
+    
+# Define target dimension:
+shp_target_x, shp_target_y = int(min(array_dim_x)), int(min(array_dim_y))
+
+arr_shape = np.array([shp_target_x, shp_target_y]) # Define target shape
+
+
+######################################################################################
 # SETUP MASKS
 ######################################################################################
 # array mask for filtering data outside the channel domain
 #TODO check mask
+
+run_list = ['q10', 'q10_2', 'q15', 'q20', 'q20_2']
+for r in runs_list:
+    
+
 array_mask_name, array_mask_path = 'array_mask.txt', home_dir
 # Load mask
 array_mask = np.loadtxt(os.path.join(array_mask_path, array_mask_name))
+# Reshape mask:
+array_mask_rshp = array_mask[:shp_target_x,:shp_target_y] # Array mask reshaped
+
 # Create array mask:
 # - array_mask: np.array with 0 and 1
 # - array_mask_nan: np.array with np.nan and 1
-array_mask = np.where(np.isnan(array_mask), 0, 1) # Convert in mask with 0 and 1
-array_mask_nan = np.where(array_mask==0, np.nan, 1) # Convert in mask with np.nan and 1
+array_mask_rshp = np.where(np.isnan(array_mask_rshp), 0, 1) # Convert in mask with 0 and 1
+array_mask_rshp_nan = np.where(array_mask_rshp==0, np.nan, 1) # Convert in mask with np.nan and 1
 
 # Here we can split in two parts the DEMs or keep the entire one
 if mask_mode==1:
     pass
 elif mask_mode==2: # Working downstream, masking upstream
-   array_mask[:,:-int(array_mask.shape[1]/2)] = NaN
-   array_mask=np.where(array_mask==NaN, np.nan, array_mask)
+   array_mask_rshp[:,:-int(array_mask_rshp.shape[1]/2)] = NaN
+   array_mask_rshp=np.where(array_mask_rshp==NaN, np.nan, array_mask_rshp)
 
 elif mask_mode==3: # Working upstream, masking downstream
-    array_mask[:,int(array_mask.shape[1]/2):] = NaN
-    array_mask=np.where(array_mask==NaN, np.nan, array_mask)
-        
+    array_mask_rshp[:,int(array_mask_rshp.shape[1]/2):] = NaN
+    array_mask_rshp=np.where(array_mask_rshp==NaN, np.nan, array_mask_rshp)
+
 ######################################################################################
 # LOOP OVER ALL DEMs COMBINATIONS
 ######################################################################################
@@ -157,7 +188,6 @@ for h in range (0, len(files)-1):
         if not(os.path.exists(path_out)):
             os.mkdir(path_out)
                           
-                          
         ##############################################################################
         # DATA READING...
         ##############################################################################
@@ -186,38 +216,27 @@ for h in range (0, len(files)-1):
         DEM2 = np.loadtxt(path_DEM2,
                           # delimiter=',',
                           skiprows=8)
-        '''
-        This section has been moved here due to different laser survey ScanArea
-        dimensions. So, reshaping needs to be performed after DEMs shape is known
-        '''
+
+
+        # DEMs reshaping according to arr_shape...
+        DEM1=DEM1[0:arr_shape[0], 0:arr_shape[1]]
+        DEM2=DEM2[0:arr_shape[0], 0:arr_shape[1]]
         
-        # Shape check between DEMs:
-        arr_shape=min(DEM1.shape, DEM2.shape) # Define target shape
-        if not(DEM1.shape == DEM2.shape):
-            print('Attention: DEMs have not the same shape.')
-            # reshaping:
-            rows = min(DEM1.shape[0], DEM2.shape[0])
-            cols = min(DEM1.shape[1], DEM2.shape[1])
-            arr_shape = [rows, cols]
-        # and reshaping...
-            DEM1=DEM1[0:arr_shape[0], 0:arr_shape[1]]
-            DEM2=DEM2[0:arr_shape[0], 0:arr_shape[1]]
-        
-        # Shape check between DEMs and mask
-        if not(array_mask.shape == arr_shape):
-            print('mask and array shape not match...')
-            print('reshaping mask...')
-            print()
-            print()
-            if array_mask.shape[0]>=arr_shape[0] and array_mask.shape[1]>=arr_shape[1]:
-                array_mask_rshp=array_mask[0:arr_shape[0], 0:arr_shape[1]] # Reshape mask 0,1
-                array_mask_rshp_nan=array_mask[0:arr_shape[0], 0:arr_shape[1]] # Reshape mask np.nan,1
-            else:
-                # TODO optimize for all DoD dimension, non only for q07 runs DoD
-                array_mask_reshaped=np.zeros(arr_shape) # Create a zeros array DEM shapes
-                array_mask_reshaped[2:-2,:]=array_mask[:, 0:arr_shape[1]]
-                array_mask=array_mask_reshaped
-                array_mask_nan=np.where(array_mask==0, np.nan, array_mask)
+        # # Shape check between DEMs and mask
+        # if not(array_mask.shape == arr_shape):
+        #     print('mask and array shape not match...')
+        #     print('reshaping mask...')
+        #     print()
+        #     print()
+        #     if array_mask.shape[0]>=arr_shape[0] and array_mask.shape[1]>=arr_shape[1]:
+        #         array_mask_rshp=array_mask[0:arr_shape[0], 0:arr_shape[1]] # Reshape mask 0,1
+        #         array_mask_rshp_nan=array_mask[0:arr_shape[0], 0:arr_shape[1]] # Reshape mask np.nan,1
+        #     else:
+        #         # TODO optimize for all DoD dimension, non only for q07 runs DoD
+        #         array_mask_reshaped=np.zeros(arr_shape) # Create a zeros array DEM shapes
+        #         array_mask_reshaped[2:-2,:]=array_mask[:, 0:arr_shape[1]]
+        #         array_mask=array_mask_reshaped
+        #         array_mask_nan=np.where(array_mask==0, np.nan, array_mask)
         
         ##############################################################################
         # PERFORM DEM OF DIFFERENCE - DEM2-DEM1
