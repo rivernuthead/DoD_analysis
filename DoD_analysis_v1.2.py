@@ -39,7 +39,7 @@ def func(x,A,B):
 # SETUP FOLDERS
 ######################################################################################
 # setup working directory and DEM's name
-run = 'q10'
+run = 'q10_2'
 home_dir = os.getcwd()
 input_dir = os.path.join(home_dir, 'surveys', run)
 report_dir = os.path.join(home_dir, 'output')
@@ -129,11 +129,16 @@ arr_shape = np.array([shp_target_x, shp_target_y]) # Define target shape
 # array mask for filtering data outside the channel domain
 #TODO check mask
 
-run_list = ['q10', 'q10_2', 'q15', 'q20', 'q20_2']
-for r in runs_list:
-    
+# Different mask will be applied depending on the run due to different ScanArea
+# used during the laser surveys
+runs_list = ['q10', 'q10_2', 'q15', 'q20', 'q20_2'] # Old runs with old ScanArea
+array_mask_name, array_mask_path = 'array_mask.txt', home_dir # Mask for runs 07 onwards
 
-array_mask_name, array_mask_path = 'array_mask.txt', home_dir
+if run in runs_list:
+    array_mask_name, array_mask_path = 'array_mask_0.txt', home_dir
+    print(array_mask_name)
+
+    
 # Load mask
 array_mask = np.loadtxt(os.path.join(array_mask_path, array_mask_name))
 # Reshape mask:
@@ -181,7 +186,7 @@ for h in range (0, len(files)-1):
         
         # Output folder
         output_name = 'script_outputs_' + DEM2_name[19:21] + '-' + DEM1_name[19:21] # Set outputs name
-        output_dir = os.path.join(home_dir, 'DoDs') # Set outputs directory
+        output_dir = os.path.join(home_dir, 'DoDs', 'DoD_'+run) # Set outputs directory
         path_out = os.path.join(output_dir,  output_name) # Set outputs path
         if not(os.path.exists(output_dir)):
             os.mkdir(output_dir)
@@ -418,9 +423,9 @@ for h in range (0, len(files)-1):
         #             B     B     B     B     B     B     B     B     B
         #           SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B)
         
-        DEM1_num=DEM1_name[20:21]
-        DEM2_num=DEM2_name[20:21]
-        delta=int(DEM2_name[20:21])-int(DEM1_name[20:21])
+        DEM1_num=DEM1_name[-5:-4]
+        DEM2_num=DEM2_name[-5:-40]
+        delta=int(DEM2_name[-5:-4])-int(DEM1_name[-5:-4])
         
         if delta != 0:
             # Fill matrix with values
