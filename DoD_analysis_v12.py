@@ -48,6 +48,9 @@ DoDs_dir = os.path.join(home_dir, 'DoDs')
 report_dir = os.path.join(home_dir, 'output')
 plot_dir = os.path.join(home_dir, 'plot')
 
+# Check in RUN variable for bath run script is define
+if 'RUN' in locals():
+    run=RUN
 
 # Create folders
 if not(os.path.exists(report_dir)):
