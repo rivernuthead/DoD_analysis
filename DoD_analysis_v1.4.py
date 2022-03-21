@@ -40,7 +40,7 @@ def func(x,A,B):
 ###############################################################################
 
 # SINGLE RUN NAME
-run = 'q07_1'
+run = 'q20_1'
 
 '''
 Run mode:
@@ -58,7 +58,7 @@ Save mode:
     1 = save all chart and figure
     
 '''
-run_mode = 1
+run_mode = 2
 mask_mode = 1
 process_mode = 1
 save_mode = 0
@@ -75,6 +75,7 @@ report_dir = os.path.join(home_dir, 'output')
 plot_dir = os.path.join(home_dir, 'plot')
 run_dir = os.path.join(home_dir, 'surveys')
 
+
 # Create the run name list
 RUNS=[]
 if run_mode ==2:
@@ -84,10 +85,13 @@ if run_mode ==2:
 elif run_mode==1:
     RUNS=run.split()
 
+# Define time scale report matrix:
+# B_dep, SD(B_dep), B_sco, SD(B_sco)
+temporal_scale_report=np.zeros((len(RUNS), 4))
+
 ###############################################################################
 # MAIN LOOP OVER RUNS
 ###############################################################################
-
 for run in RUNS:
     
     ###########################################################################
@@ -144,6 +148,14 @@ for run in RUNS:
     # Not a number raster value (NaN)
     NaN = -999
     
+    # Engelund-Gauss model parameters
+    g = 9.806 # Gravity
+    ds = 0.001  # Sediment grainsize [mm]
+    Q = run_param[0]/1000 # Run discharge [m^3/s]
+    teta_c = 0.02 # Schield parameter [-]
+    NG=4 # Number of Gauss points
+    max_iter = 100000 # Maximum numer of iterations
+    
     
     files=[] # initializing filenames list
     # Creating array with file names:
@@ -170,6 +182,8 @@ for run in RUNS:
     matrix_Wact=np.zeros((len(files)+3, len(files)+3)) # Active width report matrix
     matrix_Wact_max=np.zeros((len(files)+3, len(files)+1)) # Max active width report matrix
     matrix_Wact_min=np.zeros((len(files)+3, len(files)+1)) # Minimum active width report matrix
+    
+    matrix_DEM_analysis = np.zeros((len(files), len(files)))
     
     ###########################################################################
     # CHECK DEMs SHAPE
@@ -231,6 +245,80 @@ for run in RUNS:
     elif mask_mode==3: # Working upstream, masking downstream
         array_mask_rshp[:,int(array_mask_rshp.shape[1]/2):] = NaN
         array_mask_rshp=np.where(array_mask_rshp==NaN, np.nan, array_mask_rshp)
+    
+    ###########################################################################
+    # DEM ANALYSIS
+    ###########################################################################
+    # - Residual slope, for each DEM
+    # - Bed Relief Index (BRI) averaged, for each DEM
+    # - STDEV (SD) of the bed elevation, for each DEM
+    
+    # Initialize arrays
+    slope_res = [] # Rsidual slope array
+    BRI=[] # BRi array
+    SD = [] # SD array
+    
+    for f in files:
+        DEM_path = os.path.join(input_dir, f) # Set DEM path
+        DEM = np.loadtxt(DEM_path,          # Load DEM data
+                         #delimiter=',',
+                         skiprows=8)
+        DEM = np.where(np.isclose(DEM, NaN), np.nan, DEM)
+        
+        # DEM reshaping according to arr_shape...
+        DEM=DEM[0:arr_shape[0], 0:arr_shape[1]]
+        
+        # DEM masking...
+        DEM = DEM*array_mask_rshp_nan
+        
+        # Residual slope
+        # NB: this operation will be performed to detrended DEMs
+        # Averaged crosswise bed elevation array:
+        bed_profile = np.nanmean(DEM, axis=0) # Bed profile
+        # Linear regression of bed profile:
+        # Performing linear regression
+        x_coord = np.linspace(0, px_x*len(bed_profile), len(bed_profile)) # Longitudinal coordinate
+        linear_model = np.polyfit(x_coord, bed_profile,1) # linear_model[0]=m, linear_model[1]=q y=m*x+q
+        slope_res = np.append(slope_res, linear_model[0]) # Append residual slope values
+    
+        
+        # PLOT cross section mean values and trendline
+        # fig, ax1 = plt.subplots(dpi=200)
+        # ax1.plot(x_coord, bed_profile)
+        # ax1.plot(x_coord, x_coord*linear_model[0]+linear_model[1], color='red')
+        # ax1.set(xlabel='longitudinal coordinate (mm)', ylabel='Z (mm)',
+        #        title=run+'\n'+'Residual slope:'+str(linear_model[0]))
+        
+        # BRI calculation
+        BRI=np.append(BRI,np.mean(np.nanstd(DEM, axis=0)))
+        
+        # Bed elevation STDEV
+        SD = np.append(SD,np.nanstd(DEM))
+        
+        # Create report matrix:
+        # Structure: DEM name, residual slope [m/m], BRI [mm], SD [mm]
+        matrix_DEM_analysis = np.transpose(np.stack((slope_res, BRI, SD)))
+        
+        # Build report
+        report_DEM_header = 'DEM name, residual slope [m/m], BRI [mm], SD [mm]'
+        report_DEM_name = run+'_DEM_report.txt'
+        with open(os.path.join(report_dir, report_DEM_name), 'w') as fp:
+            fp.write(report_DEM_header)
+            fp.writelines(['\n'])
+            for i in range(0,len(matrix_DEM_analysis[:,0])):
+                for j in range(0, len(matrix_DEM_analysis[0,:])+1):
+                    if j == 0:
+                        fp.writelines([files[i]+', '])
+                    elif j==1:
+                        # fp.writelines(["%.6f, " % float(matrix_DEM_analysis[i,j-1])])
+                        fp.writelines(["{:e},".format(matrix_DEM_analysis[i,j-1])])
+                    else:
+                        fp.writelines(["%.3f, " % float(matrix_DEM_analysis[i,j-1])])
+                fp.writelines(['\n'])
+        fp.close()
+    # Print averaged residual slope:
+    print()
+    print('Averaged DEMs residual slope: ', np.average(slope_res))
     
     ###########################################################################
     # LOOP OVER ALL DEMs COMBINATIONS
@@ -465,7 +553,7 @@ for run in RUNS:
             act_width_mean = (active_area/(DoD_vol.shape[1]*px_x))/(W*1000) # Mean active width [%] - Wact/W
             act_width_array = np.array([np.nansum(active_pixel_count, axis=0)])*px_y/1000/W # Array of the crosswise morphological active width [Wact/W]
             print('Area_active: ', "{:.1f}".format(active_area), '[mm**2]')
-            print('Active width (mean):', "{:.1f}".format(act_width_mean), '%')
+            print('Active width (mean):', "{:.3f}".format(act_width_mean), '%')
             active_area_array = np.append(active_area_array, active_area)
             act_width_mean_array = np.append(act_width_mean_array, act_width_mean)
             print()
@@ -632,22 +720,24 @@ for run in RUNS:
     Interpolation performed all over the volume data.
     Standard deviation is then applied to function parameters
     '''
-    
-    xData=[]
-    yData_dep=[]
-    yData_sco=[]
+    # Initialize arrays
+    xData=[] # xData as time array
+    yData_dep=[] # yData_dep deposition volume values
+    yData_sco=[] # yData_sco scour volume values
     for i in range(0,len(files)-1):
         xData=np.append(xData, np.ones(len(files)-i-1)*(i+1)*dt) # Create xData array for all the volume points
         yData_dep=np.append(yData_dep, matrix_dep[i,:len(files)-i-1]) # deposition volumes (unroll yData)
         yData_sco=np.append(yData_sco, abs(matrix_sco[i,:len(files)-i-1])) # scour volumes (unroll yData)
     
+    temporal_scale_array = []
     ic_dep=np.array([np.mean(yData_dep),np.min(xData)]) # Initial deposition parameter guess
     ic_sco=np.array([np.mean(yData_sco),np.min(xData)]) # Initial scour parameter guess
     par_dep, intCurve_dep, covar_dep = interpolate(func, xData, yData_dep, ic_dep)
     par_sco, intCurve_sco, covar_sco = interpolate(func, xData, yData_sco, ic_sco)
     
-    # Print scour and deposition matrix the interpolation parameters of the all data interpolation
-    # matrix_dep[len(files)]
+    if run_mode==2:
+        temporal_scale_array = np.append(temporal_scale_array, (par_dep[1], covar_dep[1,1], par_sco[1], covar_sco[1,1]))
+        temporal_scale_report[int(np.where(RUNS==run)[0]),:]=temporal_scale_array
     
     print()
     print('All points interpolation parameters:')
@@ -657,6 +747,7 @@ for run in RUNS:
     print('Scour interpolation parameters')
     print('A=', par_sco[0], 'Variance=', covar_sco[0,0])
     print('B=', par_sco[1], 'Variance=', covar_sco[1,1])
+    print()
     
     fig1, axs = plt.subplots(2,1,dpi=100, sharex=True, tight_layout=True)
     axs[0].plot(xData, yData_dep, 'o')
@@ -672,21 +763,28 @@ for run in RUNS:
     plt.show()
     
     
-    # Fill scour and deposition report matrix with interpolation parameters
-    for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought -> interpolation skipped
-        xData = np.arange(0, len(files)-i-1, 1)
+    # # Fill scour and deposition report matrix with interpolation parameters
+    # for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought -> interpolation skipped
+    #     xData = np.ones(len(files)-i-1)*(i+1)*dt # Create xData array for all the volume points
+    #     # xData = np.arange(0, len(files)-i-1, 1)
         
-        #Fill deposition matrix
-        yData=np.absolute(matrix_dep[:len(files)-i-1,i])
-        par, intCurve, covar = interpolate(func, xData, yData)
-        matrix_dep[-4,i],  matrix_dep[-2,i]=  par[0], par[1] # Parameter A and B
-        matrix_dep[-3,i],  matrix_dep[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
+    #     #Fill deposition matrix
+    #     yData_dep=matrix_dep[:len(files)-i-1,i] # yData as value of deposition volume
+    #     ic_dep=np.array([np.mean(yData_dep),np.min(xData)]) # Initial deposition parameter guess
+    #     par_dep, intCurve, covar_dep = interpolate(func, xData, yData_dep, ic_dep)
+    #     matrix_dep[-4,i],  matrix_dep[-2,i]=  par_dep[0], par_dep[1] # Parameter A and B
+    #     matrix_dep[-3,i],  matrix_dep[-1,i]=  covar_dep[0,0], covar_dep[1,1] # STD(A) and STD(B)
         
-        # Fill scour matrix
-        yData=np.multiply(np.absolute(matrix_sco[:len(files)-i-1,i]), 1/np.max(np.absolute(matrix_sco[:len(files)-i-1,i])))
-        par, intCurve, covar = interpolate(func, xData, yData)
-        matrix_sco[-4,i],  matrix_sco[-2,i]=  par[0], par[1] # Parameter A and B
-        matrix_sco[-3,i],  matrix_sco[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
+    #     # Fill scour matrix
+    #     yData_sco=np.absolute(matrix_sco[:len(files)-i-1,i])
+    #     ic_sco=np.array([np.mean(yData_sco),np.min(xData)]) # Initial scour parameter guess
+    #     par_sco, intCurve, covar_sco = interpolate(func, xData, yData_sco, ic_sco)
+    #     matrix_sco[-4,i],  matrix_sco[-2,i]=  par_sco[0], par_sco[1] # Parameter A and B
+    #     matrix_sco[-3,i],  matrix_sco[-1,i]=  covar_sco[0,0], covar_sco[1,1] # STD(A) and STD(B)
+        
+    #     print(xData)
+    #     print(yData_dep)
+    #     print(yData_sco)
     
     ###############################################################################
     # SAVE DATA MATRIX
@@ -707,6 +805,7 @@ for run in RUNS:
                     fp.writelines(["%.3f, " % float(report_matrix[i,j])])
             fp.writelines(['\n'])
     fp.close()
+        
     
     # Create deposition report matrix
     report_dep_name = os.path.join(report_dir, run +'_dep_report.txt')
@@ -738,7 +837,23 @@ for run in RUNS:
     ax1.set_xlabel('Time')
     ax1.set_ylabel('Scour [mm³]')
     plt.show()
-    
+
+if run_mode==2:
+    temporal_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
+    # Write temporl scale report as:
+    # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
+    with open(os.path.join(report_dir, 'temporal_scale.txt'), 'w') as fp:
+        fp.write(temporal_scale_report_header)
+        fp.writelines(['\n'])
+        for i in range(0,len(RUNS)):
+            for j in range(0, 5):
+                if j == 0:
+                    fp.writelines([RUNS[i]+', '])
+                else:
+                    fp.writelines(["%.3f, " % float(temporal_scale_report[i,j-1])])
+            fp.writelines(['\n'])
+    fp.close()
+
 end = time.time()
 print()
 print('Execution time: ', (end-start), 's')

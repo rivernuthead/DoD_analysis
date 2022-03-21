@@ -32,20 +32,276 @@ def interpolate(func, xData, yData, ic=None, bounds=(-np.inf, np.inf)):
 
 # Scour and deposition volumes interpolation function
 def func(x,A,B):
+
+# Gauss Point function:
     y = A*(1-np.exp(-x/B))
     return y
+
+# Gauss point function
+    '''
+    Funzione per il calcolo dei punti e dei pesi di Gauss
+    
+    Argomenti
+    ---------
+    NG: int
+       numero di punti di Gauss
+
+    Output
+    ------
+    p: numpy.ndarray
+      array dei punti di Gauss
+    w: numpy.ndarray
+      array dei pesi
+    '''
+    p, w = None, None
+    if NG==2:
+        p = np.array([ -1/np.sqrt(3),
+                       +1/np.sqrt(3) ])
+        w = np.array([ 1, 1 ])
+    elif NG==3:
+        p = np.array([-(1/5)*np.sqrt(15),
+                      0,
+                      (1/5)*np.sqrt(15)])
+        w = np.array([5/9, 8/9, 5/9])
+    elif NG==4:
+        p = np.array([+(1/35)*np.sqrt(525-70*np.sqrt(30)),
+                      -(1/35)*np.sqrt(525-70*np.sqrt(30)),
+                      +(1/35)*np.sqrt(525+70*np.sqrt(30)),
+                      -(1/35)*np.sqrt(525+70*np.sqrt(30))])
+        w = np.array([(1/36)*(18+np.sqrt(30)),
+                      (1/36)*(18+np.sqrt(30)),
+                      (1/36)*(18-np.sqrt(30)),
+                      (1/36)*(18-np.sqrt(30))])
+
+    return p, w
+def GaussPoints(NG):
+    '''
+    Funzione per il calcolo dei punti e dei pesi di Gauss
+    
+    Argomenti
+    ---------
+    NG: int
+       numero di punti di Gauss
+
+    Output
+    ------
+    p: numpy.ndarray
+      array dei punti di Gauss
+    w: numpy.ndarray
+      array dei pesi
+    '''
+    p, w = None, None
+    if NG==2:
+        p = np.array([ -1/np.sqrt(3),
+                       +1/np.sqrt(3) ])
+        w = np.array([ 1, 1 ])
+    elif NG==3:
+        p = np.array([-(1/5)*np.sqrt(15),
+                      0,
+                      (1/5)*np.sqrt(15)])
+        w = np.array([5/9, 8/9, 5/9])
+    elif NG==4:
+        p = np.array([+(1/35)*np.sqrt(525-70*np.sqrt(30)),
+                      -(1/35)*np.sqrt(525-70*np.sqrt(30)),
+                      +(1/35)*np.sqrt(525+70*np.sqrt(30)),
+                      -(1/35)*np.sqrt(525+70*np.sqrt(30))])
+        w = np.array([(1/36)*(18+np.sqrt(30)),
+                      (1/36)*(18+np.sqrt(30)),
+                      (1/36)*(18-np.sqrt(30)),
+                      (1/36)*(18-np.sqrt(30))])
+
+    return p, w
+
+# Steady flow function
+def MotoUniforme( S, y_coord, z_coord, D, NG, teta_c, ds):
+    '''
+    Calcola i parametri di moto uniforme per assegnato tirante
+
+    Argomenti
+    ---------
+
+    S: float
+       pendenza del canale
+    y_coord: numpy.ndarray
+      coordinate trasversali dei punti della sezione
+    z_coord: numpy.ndarray
+      coordinate verticali dei punti della sezione
+    D: float
+      profondità alla quale calcolare i parametri di moto uniforme
+    NG: int [default=2]
+      numero di punti di Gauss
+    teta_c: float
+        parametro di mobilità critico di Shiels
+    ds: float
+        diamentro medio dei sedimenti
+
+    Output
+    ------
+    Q: float
+      portata alla quale si realizza la profondità D di moto uniforme
+    Omega: float
+      area sezione bagnata alla profondita' D
+    b: float
+      larghezza superficie libera alla profondita' D
+    alpha: float
+      coefficiente di ragguaglio dell'energia alla profondita' D
+    beta: float
+      coefficiente di ragguaglio della qdm alla profondita' D
+    '''
+    # Punti e pesi di Gauss
+    xj, wj = GaussPoints( NG ) # Calcola i putni e i pesi di Gauss
+    
+    #Dati
+    delta = 1.65
+    g = 9.806
+    k = 5.3 # C = 2.5*ln(11*D/(k*ds))
+
+    # Inizializzo
+    Omega = 0 # Area bagnata
+    array_teta = [] # Shields parameter array
+    b = 0 # Larghezza superficie libera
+    sumQs = 0 # Portata solida
+    B=0
+    #I coefficienti di ragguaglio sono relativi a tutta la sezione, si calcolano alla fine.
+    num_alpha = 0 # Numeratore di alpha
+    num_beta = 0 # Numeratore di beta
+    den = 0 # Base del denominatore di alpha e beta
+    Di = D - (z_coord-z_coord.min())  # Distribuzione trasversale della profondita'
+    N = Di.size # Numero di punti sulla trasversale
+
+    # N punti trasversali -> N-1 intervalli (trapezi)
+    for i in range( N-1 ): # Per ogni trapezio
+        
+        #    vertical stripe
+        # 
+        #         dy
+        # 
+        #        o-----o       <- water level
+        #        |     |  
+        #        |     |  DR
+        #        |     |  
+        #        |     o      zR     _ _
+        #    DL  |    /       ^       |
+        #        |   / dB     |       |
+        #        |  /         |       |  dz
+        #        | /\\ phi    |      _|_
+        #    zL  o  ------    |       
+        #    ^                |      
+        #    |                |
+        #    ------------------- z_coord=0
+     
+        yL, yR = y_coord[i], y_coord[i+1]
+        zL, zR = z_coord[i], z_coord[i+1]
+        DL, DR = Di[i], Di[i+1]
+        dy = yR - yL
+        dz = zR - zL
+        dB = np.sqrt(dy**2+dz**2)
+        cosphi = dy/dB
+        # Geometric parameters:
+        if DL<=0 and DR<=0:
+            dy, dz = 0, 0
+            DL, DR = 0, 0
+        elif DL<0:
+            dy = -dy*DR/dz
+            dz = DR
+            DL = 0
+        elif DR<0:
+            dy = dy*DL/dz
+            dz = DL
+            DR = 0
+        
+        #Metodo di Gauss:
+        SUM = np.zeros(3)
+        C = 0
+        Dm = 0
+        teta1=0
+        
+        # Gauss weight loop
+        for j in range(NG):
+            Dm = (DR+DL)/2# + (DR-DL)/2*xj[j]
+            # print(Dm)
+            # print('tirante:', Dm, '   k:', k, '   ds:', ds)
+            
+            if Dm==0 or 2.5*np.log(11*Dm/(k*ds))<0:
+                C=0
+            else:
+                C = 2.5*np.log(11*Dm/(k*ds))
+            
+            #den
+            SUM[0] += wj[j]*C*Dm**(3/2)
+            #num_alpha
+            SUM[1] += wj[j]*C**(3)*Dm**(2.5)
+            #num_beta
+            SUM[2] += wj[j]*C**(2)*Dm**(2)
+            
+        den += dy/2*cosphi**(1/2)*SUM[0]
+        num_alpha += dy/2*cosphi**(3/2)*SUM[1]
+        num_beta += dy/2*cosphi*SUM[2]
+        
+        dOmega = (DR + DL)*dy/2
+        
+        #Calcolo di Omega: superficie della sezione
+        Omega += dOmega
+        
+        #Calcolo di B: lunghezza del perimetro bagnato
+        
+        B += dB
+     
+        #Calcolo di b: larghezza della superficie libera
+        b += dy
+        
+        #Calcolo di b: larghezza della superficie libera
+        #Rh=Omega/B
+        
+        #Shields parameter
+        teta_primo = (Dm*cosphi)*S/(delta*ds)
+        array_teta = np.append(array_teta, teta_primo)
+    
+    
+    count_active = np.count_nonzero(np.where(array_teta>=teta_c, 1, 0))        
+        
+        
+    
+    #Calcolo della portata Q
+    Q = np.sqrt(S*g)*den
+    
+    #Calcolo della capacità di trasporto
+    teta1 = (Omega/B)*S/(delta*ds)
+    if teta1 >= teta_c:
+        Qs = 8*(teta1-teta_c)**1.5*np.sqrt(9.81*delta*ds**3)*b
+    else:
+        Qs = 0
+    # sumQs += qs
+    Qs = sumQs
+    
+    #Condizione per procedere al calcolo anche quando il punto i è sommerso
+    # mentre i+1 no.            
+    if den==0:
+        alpha = None
+        beta = None
+    else:
+        alpha = Omega**2*(g*S)**(3/2)*num_alpha/den**3
+        beta = Omega*g*S*num_beta/den**2
+            
+    return Q, Omega, b, B, alpha, beta, Qs, count_active
+
+
+
 
 ###############################################################################
 # SETUP SCRIPT PARAMETERS and RUN MODE
 ###############################################################################
 
 # SINGLE RUN NAME
-run = 'q07_1'
+run = 'q20_1'
 
 '''
 Run mode:
     1 = one run at time
     2 = bath process
+DEM analysis mode:
+    0 = do not perform DEM analysis
+    1 = perform DEM analysis
 Mask mode:
     1 = mask the flume edge
     2 = mask the upstream half flume
@@ -58,7 +314,8 @@ Save mode:
     1 = save all chart and figure
     
 '''
-run_mode = 1
+run_mode = 2
+DEM_analysis_mode = 0
 mask_mode = 1
 process_mode = 1
 save_mode = 0
@@ -75,6 +332,7 @@ report_dir = os.path.join(home_dir, 'output')
 plot_dir = os.path.join(home_dir, 'plot')
 run_dir = os.path.join(home_dir, 'surveys')
 
+
 # Create the run name list
 RUNS=[]
 if run_mode ==2:
@@ -84,10 +342,17 @@ if run_mode ==2:
 elif run_mode==1:
     RUNS=run.split()
 
+# Define time scale report matrix:
+# B_dep, SD(B_dep), B_sco, SD(B_sco)
+temporal_scale_report=np.zeros((len(RUNS), 4))
+
+# Define Engelund Gauss model report matrix:
+# D [m], Q [m^3/s], Wwet/W [-]
+engelund_model_report=np.zeros((len(RUNS),3))
+
 ###############################################################################
 # MAIN LOOP OVER RUNS
 ###############################################################################
-
 for run in RUNS:
     
     ###########################################################################
@@ -134,7 +399,7 @@ for run in RUNS:
     neigh_thrs = 5  # [-] # Number of neighborhood cells for validation
     
     # Flume parameters
-    W = run_param[0,4] # Flume width
+    W = run_param[0,4] # Flume width [m]
     S = run_param[0,5] # Flume slope
     
     # Pixel dimension
@@ -143,6 +408,15 @@ for run in RUNS:
     
     # Not a number raster value (NaN)
     NaN = -999
+    
+    # Engelund-Gauss model parameters
+    g = 9.806 # Gravity
+    ds = 0.001  # Sediment grainsize [mm]
+    Q = run_param[0,0] # Run discharge [l/s]
+    teta_c = 0.02 # Schield parameter [-]
+    NG=4 # Number of Gauss points
+    max_iter = 100000 # Maximum numer of iterations
+    toll = 0.00001
     
     
     files=[] # initializing filenames list
@@ -171,6 +445,8 @@ for run in RUNS:
     matrix_Wact_max=np.zeros((len(files)+3, len(files)+1)) # Max active width report matrix
     matrix_Wact_min=np.zeros((len(files)+3, len(files)+1)) # Minimum active width report matrix
     
+    matrix_DEM_analysis = np.zeros((len(files), len(files)))
+    
     ###########################################################################
     # CHECK DEMs SHAPE
     ###########################################################################
@@ -197,9 +473,7 @@ for run in RUNS:
     ###########################################################################
     # SETUP MASKS
     ###########################################################################
-    # array mask for filtering data outside the channel domain
-    #TODO check mask
-    
+    # array mask for filtering data outside the channel domain    
     # Different mask will be applied depending on the run due to different ScanArea
     # used during the laser surveys
     runs_list = ['q10_1', 'q10_2', 'q15_1', 'q20_1', 'q20_2'] # Old runs with old ScanArea
@@ -231,6 +505,152 @@ for run in RUNS:
     elif mask_mode==3: # Working upstream, masking downstream
         array_mask_rshp[:,int(array_mask_rshp.shape[1]/2):] = NaN
         array_mask_rshp=np.where(array_mask_rshp==NaN, np.nan, array_mask_rshp)
+    
+    ###########################################################################
+    # DEM ANALYSIS
+    ###########################################################################
+    if DEM_analysis_mode==1:
+        # - Residual slope, for each DEM
+        # - Bed Relief Index (BRI) averaged, for each DEM
+        # - STDEV (SD) of the bed elevation, for each DEM
+        # Initialize arrays
+        slope_res = [] # Rsidual slope array
+        BRI=[] # BRi array
+        SD = [] # SD array
+        engelund_model_array=[] # Engelund model array (Q, D, Wwet/w])
+        water_dept_array=[] # Water dept array [m]
+        discharge_array=[] # Discarge [m^3/s]
+        Wwet_array = [] # Wwet array [Wwet/W]
+        
+        for f in files:
+            DEM_path = os.path.join(input_dir, f) # Set DEM path
+            DEM = np.loadtxt(DEM_path,          # Load DEM data
+                             #delimiter=',',
+                             skiprows=8)
+            DEM = np.where(np.isclose(DEM, NaN), np.nan, DEM)
+            
+            # DEM reshaping according to arr_shape...
+            DEM=DEM[0:arr_shape[0], 0:arr_shape[1]]
+            
+            # DEM masking...
+            DEM = DEM*array_mask_rshp_nan
+            
+            # Residual slope
+            # NB: this operation will be performed to detrended DEMs
+            # Averaged crosswise bed elevation array:
+            bed_profile = np.nanmean(DEM, axis=0) # Bed profile
+            # Linear regression of bed profile:
+            # Performing linear regression
+            x_coord = np.linspace(0, px_x*len(bed_profile), len(bed_profile)) # Longitudinal coordinate
+            linear_model = np.polyfit(x_coord, bed_profile,1) # linear_model[0]=m, linear_model[1]=q y=m*x+q
+            slope_res = np.append(slope_res, linear_model[0]) # Append residual slope values
+        
+            # PLOT cross section mean values and trendline
+            # fig, ax1 = plt.subplots(dpi=200)
+            # ax1.plot(x_coord, bed_profile)
+            # ax1.plot(x_coord, x_coord*linear_model[0]+linear_model[1], color='red')
+            # ax1.set(xlabel='longitudinal coordinate (mm)', ylabel='Z (mm)',
+            #        title=run+'\n'+'Residual slope:'+str(linear_model[0]))
+            
+            # BRI calculation
+            BRI=np.append(BRI,np.mean(np.nanstd(DEM, axis=0)))
+            
+            # Bed elevation STDEV
+            SD = np.append(SD,np.nanstd(DEM))
+            
+            # Create report matrix:
+            # Structure: DEM name, residual slope [m/m], BRI [mm], SD [mm]
+            matrix_DEM_analysis = np.transpose(np.stack((slope_res, BRI, SD)))
+            
+            # Build report
+            report_DEM_header = 'DEM name, residual slope [m/m], BRI [mm], SD [mm]'
+            report_DEM_name = run+'_DEM_report.txt'
+            with open(os.path.join(report_dir, report_DEM_name), 'w') as fp:
+                fp.write(report_DEM_header)
+                fp.writelines(['\n'])
+                for i in range(0,len(matrix_DEM_analysis[:,0])):
+                    for j in range(0, len(matrix_DEM_analysis[0,:])+1):
+                        if j == 0:
+                            fp.writelines([files[i]+', '])
+                        elif j==1:
+                            # fp.writelines(["%.6f, " % float(matrix_DEM_analysis[i,j-1])])
+                            fp.writelines(["{:e},".format(matrix_DEM_analysis[i,j-1])])
+                        else:
+                            fp.writelines(["%.3f, " % float(matrix_DEM_analysis[i,j-1])])
+                    fp.writelines(['\n'])
+            fp.close()
+            
+            # DEM detrending (DEM detrended both with slope and residual slope)
+            DEM_detrended = DEM
+            for i in range(0,DEM.shape[1]):
+                DEM_detrended[:,i] = DEM[:,i]-linear_model[0]*i*px_x
+            
+            # Create equivalent cross section as sorted DEM vaues excluding NaN
+            DEM_values = sorted(DEM_detrended[np.logical_not(np.isnan(DEM_detrended))])
+            # cross_section_eq = DEM_values[::100] # Resize DEM value to be lighter (100 res resampling)
+            cross_section_eq = np.interp(np.arange(0,len(DEM_values),50), np.arange(0,len(DEM_values)), DEM_values)
+            # Add cross section banks as the double of the maximum DEM's value:
+            z_coord = np.pad(cross_section_eq, (1,1), mode='constant', constant_values=int(cross_section_eq.max()*2))
+            z_coord = z_coord/1000 # Convert z_coord in meters
+            
+            # Create cross-wise coordination
+            y_coord = np.arange(0,W*1000, W*1000/len(z_coord))
+            y_coord = y_coord/1000 # Convert y_coord in meters
+            
+            # Engenlund-Gauss implementation
+            
+            Dmax = z_coord.max()-z_coord.min() # Maximum water dept
+            Dmin = 0 # Minimum water level
+            i=0 # Initialize iteration counter
+            
+            # Guess values:
+            D0 = (Dmax-Dmin)/2 # Water dept
+            Qn, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, D0, NG, teta_c, ds) # Discharge
+            # Discharge extreme values
+            Qmax, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, Dmax, NG, teta_c, ds)
+            Qmin, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, Dmin, NG, teta_c, ds)
+            Q_target = Q/1000 # Target discharge [m^3/s]
+            if np.sign(Qmax-Q_target)==np.sign(Qmin-Q_target):
+                print(' Soluntion out of boundaries')
+            else:
+                # Check if h<h_min:
+                while abs(Qn - Q_target)>toll:
+                    if i>max_iter:
+                        print('ERROR: max iterations reached!')
+                        break
+                    i+=1
+                    D0 = (Dmax+Dmin)/2
+                    Q0, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, D0, NG, teta_c, ds)
+                    # print(i)
+                    # print(D0)
+                    # print(Q0)
+                    if Q0>Q_target:
+                        Dmax=D0 # Update Dmax
+                    elif Q0<Q_target:
+                        Dmin=D0 # Update Dmin
+                    Qn=Q0
+            
+            water_dept_array=np.append(water_dept_array, D0) # Water dept array
+            discharge_array=np.append(discharge_array, Q0) # Discarge
+            Wwet_array = np.append(Wwet_array, b/W)
+        
+        water_dept=np.mean(water_dept_array) # Average water dept
+        discharge=np.mean(discharge_array) # Average discarge
+        Wwet = np.mean(Wwet_array)
+        print('Engelund-Gauss model results:')
+        print('Reached discharge: ', discharge, ' m^3/s')
+        print('Water dept: ', water_dept, ' m')
+        print('Wwet/W: ', Wwet)
+        
+        # Append values as: run name, D [m], Q [m^3/s], Wwet/W [-]
+        engelund_model_array = np.append(engelund_model_array,(water_dept, discharge, Wwet))
+        if run_mode ==2:
+            engelund_model_report[int(np.where(RUNS==run)[0]),:]=engelund_model_array   
+            
+        # Print averaged residual slope:
+        print()
+        print('Averaged DEMs residual slope: ', np.average(slope_res))
+    
     
     ###########################################################################
     # LOOP OVER ALL DEMs COMBINATIONS
@@ -465,7 +885,7 @@ for run in RUNS:
             act_width_mean = (active_area/(DoD_vol.shape[1]*px_x))/(W*1000) # Mean active width [%] - Wact/W
             act_width_array = np.array([np.nansum(active_pixel_count, axis=0)])*px_y/1000/W # Array of the crosswise morphological active width [Wact/W]
             print('Area_active: ', "{:.1f}".format(active_area), '[mm**2]')
-            print('Active width (mean):', "{:.1f}".format(act_width_mean), '%')
+            print('Active width (mean):', "{:.3f}".format(act_width_mean), '%')
             active_area_array = np.append(active_area_array, active_area)
             act_width_mean_array = np.append(act_width_mean_array, act_width_mean)
             print()
@@ -632,22 +1052,24 @@ for run in RUNS:
     Interpolation performed all over the volume data.
     Standard deviation is then applied to function parameters
     '''
-    
-    xData=[]
-    yData_dep=[]
-    yData_sco=[]
+    # Initialize arrays
+    xData=[] # xData as time array
+    yData_dep=[] # yData_dep deposition volume values
+    yData_sco=[] # yData_sco scour volume values
     for i in range(0,len(files)-1):
         xData=np.append(xData, np.ones(len(files)-i-1)*(i+1)*dt) # Create xData array for all the volume points
         yData_dep=np.append(yData_dep, matrix_dep[i,:len(files)-i-1]) # deposition volumes (unroll yData)
         yData_sco=np.append(yData_sco, abs(matrix_sco[i,:len(files)-i-1])) # scour volumes (unroll yData)
     
+    temporal_scale_array = []
     ic_dep=np.array([np.mean(yData_dep),np.min(xData)]) # Initial deposition parameter guess
     ic_sco=np.array([np.mean(yData_sco),np.min(xData)]) # Initial scour parameter guess
     par_dep, intCurve_dep, covar_dep = interpolate(func, xData, yData_dep, ic_dep)
     par_sco, intCurve_sco, covar_sco = interpolate(func, xData, yData_sco, ic_sco)
     
-    # Print scour and deposition matrix the interpolation parameters of the all data interpolation
-    # matrix_dep[len(files)]
+    if run_mode==2:
+        temporal_scale_array = np.append(temporal_scale_array, (par_dep[1], covar_dep[1,1], par_sco[1], covar_sco[1,1]))
+        temporal_scale_report[int(np.where(RUNS==run)[0]),:]=temporal_scale_array
     
     print()
     print('All points interpolation parameters:')
@@ -657,6 +1079,7 @@ for run in RUNS:
     print('Scour interpolation parameters')
     print('A=', par_sco[0], 'Variance=', covar_sco[0,0])
     print('B=', par_sco[1], 'Variance=', covar_sco[1,1])
+    print()
     
     fig1, axs = plt.subplots(2,1,dpi=100, sharex=True, tight_layout=True)
     axs[0].plot(xData, yData_dep, 'o')
@@ -672,21 +1095,28 @@ for run in RUNS:
     plt.show()
     
     
-    # Fill scour and deposition report matrix with interpolation parameters
-    for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought -> interpolation skipped
-        xData = np.arange(0, len(files)-i-1, 1)
+    # # Fill scour and deposition report matrix with interpolation parameters
+    # for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought -> interpolation skipped
+    #     xData = np.ones(len(files)-i-1)*(i+1)*dt # Create xData array for all the volume points
+    #     # xData = np.arange(0, len(files)-i-1, 1)
         
-        #Fill deposition matrix
-        yData=np.absolute(matrix_dep[:len(files)-i-1,i])
-        par, intCurve, covar = interpolate(func, xData, yData)
-        matrix_dep[-4,i],  matrix_dep[-2,i]=  par[0], par[1] # Parameter A and B
-        matrix_dep[-3,i],  matrix_dep[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
+    #     #Fill deposition matrix
+    #     yData_dep=matrix_dep[:len(files)-i-1,i] # yData as value of deposition volume
+    #     ic_dep=np.array([np.mean(yData_dep),np.min(xData)]) # Initial deposition parameter guess
+    #     par_dep, intCurve, covar_dep = interpolate(func, xData, yData_dep, ic_dep)
+    #     matrix_dep[-4,i],  matrix_dep[-2,i]=  par_dep[0], par_dep[1] # Parameter A and B
+    #     matrix_dep[-3,i],  matrix_dep[-1,i]=  covar_dep[0,0], covar_dep[1,1] # STD(A) and STD(B)
         
-        # Fill scour matrix
-        yData=np.multiply(np.absolute(matrix_sco[:len(files)-i-1,i]), 1/np.max(np.absolute(matrix_sco[:len(files)-i-1,i])))
-        par, intCurve, covar = interpolate(func, xData, yData)
-        matrix_sco[-4,i],  matrix_sco[-2,i]=  par[0], par[1] # Parameter A and B
-        matrix_sco[-3,i],  matrix_sco[-1,i]=  covar[0,0], covar[1,1] # STD(A) and STD(B)
+    #     # Fill scour matrix
+    #     yData_sco=np.absolute(matrix_sco[:len(files)-i-1,i])
+    #     ic_sco=np.array([np.mean(yData_sco),np.min(xData)]) # Initial scour parameter guess
+    #     par_sco, intCurve, covar_sco = interpolate(func, xData, yData_sco, ic_sco)
+    #     matrix_sco[-4,i],  matrix_sco[-2,i]=  par_sco[0], par_sco[1] # Parameter A and B
+    #     matrix_sco[-3,i],  matrix_sco[-1,i]=  covar_sco[0,0], covar_sco[1,1] # STD(A) and STD(B)
+        
+    #     print(xData)
+    #     print(yData_dep)
+    #     print(yData_sco)
     
     ###############################################################################
     # SAVE DATA MATRIX
@@ -707,6 +1137,7 @@ for run in RUNS:
                     fp.writelines(["%.3f, " % float(report_matrix[i,j])])
             fp.writelines(['\n'])
     fp.close()
+        
     
     # Create deposition report matrix
     report_dep_name = os.path.join(report_dir, run +'_dep_report.txt')
@@ -738,7 +1169,40 @@ for run in RUNS:
     ax1.set_xlabel('Time')
     ax1.set_ylabel('Scour [mm³]')
     plt.show()
+
+if run_mode==2:
+    temporal_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
+    # Write temporl scale report as:
+    # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
+    with open(os.path.join(report_dir, 'temporal_scale_report.txt'), 'w') as fp:
+        fp.write(temporal_scale_report_header)
+        fp.writelines(['\n'])
+        for i in range(0,len(RUNS)):
+            for j in range(0, temporal_scale_report.shape[1]+1):
+                if j == 0:
+                    fp.writelines([RUNS[i]+', '])
+                else:
+                    fp.writelines(["%.3f, " % float(temporal_scale_report[i,j-1])])
+            fp.writelines(['\n'])
+    fp.close()
     
+    if DEM_analysis_mode==1:
+        engelund_model_report_header = 'run name, D [m], Q [m^3/s], Wwet/W [-]'
+        # Write temporl scale report as:
+        # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
+        with open(os.path.join(report_dir, 'engelund_model_report.txt'), 'w') as fp:
+            fp.write(engelund_model_report_header)
+            fp.writelines(['\n'])
+            for i in range(0,len(RUNS)):
+                for j in range(0, engelund_model_report.shape[1]+1):
+                    if j == 0:
+                        fp.writelines([RUNS[i]+', '])
+                    else:
+                        fp.writelines(["%.5f, " % float(engelund_model_report[i,j-1])])
+                fp.writelines(['\n'])
+        fp.close()
+    
+
 end = time.time()
 print()
 print('Execution time: ', (end-start), 's')
