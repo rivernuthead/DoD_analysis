@@ -31,49 +31,28 @@ def interpolate(func, xData, yData, ic=None, bounds=(-np.inf, np.inf)):
     return par, intCurve, covar
 
 # Scour and deposition volumes interpolation function
-def func(x,A,B):
-
-# Gauss Point function:
+def func_exp(x,A,B):
     y = A*(1-np.exp(-x/B))
     return y
 
-# Gauss point function
-    '''
-    Funzione per il calcolo dei punti e dei pesi di Gauss
+def func_exp2(x,A,B,C):
+    y = C + A*(1-np.exp(-x/B))
+    return y
+
+# morphW interpolation function:
+def func_exp3(x,A,B):
+    y = 1/(B+1)*(B + (1-np.exp(-x/B)))
+    return y
     
-    Argomenti
-    ---------
-    NG: int
-       numero di punti di Gauss
+def func_exp4(x,A,B,C):
+    y = A*C**(x/C)
+    return y
 
-    Output
-    ------
-    p: numpy.ndarray
-      array dei punti di Gauss
-    w: numpy.ndarray
-      array dei pesi
-    '''
-    p, w = None, None
-    if NG==2:
-        p = np.array([ -1/np.sqrt(3),
-                       +1/np.sqrt(3) ])
-        w = np.array([ 1, 1 ])
-    elif NG==3:
-        p = np.array([-(1/5)*np.sqrt(15),
-                      0,
-                      (1/5)*np.sqrt(15)])
-        w = np.array([5/9, 8/9, 5/9])
-    elif NG==4:
-        p = np.array([+(1/35)*np.sqrt(525-70*np.sqrt(30)),
-                      -(1/35)*np.sqrt(525-70*np.sqrt(30)),
-                      +(1/35)*np.sqrt(525+70*np.sqrt(30)),
-                      -(1/35)*np.sqrt(525+70*np.sqrt(30))])
-        w = np.array([(1/36)*(18+np.sqrt(30)),
-                      (1/36)*(18+np.sqrt(30)),
-                      (1/36)*(18-np.sqrt(30)),
-                      (1/36)*(18-np.sqrt(30))])
+def func_ln(x,A,B):
+    y=A*np.ln(x/B)
+    return y
+    
 
-    return p, w
 def GaussPoints(NG):
     '''
     Funzione per il calcolo dei punti e dei pesi di Gauss
@@ -111,6 +90,7 @@ def GaussPoints(NG):
                       (1/36)*(18-np.sqrt(30))])
 
     return p, w
+
 
 # Steady flow function
 def MotoUniforme( S, y_coord, z_coord, D, NG, teta_c, ds):
@@ -286,14 +266,12 @@ def MotoUniforme( S, y_coord, z_coord, D, NG, teta_c, ds):
     return Q, Omega, b, B, alpha, beta, Qs, count_active
 
 
-
-
 ###############################################################################
 # SETUP SCRIPT PARAMETERS and RUN MODE
 ###############################################################################
 
 # SINGLE RUN NAME
-run = 'q20_1'
+run = 'q07_1'
 
 '''
 Run mode:
@@ -315,11 +293,10 @@ Save mode:
     
 '''
 run_mode = 2
-DEM_analysis_mode = 0
+DEM_analysis_mode = 1
 mask_mode = 1
 process_mode = 1
-save_mode = 0
-#TODO update save mode!
+save_plot_mode = 1
 
 
 ###############################################################################
@@ -333,6 +310,15 @@ plot_dir = os.path.join(home_dir, 'plot')
 run_dir = os.path.join(home_dir, 'surveys')
 
 
+# Check if morphWact_matrix.txt already exists. If yes, remove it.
+# The script append all the data, so if the file already exixist all the new
+# data will be appedned to the old file.
+# if os.path.exists(os.path.join(report_dir, 'morphWact_matrix.txt')):
+#     os.remove(os.path.join(report_dir, 'morphWact_matrix.txt'))
+# else:
+#     pass
+
+
 # Create the run name list
 RUNS=[]
 if run_mode ==2:
@@ -342,13 +328,21 @@ if run_mode ==2:
 elif run_mode==1:
     RUNS=run.split()
 
-# Define time scale report matrix:
+# Define volume time scale report matrix:
 # B_dep, SD(B_dep), B_sco, SD(B_sco)
-temporal_scale_report=np.zeros((len(RUNS), 4))
+volume_temp_scale_report=np.zeros((len(RUNS), 4))
+
+# Define morphW time scale report matrix:
+# B_morphW [min], SD(B_morphW)
+morphW_temp_scale_report = np.zeros((len(RUNS), 2))
 
 # Define Engelund Gauss model report matrix:
 # D [m], Q [m^3/s], Wwet/W [-]
 engelund_model_report=np.zeros((len(RUNS),3))
+
+# Array that collect all the morphWact_array dimension.
+# It will be used to create the morphWact_matrix
+morphWact_dim = [] # Array with the dimensions of morphWact_values array
 
 ###############################################################################
 # MAIN LOOP OVER RUNS
@@ -434,6 +428,7 @@ for run in RUNS:
     sco_array=[] # Scour volume
     active_area_array=[] # Active area array
     act_width_mean_array=[] # Active width mean array
+    morphWact_values=[] # morphWact values for each section of all the DoD
     report_matrix = [] #Report matrix
     # matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
     matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
@@ -492,7 +487,7 @@ for run in RUNS:
     # Create array mask:
     # - array_mask: np.array with 0 and 1
     # - array_mask_nan: np.array with np.nan and 1
-    array_mask_rshp = np.where(np.isnan(array_mask_rshp), 0, 1) # Convert in mask with 0 and 1
+    array_mask_rshp = np.where(array_mask_rshp==NaN, 0, 1) # Convert in mask with 0 and 1
     array_mask_rshp_nan = np.where(array_mask_rshp==0, np.nan, 1) # Convert in mask with np.nan and 1
     
     # Here we can split in two parts the DEMs or keep the entire one
@@ -521,6 +516,7 @@ for run in RUNS:
         water_dept_array=[] # Water dept array [m]
         discharge_array=[] # Discarge [m^3/s]
         Wwet_array = [] # Wwet array [Wwet/W]
+        # morphWact_values = [] # All the morphological active width values for each runs
         
         for f in files:
             DEM_path = os.path.join(input_dir, f) # Set DEM path
@@ -884,8 +880,11 @@ for run in RUNS:
             active_area = np.count_nonzero(active_pixel_count) *px_x*px_y # Active area [mm³]
             act_width_mean = (active_area/(DoD_vol.shape[1]*px_x))/(W*1000) # Mean active width [%] - Wact/W
             act_width_array = np.array([np.nansum(active_pixel_count, axis=0)])*px_y/1000/W # Array of the crosswise morphological active width [Wact/W]
-            print('Area_active: ', "{:.1f}".format(active_area), '[mm**2]')
-            print('Active width (mean):', "{:.3f}".format(act_width_mean), '%')
+            
+            
+            
+            print('Morphological active area_active: ', "{:.1f}".format(active_area), '[mm**2]')
+            print('Morphological active width (mean):', "{:.3f}".format(act_width_mean), '%')
             active_area_array = np.append(active_area_array, active_area)
             act_width_mean_array = np.append(act_width_mean_array, act_width_mean)
             print()
@@ -910,6 +909,13 @@ for run in RUNS:
             DEM2_num=DEM2_name[-5:-40]
             delta=int(DEM2_name[-5:-4])-int(DEM1_name[-5:-4])
             
+            # Build up morphWact/W array for the current run boxplot
+            # This array contain all the morphWact/W values for all the run repetition in the same line
+            # This array contain only adjacent DEMs DoD
+            if delta==1:
+                morphWact_values = np.append(morphWact_values, act_width_array)
+            
+            # Fill Scour, Deposition and morphWact/w matrix:
             if delta != 0:
                 # Fill matrix with values
                 matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y
@@ -1045,34 +1051,49 @@ for run in RUNS:
     plt.title(DoD_name[:-1], fontweight='bold')
     plt.show()
     
-    ###############################################################################
-    # VOLUME INTERPOLATION PARAMETER
-    ###############################################################################
+    ###########################################################################
+    # VOLUME AND MORPHOLOGICA ACTIVE WIDTH INTERPOLATION
+    ###########################################################################
     '''
     Interpolation performed all over the volume data.
     Standard deviation is then applied to function parameters
     '''
     # Initialize arrays
     xData=[] # xData as time array
-    yData_dep=[] # yData_dep deposition volume values
-    yData_sco=[] # yData_sco scour volume values
+    yData_dep=[] # yData_dep deposition volume array
+    yData_sco=[] # yData_sco scour volume array
+    yData_morphW=[] # yData_morphW morphological active width array
     for i in range(0,len(files)-1):
         xData=np.append(xData, np.ones(len(files)-i-1)*(i+1)*dt) # Create xData array for all the volume points
         yData_dep=np.append(yData_dep, matrix_dep[i,:len(files)-i-1]) # deposition volumes (unroll yData)
         yData_sco=np.append(yData_sco, abs(matrix_sco[i,:len(files)-i-1])) # scour volumes (unroll yData)
+        yData_morphW=np.append(yData_morphW, abs(matrix_Wact[i,:len(files)-i-1])) # scour volumes (unroll yData)
     
-    temporal_scale_array = []
+    # Define interpolation array and initial guess:
+    volume_temp_scale_array = [] # Define volume temporal scale array
+    morphW_temp_scale_array = [] # Define morphW temporal scale array
     ic_dep=np.array([np.mean(yData_dep),np.min(xData)]) # Initial deposition parameter guess
     ic_sco=np.array([np.mean(yData_sco),np.min(xData)]) # Initial scour parameter guess
-    par_dep, intCurve_dep, covar_dep = interpolate(func, xData, yData_dep, ic_dep)
-    par_sco, intCurve_sco, covar_sco = interpolate(func, xData, yData_sco, ic_sco)
+    ic_morphW=np.array([np.mean(yData_morphW),np.min(xData)]) # Initial morphW parameter guess
     
+    # Perform interpolation for deposition and scour volumes, and for morphological active width
+    par_dep, intCurve_dep, covar_dep = interpolate(func_exp, xData, yData_dep, ic_dep) # Deposition interpolation
+    par_sco, intCurve_sco, covar_sco = interpolate(func_exp, xData, yData_sco, ic_sco) # Scour interpolation
+    par_morphW, intCurve_morphW, covar_morphW = interpolate(func_exp, xData, yData_morphW, ic_morphW) # morphW interpolation
+    
+    
+   # Build up volume temporal scale array for each runs
     if run_mode==2:
-        temporal_scale_array = np.append(temporal_scale_array, (par_dep[1], covar_dep[1,1], par_sco[1], covar_sco[1,1]))
-        temporal_scale_report[int(np.where(RUNS==run)[0]),:]=temporal_scale_array
+        volume_temp_scale_array = np.append(volume_temp_scale_array, (par_dep[1], covar_dep[1,1], par_sco[1], covar_sco[1,1])) # Append values
+        volume_temp_scale_report[int(np.where(RUNS==run)[0]),:]=volume_temp_scale_array # Populate temporal scale report
+        
+    # Build up morphW temporal scale array for each runs
+    if run_mode==2:
+        morphW_temp_scale_array = np.append(morphW_temp_scale_array, (par_morphW[1], covar_morphW[1,1])) # Append values
+        morphW_temp_scale_report[int(np.where(RUNS==run)[0]),:]=morphW_temp_scale_array # Populate temporal scale report
     
     print()
-    print('All points interpolation parameters:')
+    print('All volume points interpolation parameters:')
     print('Deposition interpolation parameters')
     print('A=', par_dep[0], 'Variance=', covar_dep[0,0])
     print('B=', par_dep[1], 'Variance=', covar_dep[1,1])
@@ -1080,19 +1101,39 @@ for run in RUNS:
     print('A=', par_sco[0], 'Variance=', covar_sco[0,0])
     print('B=', par_sco[1], 'Variance=', covar_sco[1,1])
     print()
+    print('All morphW points interpolation parameters:')
+    print('A=', par_morphW[0], 'Variance=', covar_morphW[0,0])
+    print('B=', par_morphW[1], 'Variance=', covar_morphW[1,1])
     
-    fig1, axs = plt.subplots(2,1,dpi=100, sharex=True, tight_layout=True)
-    axs[0].plot(xData, yData_dep, 'o')
-    axs[0].plot(xData, intCurve_dep, c='red')
-    axs[0].set_title('Deposition volumes interpolation '+run)
-    axs[0].set_xlabel('xData')
-    axs[0].set_ylabel('Volume [mm^3]')
-    axs[1].plot(xData, yData_sco, 'o')
-    axs[1].plot(xData, intCurve_sco, c='red')
-    axs[1].set_title('Scour volumes interpolation '+run)
-    axs[1].set_xlabel('xData')
-    axs[1].set_ylabel('Volume [mm^3]')
-    plt.show()
+    
+    if save_plot_mode == 1:
+        fig1, axs = plt.subplots(2,1,dpi=200, sharex=True, tight_layout=True)
+        axs[0].plot(xData, yData_dep, 'o')
+        axs[0].plot(xData, intCurve_dep, c='red')
+        axs[0].set_title('Deposition volumes interpolation '+run)
+        axs[0].set_xlabel('Time [min]')
+        axs[0].set_ylabel('Volume [mm³]')
+        axs[1].plot(xData, yData_sco, 'o')
+        axs[1].plot(xData, intCurve_sco, c='red')
+        axs[1].set_title('Scour volumes interpolation '+run)
+        axs[1].set_xlabel('Time [min]')
+        axs[1].set_ylabel('Volume [mm³]')
+        plt.savefig(os.path.join(plot_dir, run +'_volume_interp.png'), dpi=200)
+        plt.show()
+        
+        fig2, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+        axs.plot(xData, yData_morphW, 'o', c='brown')
+        axs.plot(xData, intCurve_morphW, c='green')
+        axs.set_title('Morphological active width (morphW/W) '+run)
+        axs.set_xlabel('Time [min]')
+        axs.set_ylabel('morphW/W [-]')
+        plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+        plt.show()
+        
+        
+    else:
+        pass
+    
     
     
     # # Fill scour and deposition report matrix with interpolation parameters
@@ -1154,35 +1195,119 @@ for run in RUNS:
     report_Wact_name = os.path.join(report_dir, run +'_Wact_report.txt')
     np.savetxt(report_Wact_name, matrix_Wact, fmt='%.3f', delimiter=',', newline='\n')
     
+    # For each runs collect the dimension of the morphWact_array:
+    if delta==1:
+        morphWact_dim = np.append(morphWact_dim, len(morphWact_values))
     
-    # Print scour volumes over increasing timestep:
-    fig1, ax1 = plt.subplots(dpi=100)
-    # ax1.bar(np.arange(0, len(matrix_sco[:,0]), 1),abs(matrix_sco[:,0]))
-    # ax1.plot(t[int(len(t)/10):-int(len(t)/10)], m*t[int(len(t)/10):-int(len(t)/10)]+q)
-    # xData=np.arange(1, len(files), 1)*dt # Time in minutes
-    xData=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
-    yData=np.absolute(matrix_sco[:len(files)-1,0])
-    yError=matrix_sco[:len(files)-1,-1]
-    ax1.errorbar(xData,yData, yError, linestyle='--', marker='^')
-    ax1.set_ylim(bottom=0)
-    ax1.set_title(run)
-    ax1.set_xlabel('Time')
-    ax1.set_ylabel('Scour [mm³]')
-    plt.show()
+    
+    # Create morphWact/W matrix as following:
+    # all morphWact/W values are appended in the same line for each line in the morphWact_values array
+    # Now a matrix in which all row are all morphWact/W values for each runs is built
+    # morphWact_matrix_header = 'run name, morphWact/W [-]'
+    # run name, morphWact/w [-]
+    with open(os.path.join(report_dir, run + '_morphWact_array.txt'), 'w') as fp:
+        # fp.write(morphWact_matrix_header)
+        # fp.writelines(['\n'])
+        for i in range(0, len(morphWact_values)):
+            if i == len(morphWact_values)-1:
+                fp.writelines(["%.3f" % float(morphWact_values[i])])
+            else:
+                fp.writelines(["%.3f," % float(morphWact_values[i])])
+        fp.writelines(['\n'])
+    fp.close()
+    
+    
+    if save_plot_mode==1:
+        fig3, axs = plt.subplots(2,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
+        xData=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
+        yData_sco=np.absolute(matrix_sco[:len(files)-1,0])
+        yError_sco=matrix_sco[:len(files)-1,-1]
+        yData_dep=np.absolute(matrix_dep[:len(files)-1,0])
+        yError_dep=matrix_dep[:len(files)-1,-1]
+        fig3.suptitle(run + ' - Volume interpolation')
+        axs[0].errorbar(xData,yData_sco, yError_sco, linestyle='--', marker='^', color='red')
+        axs[0].set_ylim(bottom=0)
+        axs[0].set_title('Scour')
+        # axs[0].set_xlabel()
+        axs[0].set_ylabel('Scour [mm³]')
+        axs[1].errorbar(xData,yData_dep, yError_dep, linestyle='--', marker='^', color='blue')
+        axs[1].set_ylim(bottom=0)
+        axs[1].set_title('Deposition')
+        axs[1].set_xlabel('Exner time')
+        axs[1].set_ylabel('Scour [mm³]')
+        plt.savefig(os.path.join(plot_dir, run +'dep_scour.png'), dpi=200)
+        plt.show()
+    else:
+        pass
+        
+    
+    
+    # if save_plot_mode == 1:
+    #     # Print scour volumes over increasing timestep:
+    #     fig1, ax1 = plt.subplots(dpi=100)
+    #     # ax1.bar(np.arange(0, len(matrix_sco[:,0]), 1),abs(matrix_sco[:,0]))
+    #     # ax1.plot(t[int(len(t)/10):-int(len(t)/10)], m*t[int(len(t)/10):-int(len(t)/10)]+q)
+    #     # xData=np.arange(1, len(files), 1)*dt # Time in minutes
+    #     xData=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
+    #     yData=np.absolute(matrix_sco[:len(files)-1,0])
+    #     yError=matrix_sco[:len(files)-1,-1]
+    #     ax1.errorbar(xData,yData, yError, linestyle='--', marker='^')
+    #     ax1.set_ylim(bottom=0)
+    #     ax1.set_title(run)
+    #     ax1.set_xlabel('Exner time')
+    #     ax1.set_ylabel('Scour volume [mm³]')
+    #     plt.savefig(os.path.join(plot_dir, run +'_scour.png'), dpi=200)
+    #     plt.show()
+        
+    #     # Print deposition volumes over increasing timestep:
+    #     fig1, ax1 = plt.subplots(dpi=100)
+    #     # ax1.bar(np.arange(0, len(matrix_sco[:,0]), 1),abs(matrix_sco[:,0]))
+    #     # ax1.plot(t[int(len(t)/10):-int(len(t)/10)], m*t[int(len(t)/10):-int(len(t)/10)]+q)
+    #     # xData=np.arange(1, len(files), 1)*dt # Time in minutes
+    #     xData=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
+    #     yData=np.absolute(matrix_dep[:len(files)-1,0])
+    #     yError=matrix_sco[:len(files)-1,-1]
+    #     ax1.errorbar(xData,yData, yError, linestyle='--', marker='^')
+    #     ax1.set_ylim(bottom=0)
+    #     ax1.set_title(run)
+    #     ax1.set_xlabel('Exner time')
+    #     ax1.set_ylabel('Deposition volume [mm³]')
+    #     plt.savefig(os.path.join(plot_dir, run +'_dep.png'), dpi=200)
+    #     plt.show()
+    # else:
+    #     pass
+
 
 if run_mode==2:
-    temporal_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
+    # Print vulume teporal scale report
+    volume_temp_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
     # Write temporl scale report as:
     # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
-    with open(os.path.join(report_dir, 'temporal_scale_report.txt'), 'w') as fp:
-        fp.write(temporal_scale_report_header)
+    with open(os.path.join(report_dir, 'volume_temp_scale_report.txt'), 'w') as fp:
+        fp.write(volume_temp_scale_report_header)
         fp.writelines(['\n'])
         for i in range(0,len(RUNS)):
-            for j in range(0, temporal_scale_report.shape[1]+1):
+            for j in range(0, volume_temp_scale_report.shape[1]+1):
                 if j == 0:
                     fp.writelines([RUNS[i]+', '])
                 else:
-                    fp.writelines(["%.3f, " % float(temporal_scale_report[i,j-1])])
+                    fp.writelines(["%.3f, " % float(volume_temp_scale_report[i,j-1])])
+            fp.writelines(['\n'])
+    fp.close()
+    
+    # Print morphW teporal scale report
+    morphW_temp_scale_report_header = 'run name, B_morphW [min], SD(B_morphW) [min]'
+    # Write morphW temporl scale report as:
+    # run name, B_morphW, SD(B_morphW)
+    with open(os.path.join(report_dir, 'morphW_temp_scale_report.txt'), 'w') as fp:
+        fp.write(morphW_temp_scale_report_header)
+        fp.writelines(['\n'])
+        for i in range(0,len(RUNS)):
+            for j in range(0, morphW_temp_scale_report.shape[1]+1):
+                if j == 0:
+                    fp.writelines([RUNS[i]+', '])
+                else:
+                    fp.writelines(["%.3f, " % float(morphW_temp_scale_report[i,j-1])])
             fp.writelines(['\n'])
     fp.close()
     
@@ -1197,11 +1322,38 @@ if run_mode==2:
                 for j in range(0, engelund_model_report.shape[1]+1):
                     if j == 0:
                         fp.writelines([RUNS[i]+', '])
-                    else:
+                    elif j==2:
                         fp.writelines(["%.5f, " % float(engelund_model_report[i,j-1])])
+                    else:
+                        fp.writelines(["%.3f, " % float(engelund_model_report[i,j-1])])
                 fp.writelines(['\n'])
         fp.close()
     
+    
+    
+# Create morphWact/W runs boxplot
+# Define active width matrix
+morphWact_matrix=np.zeros((len(RUNS), int(np.max(morphWact_dim))))
+for i in range(0,len(RUNS)):
+    data=np.loadtxt(os.path.join(report_dir, RUNS[i] + '_morphWact_array.txt'), delimiter=',')
+    morphWact_matrix[i,:len(data)]=data
+
+# Set zero as np.nan
+morphWact_matrix = np.where(morphWact_matrix==0, np.nan, morphWact_matrix)
+
+# Filter np.nan
+fig, ax = plt.subplots(dpi=80, figsize=(10,6))
+fig.suptitle('Dimensionless morphological active width', fontsize = 18)
+for i in range(0, len(RUNS)):
+    bplot=ax.boxplot(morphWact_matrix[i,:][~np.isnan(morphWact_matrix[i,:])], positions=[i], widths=0.5) # Data were filtered by np.nan values
+ax.yaxis.grid(True)
+ax.set_xlabel('Runs', fontsize=12)
+ax.set_ylabel('morphWact/W [-]', fontsize=12)
+plt.xticks(np.arange(0,len(RUNS), 1), RUNS)
+plt.savefig(os.path.join(plot_dir, 'morphWact_boxplot.png'), dpi=200)
+plt.show()
+
+
 
 end = time.time()
 print()
