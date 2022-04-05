@@ -41,7 +41,7 @@ def func_exp2(x,A,B,C):
 
 # morphW interpolation function:
 def func_exp3(x,A,B):
-    y = 1/(B+1)*(B + (1-np.exp(-x/B)))
+    y = ((A + (1-np.exp(-x/B)))/(A+1))*0.8
     return y
     
 def func_exp4(x,A,B,C):
@@ -343,6 +343,13 @@ engelund_model_report=np.zeros((len(RUNS),3))
 # Array that collect all the morphWact_array dimension.
 # It will be used to create the morphWact_matrix
 morphWact_dim = [] # Array with the dimensions of morphWact_values array
+
+# Print a report with xData as real time in minutes and  the value of scour and deposition volumes for each runs
+# Check if the file already exists
+if os.path.exists(os.path.join(report_dir, 'volume_over_time.txt')):
+    os.remove(os.path.join(report_dir, 'volume_over_time.txt'))
+else:
+    pass
 
 ###############################################################################
 # MAIN LOOP OVER RUNS
@@ -857,9 +864,11 @@ for run in RUNS:
             # Create new raster where apply volume calculation
             # DoD>0 --> Deposition, DoD<0 --> Scour
             # =+SUMIFS(A1:JS144, A1:JS144,">0")*5*50(LibreCalc function)
-            DoD_vol = np.where(np.isnan(DoD_filt_nozero), 0, DoD_filt_nozero)
-            DEP = (DoD_vol>0)*DoD_vol
-            SCO = (DoD_vol<0)*DoD_vol
+            
+            # Define total volume matrix, Deposition matrix and Scour matrix
+            DoD_vol = np.where(np.isnan(DoD_filt_nozero), 0, DoD_filt_nozero) # Total volume matrix
+            DEP = (DoD_vol>0)*DoD_vol # Deposition volume matrix
+            SCO = (DoD_vol<0)*DoD_vol # Scour volume matrix
             
             #Print results:
             print('Total volume [mm^3]:', "{:.1f}".format(np.sum(DoD_vol)*px_x*px_y))
@@ -1063,11 +1072,14 @@ for run in RUNS:
     yData_dep=[] # yData_dep deposition volume array
     yData_sco=[] # yData_sco scour volume array
     yData_morphW=[] # yData_morphW morphological active width array
+    
     for i in range(0,len(files)-1):
         xData=np.append(xData, np.ones(len(files)-i-1)*(i+1)*dt) # Create xData array for all the volume points
         yData_dep=np.append(yData_dep, matrix_dep[i,:len(files)-i-1]) # deposition volumes (unroll yData)
         yData_sco=np.append(yData_sco, abs(matrix_sco[i,:len(files)-i-1])) # scour volumes (unroll yData)
         yData_morphW=np.append(yData_morphW, abs(matrix_Wact[i,:len(files)-i-1])) # scour volumes (unroll yData)
+    
+        
     
     # Define interpolation array and initial guess:
     volume_temp_scale_array = [] # Define volume temporal scale array
@@ -1079,7 +1091,7 @@ for run in RUNS:
     # Perform interpolation for deposition and scour volumes, and for morphological active width
     par_dep, intCurve_dep, covar_dep = interpolate(func_exp, xData, yData_dep, ic_dep) # Deposition interpolation
     par_sco, intCurve_sco, covar_sco = interpolate(func_exp, xData, yData_sco, ic_sco) # Scour interpolation
-    par_morphW, intCurve_morphW, covar_morphW = interpolate(func_exp, xData, yData_morphW, ic_morphW) # morphW interpolation
+    par_morphW, intCurve_morphW, covar_morphW = interpolate(func_exp3, xData, yData_morphW, ic_morphW) # morphW interpolation
     
     
    # Build up volume temporal scale array for each runs
@@ -1130,11 +1142,12 @@ for run in RUNS:
         plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
         plt.show()
         
-        
     else:
         pass
     
-    
+
+
+
     
     # # Fill scour and deposition report matrix with interpolation parameters
     # for i in range(0, len(files)-3): # Last three columns have 1 or 2 or 3 values: not enought -> interpolation skipped
@@ -1216,15 +1229,17 @@ for run in RUNS:
         fp.writelines(['\n'])
     fp.close()
     
+    # Define arrays for scour and volume data over time
+    xData=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
+    yData_sco=np.absolute(matrix_sco[:len(files)-1,0])
+    yError_sco=matrix_sco[:len(files)-1,-1]
+    yData_dep=np.absolute(matrix_dep[:len(files)-1,0])
+    yError_dep=matrix_dep[:len(files)-1,-1]
     
     if save_plot_mode==1:
         fig3, axs = plt.subplots(2,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
-        xData=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
-        yData_sco=np.absolute(matrix_sco[:len(files)-1,0])
-        yError_sco=matrix_sco[:len(files)-1,-1]
-        yData_dep=np.absolute(matrix_dep[:len(files)-1,0])
-        yError_dep=matrix_dep[:len(files)-1,-1]
-        fig3.suptitle(run + ' - Volume interpolation')
+
+        fig3.suptitle(run + ' - Volume')
         axs[0].errorbar(xData,yData_sco, yError_sco, linestyle='--', marker='^', color='red')
         axs[0].set_ylim(bottom=0)
         axs[0].set_title('Scour')
@@ -1239,6 +1254,30 @@ for run in RUNS:
         plt.show()
     else:
         pass
+    
+    # # Print a report with xData as real time in minutes and  the value of scour and deposition volumes for each runs    
+    # Create report matrix as:
+    # run
+    # time
+    # V_dep
+    # V_sco
+    
+    xData=np.arange(1, len(files), 1)*dt
+    volume_over_time_matrix = []
+    volume_over_time_matrix = np.stack((xData, yData_dep, -yData_sco))
+    
+    # Append rows to the current file
+    with open(os.path.join(report_dir, 'volume_over_time.txt'), 'a') as fp:
+        fp.writelines([run+', '])
+        fp.writelines(['\n'])
+        for i in range(0,volume_over_time_matrix.shape[0]):
+            for j in range(0,volume_over_time_matrix.shape[1]):
+                fp.writelines(["%.3f, " % float(volume_over_time_matrix[i,j])])
+            fp.writelines(['\n'])
+        fp.writelines(['\n'])
+    fp.close()
+    
+    
         
     
     
