@@ -379,8 +379,7 @@ for run in RUNS:
     # Import parameters from file parameters.txt
     # variable run must be as 'q' + discharge + '_' repetition number
     # Parameters.txt structure:
-    #     discharge [l/s],repetition,run time [min],Texner discretization
-
+    # discharge [l/s],repetition,run time [min],Texner discretization [-], Channel width [m], slome [m/m]
     # Load parameter matrix
     parameters = np.loadtxt(os.path.join(home_dir, 'parameters.txt'),
                             delimiter=',',

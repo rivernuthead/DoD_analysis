@@ -132,3 +132,5 @@ dmypy.json
 /DoDs
 /output
 /plot
+/interpolation_plot
+/int_report

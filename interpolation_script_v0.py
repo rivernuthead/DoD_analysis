@@ -64,7 +64,12 @@ N = 4 # Number of series to extract
 w_dir = os.getcwd() # set working directory
 data_folder = os.path.join(w_dir, 'output') # Set path were source data are stored
 run_dir = os.path.join(w_dir, 'surveys') # Set path were surveys for each runs are stored
-
+plot_dir = os.path.join(w_dir, 'interpolation_plot')
+int_report_dir = os.path.join(w_dir, 'int_report')
+if not(os.path.exists(plot_dir)):
+    os.mkdir(plot_dir)
+if not(os.path.exists(int_report_dir)):
+    os.mkdir(int_report_dir)
 
 
 
@@ -96,6 +101,17 @@ for run in RUNS:
         if os.path.isfile(path) and f.endswith('.txt') and f.startswith('matrix_bed_norm_'+run+'s'):
             files = np.append(files, f)
     file_N = files.shape[0]-1 # Number of DoD
+    
+    # Load parameter matrix
+    # discharge [l/s],repetition,run time [min],Texner discretization, Channel width [m], slome [m/m]
+    parameters = np.loadtxt(os.path.join(w_dir, 'parameters.txt'),
+                            delimiter=',',
+                            skiprows=1)
+    # Extract run parameter
+    run_param = parameters[np.intersect1d(np.argwhere(parameters[:,1]==float(run[-1:])),np.argwhere(parameters[:,0]==float(run[1:3])/10)),:]
+
+    dt = run_param[0,2] # dt between runs in minutes (real time)
+    dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner between runs)
     
     # Create the d dictionary entry loading report files from DoD_analysis.py output folder
     d["sco_data_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run + '_sco_report.txt'), delimiter = ',')
@@ -140,41 +156,63 @@ for run in RUNS:
         int_d["int_morphWact_data_" + run][file_N-N+i,:] = d["morphWact_data_" + run][file_N-N+i,-2]
         
     # INTERPOLATION
-    param_d["param_int_{0}".format(run)] = np.zeros((2,2)) # Initialize dictionary
-    xData = int_d["int_dep_data_" + run][:,0]
-    dep_par, dep_intCurve, dep_covar =  interpolate(func_exp, xData, np.linspace(0,int(file_N), 1), ic=None, bounds=(-np.inf, np.inf))
+    # param_d["param_int_{0}".format(run)] = np.zeros((2,2)) # Initialize dictionary
+    dep_int_param = []
+    sco_int_param = []
+    morphWact_int_param = []
     
-    
-    
-# Per ogni run plottare i grafici degli andamenti interpolare ogni curva con la propria funzione
+    for i in range(0,N):
+        xData = np.arange(1, file_N+1, 1)*dt # Time in Txnr
+        # Deposition volumes interpolation:
+        dep_yData = int_d["int_dep_data_" + run][:,i]
+        dep_ic=np.array([np.mean(dep_yData),np.min(xData)]) # Initial deposition parameter guess
+        dep_par, dep_intCurve, dep_covar =  interpolate(func_exp, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
+        # param = np.concatenate((dep_par[0], dep_covar[0,0], dep_par[1], dep_covar[1,1]))
+        dep_int_param = np.append(dep_int_param, ((dep_par[0], dep_covar[0,0], dep_par[1], dep_covar[1,1])))
+        # Scour volumes interpolation:
+        sco_yData = np.abs(int_d["int_sco_data_" + run][:,i])
+        sco_ic=np.array([np.mean(sco_yData),np.min(xData)]) # Initial deposition parameter guess
+        sco_par, sco_intCurve, sco_covar =  interpolate(func_exp, xData, sco_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
+        sco_int_param = np.append(sco_int_param, ((sco_par[0], sco_covar[0,0], sco_par[1], sco_covar[1,1])))
+        # Morphological active width interpolation:
+        morphWact_yData = int_d["int_morphWact_data_" + run][:,i]
+        morphWact_ic=np.array([np.mean(morphWact_yData),np.min(xData)]) # Initial deposition parameter guess
+        morphWact_par, morphWact_intCurve, morphWact_covar =  interpolate(func_exp, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
+        morphWact_int_param = np.append(morphWact_int_param, ((morphWact_par[0], morphWact_covar[0,0], morphWact_par[1], morphWact_covar[1,1])))
+            
+        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+        axs.plot(xData, dep_yData, 'o', c='blue')
+        axs.plot(xData, dep_intCurve, c='green')
+        axs.set_title('Deposition series # '+str(i+1)+'- '+run)
+        axs.set_xlabel('Time [min]')
+        axs.set_ylabel('Volume [mm³]')
+        plt.savefig(os.path.join(plot_dir, run + 'series_' + str(i+1) +'_dep_interp.png'), dpi=200)
+        # plt.show()
+        
+        fig2, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+        axs.plot(xData, sco_yData, 'o', c='red')
+        axs.plot(xData, sco_intCurve, c='green')
+        axs.set_title('Scour series # '+str(i+1)+'- '+run)
+        axs.set_xlabel('Time [min]')
+        axs.set_ylabel('Volume [mm³]')
+        plt.savefig(os.path.join(plot_dir, run + 'series_' + str(i+1) +'_sco_interp.png'), dpi=200)
+        # plt.show()
+        
+        fig3, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+        axs.plot(xData, morphWact_yData, 'o', c='brown')
+        axs.plot(xData, morphWact_intCurve, c='green')
+        axs.set_title('Morphological active width series # '+str(i+1)+'- '+run)
+        axs.set_xlabel('Time [min]')
+        axs.set_ylabel('morphWact [mm³]')
+        plt.savefig(os.path.join(plot_dir, run + 'series_' + str(i+1) +'_morphWact_interp.png'), dpi=200)
+        # plt.show()
 
-# Stampare in un file txt i valori dei parametri della funzione interpolatrice e la loro deviazione standard
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        # Save interpolation parameter txt  for  each runs:
+        np.savetxt(os.path.join(int_report_dir, run + '_dep_int_param.txt'), dep_int_param, delimiter=',')
+        np.savetxt(os.path.join(int_report_dir, run + '_sco_int_param.txt'), sco_int_param, delimiter=',')
+        np.savetxt(os.path.join(int_report_dir, run + '_morphWact_int_param.txt'), morphWact_int_param, delimiter=',')
+        
+        
 
 end = time.time()
 print()
