@@ -34,24 +34,19 @@ def interpolate(func, xData, yData, ic=None, bounds=(-np.inf, np.inf)):
 
 # Scour and deposition volumes interpolation function
 def func_exp(x,A,B):
+    # func_mode = 1
     y = A*(1-np.exp(-x/B))
     return y
 
 def func_exp2(x,A,B,C):
+    # func_mode = 2
     y = C + A*(1-np.exp(-x/B))
     return y
 
 # morphW interpolation function:
 def func_exp3(x,A,B):
+    # func_mode = 3
     y = ((A + (1-np.exp(-x/B)))/(A+1))*0.8
-    return y
-    
-def func_exp4(x,A,B,C):
-    y = A*C**(x/C)
-    return y
-
-def func_ln(x,A,B):
-    y=A*np.ln(x/B)
     return y
 
 ###############################################################################
@@ -61,7 +56,8 @@ start = time.time()
 N = 4 # Number of series to extract
 
 
-plot_mode = 0 # Plot mode: 0 -> no plot, 1 -> plot
+plot_mode = 1 # Plot mode: 0 -> no plot, 1 -> plot
+func_mode = 1
 ###############################################################################
 # SETUP FOLDERS
 ###############################################################################
@@ -172,40 +168,70 @@ for run in RUNS:
         
         # Deposition volumes interpolation:
         dep_yData = int_d["int_dep_data_" + run][:,i]
-        dep_ic=np.array([np.mean(dep_yData),np.min(xData)
-                         , np.max(dep_yData)
-                         ]) # Initial deposition parameter guess
-        dep_par, dep_intCurve, dep_covar, dep_params_interp =  interpolate(func_exp2, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
+        # Decide interpolation function
+        if func_mode == 1:
+            dep_ic=np.array([np.mean(dep_yData),np.min(xData)]) # Initial deposition parameter guess
+            dep_par, dep_intCurve, dep_covar, dep_params_interp =  interpolate(func_exp, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
+        elif func_mode ==2:
+            dep_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            dep_par, dep_intCurve, dep_covar, dep_params_interp =  interpolate(func_exp2, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
+        elif func_mode == 3:
+            #TODO check initial guess for this function
+            dep_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            dep_par, dep_intCurve, dep_covar, dep_params_interp =  interpolate(func_exp3, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
+            
         if i == 0:
-            dep_params = np.column_stack((dep_par[0], dep_covar[0,0], dep_par[1], dep_covar[1,1], dep_par[2], dep_covar[2,2]))
+            dep_params = dep_params_interp
         else:
-            params = np.column_stack((dep_par[0], dep_covar[0,0], dep_par[1], dep_covar[1,1], dep_par[2], dep_covar[2,2]))
+            params = dep_params_interp
             dep_params = np.row_stack((dep_params,params))
     
         
         # Scour volumes interpolation:
         sco_yData = np.abs(int_d["int_sco_data_" + run][:,i])
-        sco_ic=np.array([np.mean(sco_yData),np.min(xData)
-                         , np.max(dep_yData)
-                         ]) # Initial deposition parameter guess
-        sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp2, xData, sco_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
+        if func_mode == 1:
+            sco_ic=np.array([np.mean(dep_yData),np.min(xData)]) # Initial deposition parameter guess
+            sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp, xData, sco_yData, ic=sco_ic, bounds=(-np.inf, np.inf))
+        elif func_mode ==2:
+            sco_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp2, xData, sco_yData, ic=sco_ic, bounds=(-np.inf, np.inf))
+        elif func_mode == 3:
+            #TODO check initial guess for this function
+            sco_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp3, xData, sco_yData, ic=sco_ic, bounds=(-np.inf, np.inf))
+            
         if i == 0:
-            sco_params = np.column_stack((sco_par[0], sco_covar[0,0], sco_par[1], sco_covar[1,1], sco_par[2], sco_covar[2,2]))
+            sco_params = sco_params_interp
         else:
-            params = np.column_stack((sco_par[0], sco_covar[0,0], sco_par[1], sco_covar[1,1], sco_par[2], sco_covar[2,2]))
+            params = sco_params_interp
             sco_params  = np.row_stack((sco_params,params))
         
         
         # Morphological active width interpolation:
         morphWact_yData = int_d["int_morphWact_data_" + run][:,i]
-        morphWact_ic=np.array([np.mean(morphWact_yData),np.min(xData)
-                               , np.max(dep_yData)
-                               ]) # Initial deposition parameter guess
-        morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp2, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
+        if func_mode == 1:
+            morphWact_ic=np.array([np.mean(dep_yData),np.min(xData)]) # Initial deposition parameter guess
+            morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
+        elif func_mode ==2:
+            morphWact_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp2, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
+        elif func_mode == 3:
+            #TODO check initial guess for this function
+            morphWact_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp3, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
+        
+        print()
+        print('RUN: ', run)
+        print('Series: ', i)
+        print('Scour interp A: ', sco_par[0], 'SD', sco_covar[0,0])
+        print('Scour interp B: ', sco_par[1], 'SD', sco_covar[1,1])
+        print()
+        
+        
         if i == 0:
-            morphWact_params = np.column_stack((morphWact_par[0], morphWact_covar[0,0], morphWact_par[1], morphWact_covar[1,1], morphWact_par[2], morphWact_covar[2,2]))
+            morphWact_params = morphWact_params_interp
         else:
-            params = np.column_stack((morphWact_par[0], morphWact_covar[0,0], morphWact_par[1], morphWact_covar[1,1], morphWact_par[2], morphWact_covar[2,2]))
+            params = morphWact_params_interp
             morphWact_params = np.row_stack((morphWact_params,params))
         
         if plot_mode == 1:

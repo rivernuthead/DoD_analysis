@@ -293,7 +293,7 @@ Save mode:
 
 '''
 run_mode = 2
-DEM_analysis_mode = 1
+DEM_analysis_mode = 0
 mask_mode = 1
 process_mode = 1
 save_plot_mode = 1
@@ -445,6 +445,7 @@ for run in RUNS:
     matrix_Wact=np.zeros((len(files)+3, len(files)+3)) # Active width report matrix
     matrix_Wact_max=np.zeros((len(files)+3, len(files)+1)) # Max active width report matrix
     matrix_Wact_min=np.zeros((len(files)+3, len(files)+1)) # Minimum active width report matrix
+    matrix_act_thickness = np.zeros((len(files)-1, len(files)+1)) # Matrix where collect active thickness data
 
     matrix_DEM_analysis = np.zeros((len(files), len(files)))
 
@@ -868,6 +869,8 @@ for run in RUNS:
             DoD_vol = np.where(np.isnan(DoD_filt_nozero), 0, DoD_filt_nozero) # Total volume matrix
             DEP = (DoD_vol>0)*DoD_vol # Deposition volume matrix
             SCO = (DoD_vol<0)*DoD_vol # Scour volume matrix
+            
+            
 
             #Print results:
             print('Total volume [mm^3]:', "{:.1f}".format(np.sum(DoD_vol)*px_x*px_y))
@@ -879,17 +882,21 @@ for run in RUNS:
             dep_array = np.append(dep_array, np.sum(DEP)*px_x*px_y)
             sco_array = np.append(sco_array, np.sum(SCO)*px_x*px_y)
 
-
+            
             ###################################################################
             # Active_pixel analysis
             ###################################################################
-            #Resize DoD fpr photos matching
+            
             active_pixel_count = np.where(DoD_vol!=0, 1, 0) # Number of active pixel, both scour and deposition
             active_area = np.count_nonzero(active_pixel_count) *px_x*px_y # Active area [mm³]
             act_width_mean = (active_area/(DoD_vol.shape[1]*px_x))/(W*1000) # Mean active width [%] - Wact/W
             act_width_array = np.array([np.nansum(active_pixel_count, axis=0)])*px_y/1000/W # Array of the crosswise morphological active width [Wact/W]
-
-
+            
+            # Calculate active thickness as (abs(V_sco) + V_dep)/act_area [mm]
+            act_thickness = (np.sum(np.abs(DoD_vol))*px_x*px_y)/active_area
+            
+            print('Active thikness [mm]:')
+            print(act_thickness)
 
             print('Morphological active area_active: ', "{:.1f}".format(active_area), '[mm**2]')
             print('Morphological active width (mean):', "{:.3f}".format(act_width_mean), '%')
@@ -980,7 +987,11 @@ for run in RUNS:
                 matrix_Wact_min[delta-1,-2]=np.min(matrix_Wact_min[delta-1,:len(files)-delta])
                 matrix_Wact_min[delta-1,-1]=np.max(matrix_Wact_min[delta-1,:len(files)-delta])
 
-
+                # Fill active thickness matrix:
+                matrix_act_thickness[delta-1,h]=act_thickness
+                matrix_act_thickness[delta-1,-2]=np.average(matrix_act_thickness[delta-1,:len(files)-delta])
+                matrix_act_thickness[delta-1,-1]=np.std(matrix_act_thickness[delta-1,:len(files)-delta])
+                
             else:
                 pass
 
@@ -1053,11 +1064,15 @@ for run in RUNS:
                 fp.write(DoD_filt_nozero_gis)
 
     # Print the last DoD outcome
-    fig, ax = plt.subplots()
-    im = ax.imshow(np.where(DoD_filt_nozero_rst==NaN, np.nan, DoD_filt_nozero_rst), cmap='RdBu',  vmin=-25, vmax=25)
-    plt.colorbar(im)
-    plt.title(DoD_name[:-1], fontweight='bold')
-    plt.show()
+    if save_plot_mode == 1:
+        fig, ax = plt.subplots(dpi=200, tight_layout=True)
+        im = ax.imshow(np.where(DoD_filt_nozero_rst==NaN, np.nan, DoD_filt_nozero_rst), cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
+        plt.colorbar(im)
+        plt.title(DoD_name[:-1], fontweight='bold')
+        # plt.savefig(os.path.join(plot_dir, run +'_DoD.png'), dpi=200)
+        plt.show()
+    else:
+        pass
 
     ###########################################################################
     # VOLUME AND MORPHOLOGICA ACTIVE WIDTH INTERPOLATION
@@ -1192,13 +1207,17 @@ for run in RUNS:
     fp.close()
 
 
-    # Create deposition report matrix
+    # Create deposition matrix report
     report_dep_name = os.path.join(report_dir, run +'_dep_report.txt')
     np.savetxt(report_dep_name, matrix_dep, fmt='%.1f', delimiter=',', newline='\n')
 
-    # Create scour report matrix
+    # Create scour matrix report
     report_sco_name = os.path.join(report_dir, run +'_sco_report.txt')
     np.savetxt(report_sco_name, matrix_sco, fmt='%.1f', delimiter=',', newline='\n')
+    
+    # Create active thickness matrix report
+    report_act_thickness_name = os.path.join(report_dir, run +'_act_thickness_report.txt')
+    np.savetxt(report_act_thickness_name, matrix_act_thickness , fmt='%.3f', delimiter=',', newline='\n')
 
     # Create Wact report matrix
     matrix_Wact[:,len(files)-1]=matrix_Wact_min[:,len(files)-1] # Fill matrix_Wact report with minimum values
@@ -1234,10 +1253,11 @@ for run in RUNS:
     yError_sco=matrix_sco[:len(files)-1,-1]
     yData_dep=np.absolute(matrix_dep[:len(files)-1,0])
     yError_dep=matrix_dep[:len(files)-1,-1]
+    yData_act_thickness=matrix_act_thickness[:len(files)-1,0]
+    yError_act_thickness=matrix_act_thickness[:len(files)-1,-1]
 
     if save_plot_mode==1:
         fig3, axs = plt.subplots(2,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
-
         fig3.suptitle(run + ' - Volume')
         axs[0].errorbar(xData,yData_sco, yError_sco, linestyle='--', marker='^', color='red')
         axs[0].set_ylim(bottom=0)
@@ -1250,6 +1270,16 @@ for run in RUNS:
         axs[1].set_xlabel('Exner time')
         axs[1].set_ylabel('Scour [mm³]')
         plt.savefig(os.path.join(plot_dir, run +'dep_scour.png'), dpi=200)
+        plt.show()
+        
+        
+        fig4, axs = plt.subplots(1,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
+        axs.errorbar(xData,yData_act_thickness, yError_act_thickness, linestyle='--', marker='^', color='purple')
+        axs.set_ylim(bottom=0)
+        axs.set_title(run + '- Active thickness')
+        axs.set_xlabel('Exner time')
+        axs.set_ylabel('Active thickness [mm]')
+        plt.savefig(os.path.join(plot_dir, run +'active_thickness_.png'), dpi=200)
         plt.show()
     else:
         pass
