@@ -337,7 +337,7 @@ for run in RUNS:
             axs.plot(xData, morphWact_intCurve, c='green')
             axs.set_title('Morphological active width series # '+str(i+1)+'- '+run)
             axs.set_xlabel('Time [min]')
-            axs.set_ylabel('morphWact [mm³]')
+            axs.set_ylabel('morphWact/W [-]')
             plt.savefig(os.path.join(plot_dir, 'morphWact_interp', run + '_func_mode' + str(morphWact_func_mode) + 'series_' + str(i+1) +'_morphWact_interp.png'), dpi=200)
             plt.show()
             
