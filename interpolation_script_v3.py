@@ -93,7 +93,8 @@ if not(os.path.exists(os.path.join(plot_dir, 'act_thickness_interp'))):
     os.mkdir(os.path.join(plot_dir, 'act_thickness_interp'))
 if not(os.path.exists(os.path.join(plot_dir, 'act_area_interp'))):
     os.mkdir(os.path.join(plot_dir, 'act_area_interp'))
-
+if not(os.path.exists(os.path.join(plot_dir, 'vol_interp'))):
+    os.mkdir(os.path.join(plot_dir, 'vol_interp'))
 
 # EXTRACT ALL RUNS
 RUNS = [] # Initialize RUS array
@@ -380,7 +381,7 @@ for run in RUNS:
             axs.set_title('Volume interpolation as act_thickness*act_area series # '+str(i+1)+'- '+run)
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Volume [mm³]')
-            plt.savefig(os.path.join(plot_dir, 'sco_interp', run + '_func_mode' + str(volume_func_mode) + 'series_' + str(i+1) +'_dep_interp.png'), dpi=200)
+            plt.savefig(os.path.join(plot_dir, 'vol_interp', run + 'series_' + str(i+1) +'_volume_interp.png'), dpi=200)
             plt.show()
 
         else:
