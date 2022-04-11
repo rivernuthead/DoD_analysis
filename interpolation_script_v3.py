@@ -40,13 +40,18 @@ def func_exp(x,A,B):
 
 def func_exp2(x,A,B,C):
     # func_mode = 2
-    y = 0.2 + A*(1-np.exp(-x/B))
+    y = C + A*(1-np.exp(-x/B))
     return y
 
 # morphW interpolation function:
 def func_exp3(x,A,B):
     # func_mode = 3
-    y = ((A + (1-np.exp(-x/B)))/(A+1))*0.8
+    y = ((A + (1-np.exp(-x/B)))/(A+1))*0.9
+    return y
+
+def func_exp4(x,A,B):
+    # func_mode = 4
+    y = 2 + A*(1-np.exp(-x/B))
     return y
 
 ###############################################################################
@@ -59,9 +64,10 @@ N = 4 # Number of series to extract
 plot_mode = 1 # Plot mode: 0 -> no plot, 1 -> plot
 
 # Interpolation function:
-volume_func_mode = 1
-morphWact_func_mode = 1
+volume_func_mode = 2
+morphWact_func_mode = 3
 act_thickness_func_mode = 2
+act_area_func_mode = 2
 ###############################################################################
 # SETUP FOLDERS
 ###############################################################################
@@ -76,6 +82,17 @@ if not(os.path.exists(plot_dir)):
 if not(os.path.exists(int_report_dir)):
     os.mkdir(int_report_dir)
 
+# Create separate folders for output plot
+if not(os.path.exists(os.path.join(plot_dir, 'sco_interp'))):
+    os.mkdir(os.path.join(plot_dir, 'sco_interp'))
+if not(os.path.exists(os.path.join(plot_dir, 'dep_interp'))):
+    os.mkdir(os.path.join(plot_dir, 'dep_interp'))
+if not(os.path.exists(os.path.join(plot_dir, 'morphWact_interp'))):
+    os.mkdir(os.path.join(plot_dir, 'morphWact_interp'))
+if not(os.path.exists(os.path.join(plot_dir, 'act_thickness_interp'))):
+    os.mkdir(os.path.join(plot_dir, 'act_thickness_interp'))
+if not(os.path.exists(os.path.join(plot_dir, 'act_area_interp'))):
+    os.mkdir(os.path.join(plot_dir, 'act_area_interp'))
 
 
 # EXTRACT ALL RUNS
@@ -123,6 +140,7 @@ for run in RUNS:
     d["dep_data_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run + '_dep_report.txt'), delimiter = ',')
     d["morphWact_data_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run + '_morphWact_report.txt'), delimiter = ',')
     d["act_thickness_data_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run + '_act_thickness_report.txt'), delimiter = ',')
+    d["act_area_data_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run + '_act_area_report.txt'), delimiter = ',')
     
     # Fill int_d dictionary with an extraction of scour, deposition and morphological active width reports
     # The script create a number of N indipendent sereis of data and append the last file_N - N as the averaged values.
@@ -152,6 +170,7 @@ for run in RUNS:
     int_d["int_dep_data_{0}".format(run)] = np.zeros((file_N, N))
     int_d["int_morphWact_data_{0}".format(run)] = np.zeros((file_N, N))
     int_d["int_act_thickness_data_{0}".format(run)] = np.zeros((file_N, N))
+    int_d["int_act_area_data_{0}".format(run)] = np.zeros((file_N, N))
     
     # Fill int_d dictionary with data as above
     for i in range(0,N):
@@ -163,6 +182,8 @@ for run in RUNS:
         int_d["int_morphWact_data_" + run][file_N-N+i,:] = d["morphWact_data_" + run][file_N-N+i,-2]
         int_d["int_act_thickness_data_" + run][:file_N-N+1,:N] = d["act_thickness_data_" + run][:file_N-N+1,:N]
         int_d["int_act_thickness_data_" + run][file_N-N+i,:] = d["act_thickness_data_" + run][file_N-N+i,-2]
+        int_d["int_act_area_data_" + run][:file_N-N+1,:N] = d["act_area_data_" + run][:file_N-N+1,:N]
+        int_d["int_act_area_data_" + run][file_N-N+i,:] = d["act_area_data_" + run][file_N-N+i,-2]
         
     # INTERPOLATION
     # Initialize parameter arrays
@@ -170,6 +191,7 @@ for run in RUNS:
     sco_int_param = []
     morphWact_int_param = []
     act_thickness_int_param = []
+    act_area_int_array = []
     
     for i in range(0,N):
         
@@ -186,7 +208,7 @@ for run in RUNS:
             dep_par, dep_intCurve, dep_covar, dep_params_interp =  interpolate(func_exp2, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
         elif volume_func_mode == 3:
             #TODO check initial guess for this function
-            dep_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            dep_ic=np.array([np.min(dep_yData),np.min(xData)]) # Initial deposition parameter guess
             dep_par, dep_intCurve, dep_covar, dep_params_interp =  interpolate(func_exp3, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
             
         if i == 0:
@@ -206,7 +228,7 @@ for run in RUNS:
             sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp2, xData, sco_yData, ic=sco_ic, bounds=(-np.inf, np.inf))
         elif volume_func_mode == 3:
             #TODO check initial guess for this function
-            sco_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            sco_ic=np.array([np.min(dep_yData),np.min(xData)]) # Initial deposition parameter guess
             sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp3, xData, sco_yData, ic=sco_ic, bounds=(-np.inf, np.inf))
             
         if i == 0:
@@ -215,18 +237,18 @@ for run in RUNS:
             params = sco_params_interp
             sco_params  = np.row_stack((sco_params,params))
         
-        
+            
         # Morphological active width interpolation:
         morphWact_yData = int_d["int_morphWact_data_" + run][:,i]
         if morphWact_func_mode == 1:
-            morphWact_ic=np.array([np.mean(dep_yData),np.min(xData)]) # Initial deposition parameter guess
+            morphWact_ic=np.array([np.mean(morphWact_yData),np.min(xData)]) # Initial deposition parameter guess
             morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
         elif morphWact_func_mode ==2:
-            morphWact_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            morphWact_ic=np.array([np.mean(morphWact_yData),np.min(xData), np.max(morphWact_yData)]) # Initial deposition parameter guess
             morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp2, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
         elif morphWact_func_mode == 3:
             #TODO check initial guess for this function
-            morphWact_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            morphWact_ic=np.array([np.min(morphWact_yData),np.min(xData)]) # Initial deposition parameter guess
             morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp3, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
                 
         if i == 0:
@@ -246,8 +268,12 @@ for run in RUNS:
             act_thickness_par, act_thickness_intCurve, act_thickness_covar, act_thickness_params_interp =  interpolate(func_exp2, xData, act_thickness_yData, ic=act_thickness_ic, bounds=(-np.inf, np.inf))
         elif act_thickness_func_mode == 3:
             #TODO check initial guess for this function
-            act_thickness_ic=np.array([np.mean(act_thickness_yData),np.min(xData), np.max(act_thickness_yData)]) # Initial deposition parameter guess
+            act_thickness_ic=np.array([np.min(act_thickness_yData),np.min(xData)]) # Initial deposition parameter guess
             act_thickness_par, act_thickness_intCurve, act_thickness_covar, act_thickness_params_interp =  interpolate(func_exp3, xData, act_thickness_yData, ic=act_thickness_ic, bounds=(-np.inf, np.inf))
+        elif act_thickness_func_mode == 4:
+            #TODO check initial guess for this function
+            act_thickness_ic=np.array([np.min(act_thickness_yData),np.min(xData)]) # Initial deposition parameter guess
+            act_thickness_par, act_thickness_intCurve, act_thickness_covar, act_thickness_params_interp =  interpolate(func_exp4, xData, act_thickness_yData, ic=act_thickness_ic, bounds=(-np.inf, np.inf))
                 
         if i == 0:
             act_thickness_params = act_thickness_params_interp
@@ -255,51 +281,108 @@ for run in RUNS:
             params = act_thickness_params_interp
             act_thickness_params = np.row_stack((act_thickness_params,params))
             
+        
+        # Active area interpolation:
+        act_area_yData = int_d["int_act_area_data_" + run][:,i]
+        # Decide interpolation function
+        if act_area_func_mode == 1:
+            act_area_ic=np.array([np.mean(act_area_yData),np.min(xData)]) # Initial act_area parameter guess
+            act_area_par, act_area_intCurve, act_area_covar, act_area_params_interp =  interpolate(func_exp, xData, act_area_yData, ic=act_area_ic, bounds=(-np.inf, np.inf))
+        elif act_area_func_mode ==2:
+            act_area_ic=np.array([np.mean(act_area_yData),np.min(xData), np.max(act_area_yData)]) # Initial act_area parameter guess
+            act_area_par, act_area_intCurve, act_area_covar, act_area_params_interp =  interpolate(func_exp2, xData, act_area_yData, ic=act_area_ic, bounds=(-np.inf, np.inf))
+        elif act_area_func_mode == 3:
+            #TODO check initial guess for this function
+            act_area_ic=np.array([np.min(act_area_yData),np.min(xData)]) # Initial act_areaosition parameter guess
+            act_area_par, act_area_intCurve, act_area_covar, act_area_params_interp =  interpolate(func_exp3, xData, act_area_yData, ic=act_area_ic, bounds=(-np.inf, np.inf))
             
-            print()
-            print('RUN: ', run)
-            print('Series: ', i)
-            print('Scour interp A: ', sco_par[0], 'SD', sco_covar[0,0])
-            print('Scour interp B: ', sco_par[1], 'SD', sco_covar[1,1])
-            print()
+        if i == 0:
+            act_area_params = act_area_params_interp
+        else:
+            params = act_area_params_interp
+            act_area_params = np.row_stack((act_area_params,params))
+        
+            # print()
+            # print('RUN: ', run)
+            # print('Series: ', i)
+            # print('Scour interp A: ', sco_par[0], 'SD', sco_covar[0,0])
+            # print('Scour interp B: ', sco_par[1], 'SD', sco_covar[1,1])
+            # print()
         
         if plot_mode == 1:
+            # Deposition volume plot
             fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
             axs.plot(xData, dep_yData, 'o', c='blue')
             axs.plot(xData, dep_intCurve, c='green')
             axs.set_title('Deposition series # '+str(i+1)+'- '+run)
             axs.set_xlabel('Time [min]')
-            axs.set_ylabel('Volume [mm³]')
-            plt.savefig(os.path.join(plot_dir, run + 'series_' + str(i+1) +'_dep_interp.png'), dpi=200)
+            axs.set_ylabel('Volume V/(L*W) [mm]')
+            plt.savefig(os.path.join(plot_dir, 'sco_interp', run + '_func_mode' + str(volume_func_mode) + 'series_' + str(i+1) +'_dep_interp.png'), dpi=200)
             plt.show()
             
+            # Scour volume plot
             fig2, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
             axs.plot(xData, sco_yData, 'o', c='red')
             axs.plot(xData, sco_intCurve, c='green')
             axs.set_title('Scour series # '+str(i+1)+'- '+run)
             axs.set_xlabel('Time [min]')
-            axs.set_ylabel('Volume [mm³]')
-            plt.savefig(os.path.join(plot_dir, run + 'series_' + str(i+1) +'_sco_interp.png'), dpi=200)
+            axs.set_ylabel('Volume V/(L*W) [mm]')
+            plt.savefig(os.path.join(plot_dir, 'dep_interp', run + '_func_mode' + str(volume_func_mode) + 'series_' + str(i+1) +'_sco_interp.png'), dpi=200)
             plt.show()
             
+            # Morphological active width plot
             fig3, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
             axs.plot(xData, morphWact_yData, 'o', c='brown')
             axs.plot(xData, morphWact_intCurve, c='green')
             axs.set_title('Morphological active width series # '+str(i+1)+'- '+run)
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('morphWact [mm³]')
-            plt.savefig(os.path.join(plot_dir, run + 'series_' + str(i+1) +'_morphWact_interp.png'), dpi=200)
+            plt.savefig(os.path.join(plot_dir, 'morphWact_interp', run + '_func_mode' + str(morphWact_func_mode) + 'series_' + str(i+1) +'_morphWact_interp.png'), dpi=200)
             plt.show()
             
+            # Active thickness plot
             fig4, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
             axs.plot(xData, act_thickness_yData, 'o', c='purple')
             axs.plot(xData, act_thickness_intCurve, c='green')
             axs.set_title('Active thickness # '+str(i+1)+'- '+run)
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Active thickness [mm]')
-            plt.savefig(os.path.join(plot_dir, run + 'series_' + str(i+1) +'_act_thickness_interp.png'), dpi=200)
+            plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(act_thickness_func_mode) + 'series_' + str(i+1) +'_act_thickness_interp.png'), dpi=200)
             plt.show()
             
+            
+            # Vulume interpolation as act_volume = act_Thickness*act_Area
+            fig4, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(xData, act_thickness_yData, 'o', c='purple')
+            axs.plot(xData, act_thickness_intCurve, c='green')
+            axs.set_title('Active thickness # '+str(i+1)+'- '+run)
+            axs.set_xlabel('Time [min]')
+            axs.set_ylabel('Active thickness [mm]')
+            plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(act_thickness_func_mode) + 'series_' + str(i+1) +'_act_thickness_interp.png'), dpi=200)
+            plt.show()
+            
+            
+            # Active area interpolation 
+            fig4, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(xData, act_area_yData, 'o', c='pink')
+            axs.plot(xData, act_area_intCurve, c='green')
+            axs.set_title('Active area # '+str(i+1)+'- '+run)
+            axs.set_xlabel('Time [min]')
+            axs.set_ylabel('Active area [mm²]')
+            plt.savefig(os.path.join(plot_dir, 'act_area_interp', run + '_func_mode' + str(act_area_func_mode) + 'series_' + str(i+1) +'_act_area_interp.png'), dpi=200)
+            plt.show()
+            
+            #  Volume interpolation as act_thickness*act_area
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(xData, (dep_yData + sco_yData)*(0.6*13.4*1000), 'o', c='blue')
+            axs.plot(xData, (sco_intCurve+dep_intCurve)*(0.6*13.4*1000), c='green')
+            axs.plot(xData, act_area_intCurve*act_thickness_intCurve, c='black')
+            axs.set_title('Volume interpolation as act_thickness*act_area series # '+str(i+1)+'- '+run)
+            axs.set_xlabel('Time [min]')
+            axs.set_ylabel('Volume [mm³]')
+            plt.savefig(os.path.join(plot_dir, 'sco_interp', run + '_func_mode' + str(volume_func_mode) + 'series_' + str(i+1) +'_dep_interp.png'), dpi=200)
+            plt.show()
+
         else:
             pass
 
@@ -316,13 +399,16 @@ for run in RUNS:
     sco_params = np.transpose(sco_params)
     morphWact_params = np.transpose(morphWact_params)
     act_thickness_params = np.transpose(act_thickness_params)
+    act_area_params = np.transpose(act_area_params)
     
     # Print txt reports:
     header = 'Serie1, Serie2, Serie3, Serie4' # Report header
-    np.savetxt(os.path.join(int_report_dir, run + '_dep_int_param.txt'), dep_params, delimiter=',', header = header)
-    np.savetxt(os.path.join(int_report_dir, run + '_sco_int_param.txt'), dep_params, delimiter=',', header = header)
-    np.savetxt(os.path.join(int_report_dir, run + '_morphWact_int_param.txt'), morphWact_params, delimiter=',', header = header)
-    np.savetxt(os.path.join(int_report_dir, run + '_act_thickness_int_param.txt'), act_thickness_params, delimiter=',', header = header)  
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_dep_int_param.txt'), dep_params, delimiter=',', header = header)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_sco_int_param.txt'), dep_params, delimiter=',', header = header)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(morphWact_func_mode) + '_morphWact_int_param.txt'), morphWact_params, delimiter=',', header = header)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_thickness_func_mode) + '_act_thickness_int_param.txt'), act_thickness_params, delimiter=',', header = header)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_area_func_mode) + '_act_area_int_param.txt'), act_area_params, delimiter=',', header = header)
+
 
 end = time.time()
 print()

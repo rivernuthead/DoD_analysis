@@ -440,6 +440,7 @@ for run in RUNS:
     matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
     # matrix_dep=np.zeros((len(files)-1, len(files)+1)) # Deposition volume report matrix
     matrix_dep=np.zeros((len(files)+3, len(files)+1)) # Deposition volume report matrix
+    matrix_active_area=np.zeros((len(files)+3, len(files)+1)) # Active area report matrix
     # matrix_sco=np.zeros((len(files)-1, len(files)+1)) # Scour volume report matrix
     matrix_sco=np.zeros((len(files)+3, len(files)+1)) # Scour volume report matrix
     matrix_Wact=np.zeros((len(files)+3, len(files)+3)) # Active width report matrix
@@ -731,7 +732,7 @@ for run in RUNS:
             dim_x, dim_y = DEM1.shape
             # dim_y, dim_x = DEM1.shape
             
-            DoD_length = dim_y*px_x/1000 # DoD length in meters
+            DoD_length = DEM1.shape[1]*px_x/1000 # DoD length in meters
 
             # Creating DoD array with np.nan
             DoD_raw = np.zeros(DEM1.shape)
@@ -896,7 +897,9 @@ for run in RUNS:
             
             active_pixel_count = np.where(DoD_vol!=0, 1, 0) # Active pixel matrix, both scour and deposition
             active_area = np.count_nonzero(active_pixel_count) *px_x*px_y # Active area [mm²]
-            act_width_mean = (active_area/(DoD_vol.shape[1]*px_x))/(W*1000) # Mean active width [%] - Wact/W
+            active_area_array = np.append(active_area_array, active_area)
+            act_width_mean = (active_area/(DoD_length*1000))/(W*1000) # Mean active width [%] - Wact/W
+            act_width_mean_array = np.append(act_width_mean_array, act_width_mean)
             act_width_array = np.array([np.nansum(active_pixel_count, axis=0)])*px_y/1000/W # Array of the crosswise morphological active width [Wact/W]
             
             # Calculate active thickness as (abs(V_sco) + V_dep)/act_area [mm]
@@ -905,10 +908,8 @@ for run in RUNS:
             print('Active thickness [mm]:')
             print(act_thickness)
 
-            print('Morphological active area_active: ', "{:.1f}".format(active_area), '[mm**2]')
+            print('Morphological active area: ', "{:.1f}".format(active_area), '[mm²]')
             print('Morphological active width (mean):', "{:.3f}".format(act_width_mean), '%')
-            active_area_array = np.append(active_area_array, active_area)
-            act_width_mean_array = np.append(act_width_mean_array, act_width_mean)
             print()
             print()
 
@@ -943,15 +944,18 @@ for run in RUNS:
                 matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000)
                 matrix_dep[delta-1,h]=np.sum(DEP)*px_x*px_y/(W*DoD_length*1000)
                 matrix_sco[delta-1,h]=np.sum(SCO)*px_x*px_y/(W*DoD_length*1000)
+                matrix_active_area[delta-1,h]=active_area
 
                 # Fill last two columns with AVERAGE and STDEV
                 matrix_volumes[delta-1,-2]=np.average(matrix_volumes[delta-1,:len(files)-delta])
                 matrix_dep[delta-1,-2]=np.average(matrix_dep[delta-1,:len(files)-delta])
                 matrix_sco[delta-1,-2]=np.average(matrix_sco[delta-1,:len(files)-delta])
+                matrix_active_area[delta-1,-2]=np.average(matrix_active_area[delta-1,:len(files)-delta])
 
                 matrix_volumes[delta-1,-1]=np.std(matrix_volumes[delta-1,:len(files)-delta])
                 matrix_dep[delta-1,-1]=np.std(matrix_dep[delta-1,:len(files)-delta])
                 matrix_sco[delta-1,-1]=np.std(matrix_sco[delta-1,:len(files)-delta])
+                matrix_active_area[delta-1,-1]=np.std(matrix_active_area[delta-1,:len(files)-delta])
 
 
                 # Fill Wact/W MEAN matrix as below:
@@ -1145,12 +1149,12 @@ for run in RUNS:
         axs[0].plot(xData, intCurve_dep, c='red')
         axs[0].set_title('Deposition volumes interpolation '+run)
         axs[0].set_xlabel('Time [min]')
-        axs[0].set_ylabel('Volume [mm³]')
+        axs[0].set_ylabel('Volume V/(L*W) [mm]')
         axs[1].plot(xData, yData_sco, 'o')
         axs[1].plot(xData, intCurve_sco, c='red')
         axs[1].set_title('Scour volumes interpolation '+run)
         axs[1].set_xlabel('Time [min]')
-        axs[1].set_ylabel('Volume [mm³]')
+        axs[1].set_ylabel('Volume V/(L*W) [mm]')
         plt.savefig(os.path.join(plot_dir, run +'_volume_interp.png'), dpi=200)
         plt.show()
 
@@ -1225,6 +1229,10 @@ for run in RUNS:
     # Create active thickness matrix report
     report_act_thickness_name = os.path.join(report_dir, run +'_act_thickness_report.txt')
     np.savetxt(report_act_thickness_name, matrix_act_thickness , fmt='%.3f', delimiter=',', newline='\n')
+    
+    # Create active area matrix report
+    report_act_area_name = os.path.join(report_dir, run + '_act_area_report.txt')
+    np.savetxt(report_act_area_name, matrix_active_area, fmt='%.3f', delimiter=',', newline='\n')
 
     # Create Wact report matrix
     matrix_Wact[:,len(files)-1]=matrix_Wact_min[:,len(files)-1] # Fill matrix_Wact report with minimum values
@@ -1254,6 +1262,11 @@ for run in RUNS:
         fp.writelines(['\n'])
     fp.close()
 
+
+
+    ###########################################################################
+    # PLOTS
+    ###########################################################################
     # Define arrays for scour and volume data over time
     xData=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
     yData_sco=np.absolute(matrix_sco[:len(files)-1,0])
@@ -1270,12 +1283,12 @@ for run in RUNS:
         axs[0].set_ylim(bottom=0)
         axs[0].set_title('Scour')
         # axs[0].set_xlabel()
-        axs[0].set_ylabel('Scour [mm³]')
+        axs[0].set_ylabel('Scour volume V/(L*W) [mm]')
         axs[1].errorbar(xData,yData_dep, yError_dep, linestyle='--', marker='^', color='blue')
         axs[1].set_ylim(bottom=0)
         axs[1].set_title('Deposition')
         axs[1].set_xlabel('Exner time')
-        axs[1].set_ylabel('Scour [mm³]')
+        axs[1].set_ylabel('Scour olume V/(L*W) [mm]')
         plt.savefig(os.path.join(plot_dir, run +'dep_scour.png'), dpi=200)
         plt.show()
         
