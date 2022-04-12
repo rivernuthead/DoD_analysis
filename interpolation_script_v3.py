@@ -46,7 +46,7 @@ def func_exp2(x,A,B,C):
 # morphW interpolation function:
 def func_exp3(x,A,B):
     # func_mode = 3
-    y = ((A + (1-np.exp(-x/B)))/(A+1))*0.9
+    y = ((A + (1-np.exp(-x/B)))/(A+1))*0.7
     return y
 
 def func_exp4(x,A,B):
@@ -65,7 +65,7 @@ plot_mode = 1 # Plot mode: 0 -> no plot, 1 -> plot
 
 # Interpolation function:
 volume_func_mode = 2
-morphWact_func_mode = 3
+morphWact_func_mode = 2
 act_thickness_func_mode = 2
 act_area_func_mode = 2
 ###############################################################################
@@ -245,7 +245,7 @@ for run in RUNS:
             morphWact_ic=np.array([np.mean(morphWact_yData),np.min(xData)]) # Initial deposition parameter guess
             morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
         elif morphWact_func_mode ==2:
-            morphWact_ic=np.array([np.mean(morphWact_yData),np.min(xData), np.max(morphWact_yData)]) # Initial deposition parameter guess
+            morphWact_ic=np.array([np.max(morphWact_yData)-np.min(morphWact_yData)/2,np.min(xData), np.min(morphWact_yData)/2]) # Initial deposition parameter guess
             morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp2, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
         elif morphWact_func_mode == 3:
             #TODO check initial guess for this function
