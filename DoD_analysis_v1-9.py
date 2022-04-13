@@ -38,14 +38,12 @@ Process mode: (NB: set DEMs name)
 Save mode:
     0 = save only reports
     1 = save all chart and figure
-
 '''
 run_mode = 2
 DEM_analysis_mode = 0
 mask_mode = 1
 process_mode = 1
 save_plot_mode = 1
-
 
 ###############################################################################
 # SETUP FOLDERS
@@ -56,15 +54,6 @@ DoDs_dir = os.path.join(home_dir, 'DoDs')
 report_dir = os.path.join(home_dir, 'output')
 plot_dir = os.path.join(home_dir, 'plot')
 run_dir = os.path.join(home_dir, 'surveys')
-
-
-# Check if morphWact_matrix.txt already exists. If yes, remove it.
-# The script append all the data, so if the file already exixist all the new
-# data will be appedned to the old file.
-# if os.path.exists(os.path.join(report_dir, 'morphWact_matrix.txt')):
-#     os.remove(os.path.join(report_dir, 'morphWact_matrix.txt'))
-# else:
-#     pass
 
 
 # Create the run name list
