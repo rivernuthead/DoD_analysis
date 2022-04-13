@@ -18,8 +18,6 @@ start = time.time() # Set initial time
 # SETUP SCRIPT PARAMETERS and RUN MODE
 ###############################################################################
 
-# SINGLE RUN NAME
-run = 'q07_1'
 
 '''
 Run mode:
@@ -45,8 +43,35 @@ mask_mode = 1
 process_mode = 1
 save_plot_mode = 1
 
+# SINGLE RUN NAME
+run = 'q07_1'
+
+# Set DEM single name to perform process to specific DEM
+DEM1_single_name = 'matrix_bed_norm_q07S5.txt' # DEM1 name
+DEM2_single_name = 'matrix_bed_norm_q07S6.txt' # DEM2 name
+
+# Filtering process thresholds values
+thrs_1 = 2.0  # [mm] # Lower threshold
+thrs_2 = 15.0  # [mm] # Upper threshold
+neigh_thrs = 5  # [-] # Number of neighborhood cells for validation
+
+# Survey pixel dimension
+px_x = 50 # [mm]
+px_y = 5 # [mm]
+
+# Not a number raster value (NaN)
+NaN = -999
+
+# Engelund-Gauss model parameters
+g = 9.806 # Gravity
+ds = 0.001  # Sediment grainsize [mm]
+teta_c = 0.02 # Schield parameter [-]
+NG=4 # Number of Gauss points
+max_iter = 100000 # Maximum numer of iterations
+toll = 0.00001 # Convergence tolerance
+
 ###############################################################################
-# SETUP FOLDERS
+# SETUP FOLDERS and RUNS
 ###############################################################################
 # setup working directory and DEM's name
 home_dir = os.getcwd()
@@ -55,15 +80,25 @@ report_dir = os.path.join(home_dir, 'output')
 plot_dir = os.path.join(home_dir, 'plot')
 run_dir = os.path.join(home_dir, 'surveys')
 
+# Save a report with xData as real time in minutes and the value of scour and deposition volumes for each runs
+# Check if the file already exists
+if os.path.exists(os.path.join(report_dir, 'volume_over_time.txt')):
+    os.remove(os.path.join(report_dir, 'volume_over_time.txt'))
+else:
+    pass
 
 # Create the run name list
 RUNS=[]
-if run_mode ==2:
-    for RUN in sorted(os.listdir(run_dir)):
-        if RUN.startswith('q'):
-            RUNS = np.append(RUNS, RUN)
-elif run_mode==1:
-    RUNS=run.split()
+if run_mode ==2: # batch run mode
+    for RUN in sorted(os.listdir(run_dir)): # loop over surveys directories
+        if RUN.startswith('q'): # Consider only folder names starting wit q
+            RUNS = np.append(RUNS, RUN) # Append run name at RUNS array
+elif run_mode==1: # Single run mode
+    RUNS=run.split() # RUNS as a single entry array, provided by run variable
+
+###############################################################################
+# INITIALIZE OVERALL REPORT ARRAYS
+###############################################################################
 
 # Define volume time scale report matrix:
 # B_dep, SD(B_dep), B_sco, SD(B_sco)
@@ -81,12 +116,6 @@ engelund_model_report=np.zeros((len(RUNS),3))
 # It will be used to create the morphWact_matrix
 morphWact_dim = [] # Array with the dimensions of morphWact_values array
 
-# Print a report with xData as real time in minutes and  the value of scour and deposition volumes for each runs
-# Check if the file already exists
-if os.path.exists(os.path.join(report_dir, 'volume_over_time.txt')):
-    os.remove(os.path.join(report_dir, 'volume_over_time.txt'))
-else:
-    pass
 
 ###############################################################################
 # MAIN LOOP OVER RUNS
@@ -103,8 +132,7 @@ for run in RUNS:
     # setup working directory and DEM's name
     input_dir = os.path.join(home_dir, 'surveys', run)
 
-
-    # Create folders
+    # CREATE FOLDERS
     if not(os.path.exists(report_dir)):
         os.mkdir(report_dir)
     if not(os.path.exists(DoDs_dir)):
@@ -113,49 +141,28 @@ for run in RUNS:
         os.mkdir(plot_dir)
 
 
-    # Import parameters from file parameters.txt
+    # IMPORT RUN PARAMETERS from file parameters.txt
     # variable run must be as 'q' + discharge + '_' repetition number
     # Parameters.txt structure:
-    # discharge [l/s],repetition,run time [min],Texner discretization [-], Channel width [m], slome [m/m]
-    # Load parameter matrix
+    # discharge [l/s],repetition,run time [min],Texner discretization [-], Channel width [m], slope [m/m]
+    # Load parameter matrix:
     parameters = np.loadtxt(os.path.join(home_dir, 'parameters.txt'),
                             delimiter=',',
                             skiprows=1)
-    # Extract run parameter
+    # Extract run parameter depending by run name
     run_param = parameters[np.intersect1d(np.argwhere(parameters[:,1]==float(run[-1:])),np.argwhere(parameters[:,0]==float(run[1:3])/10)),:]
 
-    dt = run_param[0,2] # dt between runs in minutes (real time)
+    # Run time data
+    dt = run_param[0,2] # dt between runs [min] (real time)
     dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner between runs)
-
-    DEM1_single_name = 'matrix_bed_norm_q07S5.txt' # DEM1 name
-    DEM2_single_name = 'matrix_bed_norm_q07S6.txt' # DEM2 name
-
-    # Thresholds values
-    thrs_1 = 2.0  # [mm] # Lower threshold
-    thrs_2 = 15.0  # [mm] # Upper threshold
-    neigh_thrs = 5  # [-] # Number of neighborhood cells for validation
-
-    # Flume parameters
+    
+    # Flume geometry parameters
     W = run_param[0,4] # Flume width [m]
     S = run_param[0,5] # Flume slope
 
-    # Pixel dimension
-    px_x = 50 # [mm]
-    px_y = 5 # [mm]
-
-    # Not a number raster value (NaN)
-    NaN = -999
-
-    # Engelund-Gauss model parameters
-    g = 9.806 # Gravity
-    ds = 0.001  # Sediment grainsize [mm]
+    # Run discharge
     Q = run_param[0,0] # Run discharge [l/s]
-    teta_c = 0.02 # Schield parameter [-]
-    NG=4 # Number of Gauss points
-    max_iter = 100000 # Maximum numer of iterations
-    toll = 0.00001
-
-
+    
     files=[] # initializing filenames list
     # Creating array with file names:
     for f in sorted(os.listdir(input_dir)):
@@ -163,7 +170,7 @@ for run in RUNS:
         if os.path.isfile(path) and f.endswith('.txt') and f.startswith('matrix_bed_norm_'+run+'s'):
             files = np.append(files, f)
 
-    # Initialize arrays
+    # INITIALIZE ARRAYS
     comb = np.array([]) # combination of differences
     DoD_count_array=[] # Active pixel
     volumes_array=[] # Tot volume
@@ -517,7 +524,6 @@ for run in RUNS:
                                       [0, 1, 0]])
                         w_norm = w / (sum(sum(w)))  # Normalizing weight matrix
                         DoD_mean[i, j] = np.nansum(ker1 * w_norm)
-            #TODO convert Array in a %.1f format
             # # Filtered array weighted average by nan.array mask
             # DoD_mean = DoD_mean * array_msk_nan
             # Create a GIS readable DoD mean (np.nan as -999)
