@@ -202,10 +202,10 @@ for run in RUNS:
         dep_yData = int_d["int_dep_data_" + run][:,i]
         # Decide interpolation function
         if volume_func_mode == 1:
-            dep_ic=np.array([np.mean(dep_yData),np.min(xData)]) # Initial deposition parameter guess
+            dep_ic=np.array([np.max(dep_yData), np.min(xData)]) # Initial deposition parameter guess
             dep_par, dep_intCurve, dep_covar, dep_params_interp =  interpolate(func_exp, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
         elif volume_func_mode ==2:
-            dep_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            dep_ic=np.array([np.max(dep_yData) - np.min(dep_yData)/2,np.min(xData), np.min(dep_yData)/2]) # Initial deposition parameter guess
             dep_par, dep_intCurve, dep_covar, dep_params_interp =  interpolate(func_exp2, xData, dep_yData, ic=dep_ic, bounds=(-np.inf, np.inf))
         elif volume_func_mode == 3:
             #TODO check initial guess for this function
@@ -222,14 +222,14 @@ for run in RUNS:
         # Scour volumes interpolation:
         sco_yData = np.abs(int_d["int_sco_data_" + run][:,i])
         if volume_func_mode == 1:
-            sco_ic=np.array([np.mean(dep_yData),np.min(xData)]) # Initial deposition parameter guess
+            sco_ic=np.array([np.max(sco_yData),np.min(xData)]) # Initial deposition parameter guess
             sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp, xData, sco_yData, ic=sco_ic, bounds=(-np.inf, np.inf))
         elif volume_func_mode ==2:
-            sco_ic=np.array([np.mean(dep_yData),np.min(xData), np.max(dep_yData)]) # Initial deposition parameter guess
+            sco_ic=np.array([np.max(sco_yData) - np.min(sco_yData)/2,np.min(xData), np.min(sco_yData)/2]) # Initial deposition parameter guess
             sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp2, xData, sco_yData, ic=sco_ic, bounds=(-np.inf, np.inf))
         elif volume_func_mode == 3:
             #TODO check initial guess for this function
-            sco_ic=np.array([np.min(dep_yData),np.min(xData)]) # Initial deposition parameter guess
+            sco_ic=np.array([np.min(sco_yData),np.min(xData)]) # Initial deposition parameter guess
             sco_par, sco_intCurve, sco_covar, sco_params_interp =  interpolate(func_exp3, xData, sco_yData, ic=sco_ic, bounds=(-np.inf, np.inf))
             
         if i == 0:
@@ -242,7 +242,7 @@ for run in RUNS:
         # Morphological active width interpolation:
         morphWact_yData = int_d["int_morphWact_data_" + run][:,i]
         if morphWact_func_mode == 1:
-            morphWact_ic=np.array([np.mean(morphWact_yData),np.min(xData)]) # Initial deposition parameter guess
+            morphWact_ic=np.array([np.max(morphWact_yData),np.min(xData)]) # Initial deposition parameter guess
             morphWact_par, morphWact_intCurve, morphWact_covar, morphWact_params_interp =  interpolate(func_exp, xData, morphWact_yData, ic=morphWact_ic, bounds=(-np.inf, np.inf))
         elif morphWact_func_mode ==2:
             morphWact_ic=np.array([np.max(morphWact_yData)-np.min(morphWact_yData)/2,np.min(xData), np.min(morphWact_yData)/2]) # Initial deposition parameter guess
@@ -262,10 +262,10 @@ for run in RUNS:
         # Active thickness interpolation:
         act_thickness_yData = int_d["int_act_thickness_data_" + run][:,i]
         if act_thickness_func_mode == 1:
-            act_thickness_ic=np.array([np.mean(act_thickness_yData),np.min(xData)]) # Initial deposition parameter guess
+            act_thickness_ic=np.array([np.max(act_thickness_yData),np.min(xData)]) # Initial deposition parameter guess
             act_thickness_par, act_thickness_intCurve, act_thickness_covar, act_thickness_params_interp =  interpolate(func_exp, xData, act_thickness_yData, ic=act_thickness_ic, bounds=(-np.inf, np.inf))
         elif act_thickness_func_mode ==2:
-            act_thickness_ic=np.array([np.mean(act_thickness_yData),np.min(xData), np.max(act_thickness_yData)]) # Initial deposition parameter guess
+            act_thickness_ic=np.array([np.max(act_thickness_yData)-np.min(act_thickness_yData)/2,np.min(xData), np.min(act_thickness_yData)/2]) # Initial deposition parameter guess
             act_thickness_par, act_thickness_intCurve, act_thickness_covar, act_thickness_params_interp =  interpolate(func_exp2, xData, act_thickness_yData, ic=act_thickness_ic, bounds=(-np.inf, np.inf))
         elif act_thickness_func_mode == 3:
             #TODO check initial guess for this function
@@ -273,7 +273,7 @@ for run in RUNS:
             act_thickness_par, act_thickness_intCurve, act_thickness_covar, act_thickness_params_interp =  interpolate(func_exp3, xData, act_thickness_yData, ic=act_thickness_ic, bounds=(-np.inf, np.inf))
         elif act_thickness_func_mode == 4:
             #TODO check initial guess for this function
-            act_thickness_ic=np.array([np.min(act_thickness_yData),np.min(xData)]) # Initial deposition parameter guess
+            act_thickness_ic=np.array([np.max(act_thickness_yData),np.min(xData)]) # Initial deposition parameter guess
             act_thickness_par, act_thickness_intCurve, act_thickness_covar, act_thickness_params_interp =  interpolate(func_exp4, xData, act_thickness_yData, ic=act_thickness_ic, bounds=(-np.inf, np.inf))
                 
         if i == 0:
@@ -287,10 +287,10 @@ for run in RUNS:
         act_area_yData = int_d["int_act_area_data_" + run][:,i]
         # Decide interpolation function
         if act_area_func_mode == 1:
-            act_area_ic=np.array([np.mean(act_area_yData),np.min(xData)]) # Initial act_area parameter guess
+            act_area_ic=np.array([np.max(act_area_yData),np.min(xData)]) # Initial act_area parameter guess
             act_area_par, act_area_intCurve, act_area_covar, act_area_params_interp =  interpolate(func_exp, xData, act_area_yData, ic=act_area_ic, bounds=(-np.inf, np.inf))
         elif act_area_func_mode ==2:
-            act_area_ic=np.array([np.mean(act_area_yData),np.min(xData), np.max(act_area_yData)]) # Initial act_area parameter guess
+            act_area_ic=np.array([np.max(act_area_yData)-np.min(act_area_yData)/2,np.min(xData), np.min(act_area_yData)/2]) # Initial act_area parameter guess
             act_area_par, act_area_intCurve, act_area_covar, act_area_params_interp =  interpolate(func_exp2, xData, act_area_yData, ic=act_area_ic, bounds=(-np.inf, np.inf))
         elif act_area_func_mode == 3:
             #TODO check initial guess for this function

@@ -10,6 +10,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import optimize as opt
+from DoD_analysis_functions import *
 # from matplotlib.colors import ListedColormap, BoundaryNorm
 
 start = time.time() # Set initial time
@@ -432,21 +433,26 @@ for run in RUNS:
     volumes_array=[] # Tot volume
     dep_array=[] # Deposition volume
     sco_array=[] # Scour volume
-    active_area_array=[] # Active area array
-    act_width_mean_array=[] # Active width mean array
+    morph_act_area_array=[] # Total active area array
+    morph_act_area_array_dep=[] # Deposition active area array
+    morph_act_area_array_sco=[] # Active active area array
+    act_width_mean_array=[] # Total active width mean array
+    act_width_mean_array_dep=[] # Deposition active width mean array
+    act_width_mean_array_sco=[] # Scour active width mean array
     morphWact_values=[] # morphWact values for each section of all the DoD
     report_matrix = [] #Report matrix
     # matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
     matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
     # matrix_dep=np.zeros((len(files)-1, len(files)+1)) # Deposition volume report matrix
     matrix_dep=np.zeros((len(files)+3, len(files)+1)) # Deposition volume report matrix
-    matrix_active_area=np.zeros((len(files)+3, len(files)+1)) # Active area report matrix
+    matrix_morph_act_area=np.zeros((len(files)+3, len(files)+1)) # Active area report matrix
     # matrix_sco=np.zeros((len(files)-1, len(files)+1)) # Scour volume report matrix
     matrix_sco=np.zeros((len(files)+3, len(files)+1)) # Scour volume report matrix
     matrix_Wact=np.zeros((len(files)+3, len(files)+3)) # Active width report matrix
     matrix_Wact_max=np.zeros((len(files)+3, len(files)+1)) # Max active width report matrix
     matrix_Wact_min=np.zeros((len(files)+3, len(files)+1)) # Minimum active width report matrix
     matrix_act_thickness = np.zeros((len(files)-1, len(files)+1)) # Matrix where collect active thickness data
+    matrix_act_volume = np.zeros((len(files)-1, len(files)+1)) # Matrix where collect volume data
 
     matrix_DEM_analysis = np.zeros((len(files), len(files)))
 
@@ -729,10 +735,10 @@ for run in RUNS:
             # Print DoD name
             print(DEM2_name, '-', DEM1_name)
             # Raster dimension
-            dim_x, dim_y = DEM1.shape
-            # dim_y, dim_x = DEM1.shape
+            dim_y, dim_x = DEM1.shape
+            # dim_x, dim_x = DEM1.shape
             
-            DoD_length = DEM1.shape[1]*px_x/1000 # DoD length in meters
+            DoD_length = DEM1.shape[1]*px_x/1000 # DoD length [m]
 
             # Creating DoD array with np.nan
             DoD_raw = np.zeros(DEM1.shape)
@@ -761,8 +767,8 @@ for run in RUNS:
             # Perform domain-wide average
             domain_avg = np.pad(DoD_raw, 1, mode='edge') # i size pad with edge values domain
             DoD_mean = np.zeros(DEM1.shape)
-            for i in range (0, dim_x):
-                for j in range (0, dim_y):
+            for i in range (0, dim_y):
+                for j in range (0, dim_x):
                     if np.isnan(DoD_raw[i, j]):
                         DoD_mean[i, j] = np.nan
                     else:
@@ -786,8 +792,8 @@ for run in RUNS:
             DoD_filt = np.copy(DoD_mean) # Initialize filtered DoD array as a copy of the averaged one
             DoD_filt_domain = np.pad(DoD_filt, 1, mode='edge') # Create neighbourhood analysis domain
 
-            for i in range(0,dim_x):
-                for j in range(0,dim_y):
+            for i in range(0,dim_y):
+                for j in range(0,dim_x):
                     if abs(DoD_filt[i,j]) < thrs_1: # Set as "no variation detected" all variations lower than thrs_1
                         DoD_filt[i,j] = 0
                     if abs(DoD_filt[i,j]) >= thrs_1 and abs(DoD_filt[i,j]) <= thrs_2: # Perform neighbourhood analysis for variations between thrs_1 and thrs_2
@@ -806,8 +812,8 @@ for run in RUNS:
             # Avoiding zero-surrounded pixel
             DoD_filt_nozero=np.copy(DoD_filt) # Initialize filtered DoD array as a copy of the filtered one
             zerosur_domain = np.pad(DoD_filt_nozero, 1, mode='edge') # Create analysis domain
-            for i in range(0,dim_x):
-                for j in range(0,dim_y):
+            for i in range(0,dim_y):
+                for j in range(0,dim_x):
                     if DoD_filt_nozero[i,j] != 0 and not(np.isnan(DoD_filt_nozero[i,j])): # Limiting the analysis to non-zero numbers
                         # Create kernel
                         ker3 = np.array([[zerosur_domain[i, j], zerosur_domain[i, j + 1], zerosur_domain[i, j + 2]],
@@ -871,15 +877,15 @@ for run in RUNS:
 
             # Define total volume matrix, Deposition matrix and Scour matrix
             DoD_vol = np.where(np.isnan(DoD_filt_nozero), 0, DoD_filt_nozero) # Total volume matrix
-            DEP = (DoD_vol>0)*DoD_vol # Deposition volume matrix
-            SCO = (DoD_vol<0)*DoD_vol # Scour volume matrix
+            dep_DoD = (DoD_vol>0)*DoD_vol # DoD of only deposition data
+            sco_DoD = (DoD_vol<0)*DoD_vol # DoD of only scour data
+            
             
             tot_vol = np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000) # Total volume as V/(L*W) [mm]
-            dep_vol = np.sum(DEP)*px_x*px_y/(W*DoD_length*1000) # Deposition volume as V/(L*W) [mm]
-            sco_vol = np.sum(SCO)*px_x*px_y/(W*DoD_length*1000) # Scour volume as V/(L*W) [mm]
+            dep_vol = np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*1000) # Deposition volume as V/(L*W) [mm]
+            sco_vol = np.sum(sco_DoD)*px_x*px_y/(W*DoD_length*1000) # Scour volume as V/(L*W) [mm]
             
             
-
             #Print results:
             print('Total volume V/(L*W) [mm]:', "{:.1f}".format(tot_vol))
             print('Deposition volume V/(L*W) [mm]:', "{:.1f}".format(dep_vol))
@@ -896,19 +902,38 @@ for run in RUNS:
             ###################################################################
             
             act_px_matrix = np.where(DoD_vol!=0, 1, 0) # Active pixel matrix, both scour and deposition
-            active_area = np.count_nonzero(act_px_matrix) *px_x*px_y # Active area [mm²]
-            active_area_array = np.append(active_area_array, active_area)
-            act_width_mean = (active_area/(DoD_length*1000))/(W*1000) # Mean active width [%] - Wact/W
-            act_width_mean_array = np.append(act_width_mean_array, act_width_mean)
-            act_width_array = np.array([np.nansum(act_px_matrix, axis=0)])*px_y/1000/W # Array of the crosswise morphological active width [Wact/W]
+            act_px_matrix_dep = np.where(dep_DoD != 0, 1, 0) # Active deposition matrix 
+            act_px_matrix_sco = np.where(sco_DoD != 0, 1, 0) # Active scour matrix
             
-            # Calculate active thickness as (abs(V_sco) + V_dep)/act_area [mm]
-            act_thickness = (np.sum(np.abs(DoD_vol))*px_x*px_y)/active_area # Active thickness in mm
+            morph_act_area = np.count_nonzero(act_px_matrix)*px_x*px_y # Active area both in terms of scour and deposition [mm²]
+            morph_act_area_dep = np.count_nonzero(act_px_matrix_dep)*px_x*px_y # Active deposition area [mm²]
+            morph_act_area_sco = np.count_nonzero(act_px_matrix_sco)*px_x*px_y # Active scour area [mm²]
+            
+            morph_act_area_array = np.append(morph_act_area_array, morph_act_area) # For each DoD, append total active area data
+            morph_act_area_array_dep = np.append(morph_act_area_array_dep, morph_act_area_dep) # For each DoD, append deposition active area data
+            morph_act_area_array_sco = np.append(morph_act_area_array_sco, morph_act_area_sco) # For each DoD, append scour active area data
+            
+            act_width_mean = (morph_act_area/(DoD_length*1000))/(W*1000) # Total mean active width [%] - Wact/W
+            act_width_mean_dep = (morph_act_area_dep/(DoD_length*1000))/(W*1000) # Deposition mean active width [%] - Wact/W
+            act_width_mean_sco = (morph_act_area_sco/(DoD_length*1000))/(W*1000) # Scour mean active width [%] - Wact/W
+            
+            act_width_mean_array = np.append(act_width_mean_array, act_width_mean) # For each DoD append total active width values
+            act_width_mean_array_dep = np.append(act_width_mean_array_dep, act_width_mean_dep) # For each DoD append deposition active width values
+            act_width_mean_array_sco = np.append(act_width_mean_array_sco, act_width_mean_sco) # For each DoD append scour active width values
+            
+            act_width_array = np.array([np.nansum(act_px_matrix, axis=0)])*px_y/1000/W # Array of the crosswise morphological total active width [Wact/W]
+            act_width_array_dep = np.array([np.nansum(act_px_matrix_dep, axis=0)])*px_y/1000/W # Array of the crosswise morphological deposition active width [Wact/W]
+            act_width_array_sco = np.array([np.nansum(act_px_matrix_sco, axis=0)])*px_y/1000/W # Array of the crosswise morphological scour active width [Wact/W]
+            
+            # Calculate active thickness for total volumes. deposition volumes and scour volumes
+            act_thickness = (np.sum(np.abs(DoD_vol))*px_x*px_y)/morph_act_area # Total active thickness (abs(V_sco) + V_dep)/act_area [mm]
+            act_thickness_dep = (np.sum(np.abs(dep_DoD))*px_x*px_y)/morph_act_area_dep # Deposition active thickness (abs(V_sco) + V_dep)/act_area [mm]
+            act_thickness_sco = (np.sum(np.abs(sco_DoD))*px_x*px_y)/morph_act_area_sco # Scour active thickness (abs(V_sco) + V_dep)/act_area [mm]
             
             print('Active thickness [mm]:')
             print(act_thickness)
 
-            print('Morphological active area: ', "{:.1f}".format(active_area), '[mm²]')
+            print('Morphological active area: ', "{:.1f}".format(morph_act_area), '[mm²]')
             print('Morphological active width (mean):', "{:.3f}".format(act_width_mean), '%')
             print()
             print()
@@ -928,9 +953,9 @@ for run in RUNS:
             #             B     B     B     B     B     B     B     B     B
             #           SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B)
 
-            DEM1_num=DEM1_name[-5:-4]
-            DEM2_num=DEM2_name[-5:-40]
-            delta=int(DEM2_name[-5:-4])-int(DEM1_name[-5:-4])
+            DEM1_num=DEM1_name[-5:-4] # DEM1 number
+            DEM2_num=DEM2_name[-5:-40] # DEM2 number
+            delta=int(DEM2_name[-5:-4])-int(DEM1_name[-5:-4]) # Calculate delta between DEM
 
             # Build up morphWact/W array for the current run boxplot
             # This array contain all the morphWact/W values for all the run repetition in the same line
@@ -941,21 +966,29 @@ for run in RUNS:
             # Fill Scour, Deposition and morphWact/w matrix:
             if delta != 0:
                 # Fill matrix with values
-                matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000)
-                matrix_dep[delta-1,h]=np.sum(DEP)*px_x*px_y/(W*DoD_length*1000)
-                matrix_sco[delta-1,h]=np.sum(SCO)*px_x*px_y/(W*DoD_length*1000)
-                matrix_active_area[delta-1,h]=active_area
+                matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000) # Total volumes as the sum of scour and deposition volumes
+                matrix_dep[delta-1,h]=np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*1000) # Deposition volumes as V/(W*L) [mm]
+                matrix_sco[delta-1,h]=np.sum(sco_DoD)*px_x*px_y/(W*DoD_length*1000) # Scour volumes
+                matrix_morph_act_area[delta-1,h]=morph_act_area # Total morphological active area
+                # TODO sistemare quesat parte
+                # matrix_morph_act_area_sco
+                # matrix_morph_act_area_dep
 
                 # Fill last two columns with AVERAGE and STDEV
                 matrix_volumes[delta-1,-2]=np.average(matrix_volumes[delta-1,:len(files)-delta])
                 matrix_dep[delta-1,-2]=np.average(matrix_dep[delta-1,:len(files)-delta])
                 matrix_sco[delta-1,-2]=np.average(matrix_sco[delta-1,:len(files)-delta])
-                matrix_active_area[delta-1,-2]=np.average(matrix_active_area[delta-1,:len(files)-delta])
+                matrix_morph_act_area[delta-1,-2]=np.average(matrix_morph_act_area[delta-1,:len(files)-delta])
 
                 matrix_volumes[delta-1,-1]=np.std(matrix_volumes[delta-1,:len(files)-delta])
                 matrix_dep[delta-1,-1]=np.std(matrix_dep[delta-1,:len(files)-delta])
                 matrix_sco[delta-1,-1]=np.std(matrix_sco[delta-1,:len(files)-delta])
-                matrix_active_area[delta-1,-1]=np.std(matrix_active_area[delta-1,:len(files)-delta])
+                matrix_morph_act_area[delta-1,-1]=np.std(matrix_morph_act_area[delta-1,:len(files)-delta])
+
+                # Fill active thickness matrix:
+                matrix_act_thickness[delta-1,h]=act_thickness
+                matrix_act_thickness[delta-1,-2]=np.average(matrix_act_thickness[delta-1,:len(files)-delta])
+                matrix_act_thickness[delta-1,-1]=np.std(matrix_act_thickness[delta-1,:len(files)-delta])
 
 
                 # Fill Wact/W MEAN matrix as below:
@@ -996,19 +1029,15 @@ for run in RUNS:
                 # Fill MIN Wact/W matrix:
                 matrix_Wact_min[delta-1,h]=np.min(act_width_array)
                 matrix_Wact_min[delta-1,-2]=np.min(matrix_Wact_min[delta-1,:len(files)-delta])
-                matrix_Wact_min[delta-1,-1]=np.max(matrix_Wact_min[delta-1,:len(files)-delta])
-
-                # Fill active thickness matrix:
-                matrix_act_thickness[delta-1,h]=act_thickness
-                matrix_act_thickness[delta-1,-2]=np.average(matrix_act_thickness[delta-1,:len(files)-delta])
-                matrix_act_thickness[delta-1,-1]=np.std(matrix_act_thickness[delta-1,:len(files)-delta])
+                matrix_Wact_min[delta-1,-1]=np.max(matrix_Wact_min[delta-1,:len(files)-delta])                
+                
                 
             else:
                 pass
 
             # Stack consecutive DoDs in a 3D array
             if h==0 and k==0: # initialize the first array with the DEM shape
-                DoD_stack = np.zeros([len(files)-1, dim_x, dim_y])
+                DoD_stack = np.zeros([len(files)-1, dim_y, dim_x])
             else:
                 pass
 
@@ -1045,7 +1074,7 @@ for run in RUNS:
 
             # ACTIVE PIXEL DoD
             # Print boolean map of active pixel: 1=active, 0=not active
-            np.savetxt(path_out + '/' + DoD_name + 'active.txt', active_pixel_count, fmt='%0.1f', delimiter='\t')
+            np.savetxt(path_out + '/' + DoD_name + 'active.txt', act_px_matrix, fmt='%0.1f', delimiter='\t')
 
             # Print DoD and filtered DoD (with NaN as -999) in a GIS readable format (ASCII grid):
             with open(path_out + '/' + DoD_name + 'header.txt') as f_head:
@@ -1201,7 +1230,7 @@ for run in RUNS:
     # SAVE DATA MATRIX
     ###############################################################################
     # Create report matrix
-    report_matrix = np.array(np.transpose(np.stack((comb, DoD_count_array, volumes_array, dep_array, sco_array, active_area_array, act_width_mean_array))))
+    report_matrix = np.array(np.transpose(np.stack((comb, DoD_count_array, volumes_array, dep_array, sco_array, morph_act_area_array, act_width_mean_array))))
     report_header = 'DoD_combination, Active pixels, Total volume [mm^3], Deposition volume [mm^3], Scour volume [mm^3], Active area [mm^2], Active width mean [%]'
 
     report_name = run + '_report.txt'
@@ -1232,7 +1261,7 @@ for run in RUNS:
     
     # Create active area matrix report
     report_act_area_name = os.path.join(report_dir, run + '_act_area_report.txt')
-    np.savetxt(report_act_area_name, matrix_active_area, fmt='%.3f', delimiter=',', newline='\n')
+    np.savetxt(report_act_area_name, matrix_morph_act_area, fmt='%.3f', delimiter=',', newline='\n')
 
     # Create Wact report matrix
     matrix_Wact[:,len(files)-1]=matrix_Wact_min[:,len(files)-1] # Fill matrix_Wact report with minimum values
