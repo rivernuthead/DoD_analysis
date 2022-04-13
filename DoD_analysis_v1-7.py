@@ -435,7 +435,9 @@ for run in RUNS:
     morph_act_area_array=[] # Total active area array
     morph_act_area_array_dep=[] # Deposition active area array
     morph_act_area_array_sco=[] # Active active area array
-    act_width_mean_array=[] # Active width mean array
+    act_width_mean_array=[] # Total active width mean array
+    act_width_mean_array_dep=[] # Deposition active width mean array
+    act_width_mean_array_sco=[] # Scour active width mean array
     morphWact_values=[] # morphWact values for each section of all the DoD
     report_matrix = [] #Report matrix
     # matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
@@ -910,12 +912,22 @@ for run in RUNS:
             morph_act_area_array_dep = np.append(morph_act_area_array_dep, morph_act_area_dep) # For each DoD, append deposition active area data
             morph_act_area_array_sco = np.append(morph_act_area_array_sco, morph_act_area_sco) # For each DoD, append scour active area data
             
-            act_width_mean = (morph_act_area/(DoD_length*1000))/(W*1000) # Mean active width [%] - Wact/W
-            act_width_mean_array = np.append(act_width_mean_array, act_width_mean)
-            act_width_array = np.array([np.nansum(act_px_matrix, axis=0)])*px_y/1000/W # Array of the crosswise morphological active width [Wact/W]
+            act_width_mean = (morph_act_area/(DoD_length*1000))/(W*1000) # Total mean active width [%] - Wact/W
+            act_width_mean_dep = (morph_act_area_dep/(DoD_length*1000))/(W*1000) # Deposition mean active width [%] - Wact/W
+            act_width_mean_sco = (morph_act_area_sco/(DoD_length*1000))/(W*1000) # Scour mean active width [%] - Wact/W
             
-            # Calculate active thickness as (abs(V_sco) + V_dep)/act_area [mm]
-            act_thickness = (np.sum(np.abs(DoD_vol))*px_x*px_y)/morph_act_area # Active thickness in mm
+            act_width_mean_array = np.append(act_width_mean_array, act_width_mean) # For each DoD append total active width values
+            act_width_mean_array_dep = np.append(act_width_mean_array_dep, act_width_mean_dep) # For each DoD append deposition active width values
+            act_width_mean_array_sco = np.append(act_width_mean_array_sco, act_width_mean_sco) # For each DoD append scour active width values
+            
+            act_width_array = np.array([np.nansum(act_px_matrix, axis=0)])*px_y/1000/W # Array of the crosswise morphological total active width [Wact/W]
+            act_width_array_dep = np.array([np.nansum(act_px_matrix_dep, axis=0)])*px_y/1000/W # Array of the crosswise morphological deposition active width [Wact/W]
+            act_width_array_sco = np.array([np.nansum(act_px_matrix_sco, axis=0)])*px_y/1000/W # Array of the crosswise morphological scour active width [Wact/W]
+            
+            # Calculate active thickness for total volumes. deposition volumes and scour volumes
+            act_thickness = (np.sum(np.abs(DoD_vol))*px_x*px_y)/morph_act_area # Total active thickness (abs(V_sco) + V_dep)/act_area [mm]
+            act_thickness_dep = (np.sum(np.abs(dep_DoD))*px_x*px_y)/morph_act_area_dep # Deposition active thickness (abs(V_sco) + V_dep)/act_area [mm]
+            act_thickness_sco = (np.sum(np.abs(sco_DoD))*px_x*px_y)/morph_act_area_sco # Scour active thickness (abs(V_sco) + V_dep)/act_area [mm]
             
             print('Active thickness [mm]:')
             print(act_thickness)
@@ -940,9 +952,9 @@ for run in RUNS:
             #             B     B     B     B     B     B     B     B     B
             #           SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B)
 
-            DEM1_num=DEM1_name[-5:-4]
-            DEM2_num=DEM2_name[-5:-40]
-            delta=int(DEM2_name[-5:-4])-int(DEM1_name[-5:-4])
+            DEM1_num=DEM1_name[-5:-4] # DEM1 number
+            DEM2_num=DEM2_name[-5:-40] # DEM2 number
+            delta=int(DEM2_name[-5:-4])-int(DEM1_name[-5:-4]) # Calculate delta between DEM
 
             # Build up morphWact/W array for the current run boxplot
             # This array contain all the morphWact/W values for all the run repetition in the same line
@@ -954,8 +966,8 @@ for run in RUNS:
             if delta != 0:
                 # Fill matrix with values
                 matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000) # Total volumes as the sum of scour and deposition volumes
-                matrix_dep[delta-1,h]=np.sum(DEP)*px_x*px_y/(W*DoD_length*1000) # Deposition volumes
-                matrix_sco[delta-1,h]=np.sum(SCO)*px_x*px_y/(W*DoD_length*1000) # Scour volumes
+                matrix_dep[delta-1,h]=np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*1000) # Deposition volumes as V/(W*L) [mm]
+                matrix_sco[delta-1,h]=np.sum(sco_DoD)*px_x*px_y/(W*DoD_length*1000) # Scour volumes
                 matrix_morph_act_area[delta-1,h]=morph_act_area # Total morphological active area
                 matrix_morph_act_area_sco
                 matrix_morph_act_area_dep

@@ -9,7 +9,6 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import optimize as opt
 from DoD_analysis_functions import *
 # from matplotlib.colors import ListedColormap, BoundaryNorm
 
@@ -193,13 +192,17 @@ for run in RUNS:
     matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
     # matrix_dep=np.zeros((len(files)-1, len(files)+1)) # Deposition volume report matrix
     matrix_dep=np.zeros((len(files)+3, len(files)+1)) # Deposition volume report matrix
-    matrix_morph_act_area=np.zeros((len(files)+3, len(files)+1)) # Active area report matrix
+    matrix_morph_act_area=np.zeros((len(files)+3, len(files)+1)) # Total active area report matrix
+    matrix_morph_act_area_dep=np.zeros((len(files)+3, len(files)+1)) # Deposition active area report matrix
+    matrix_morph_act_area_sco=np.zeros((len(files)+3, len(files)+1)) # Scour active area report matrix
     # matrix_sco=np.zeros((len(files)-1, len(files)+1)) # Scour volume report matrix
     matrix_sco=np.zeros((len(files)+3, len(files)+1)) # Scour volume report matrix
     matrix_Wact=np.zeros((len(files)+3, len(files)+3)) # Active width report matrix
-    matrix_Wact_max=np.zeros((len(files)+3, len(files)+1)) # Max active width report matrix
-    matrix_Wact_min=np.zeros((len(files)+3, len(files)+1)) # Minimum active width report matrix
-    matrix_act_thickness = np.zeros((len(files)-1, len(files)+1)) # Matrix where collect active thickness data
+    matrix_Wact_IIIquantile=np.zeros((len(files)-1, len(files)+1)) # III quantile active width report matrix
+    matrix_Wact_Iquantile=np.zeros((len(files)-1, len(files)+1)) # I quantile active width report matrix
+    matrix_act_thickness = np.zeros((len(files)-1, len(files)+1)) # Matrix where collect total active thickness data
+    matrix_act_thickness_dep = np.zeros((len(files)-1, len(files)+1)) # Matrix where collect deposition active thickness data
+    matrix_act_thickness_sco = np.zeros((len(files)-1, len(files)+1)) # Matrix where collect scour active thickness data
     matrix_act_volume = np.zeros((len(files)-1, len(files)+1)) # Matrix where collect volume data
 
     matrix_DEM_analysis = np.zeros((len(files), len(files)))
@@ -379,9 +382,6 @@ for run in RUNS:
                     i+=1
                     D0 = (Dmax+Dmin)/2
                     Q0, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, D0, NG, teta_c, ds)
-                    # print(i)
-                    # print(D0)
-                    # print(Q0)
                     if Q0>Q_target:
                         Dmax=D0 # Update Dmax
                     elif Q0<Q_target:
@@ -737,23 +737,28 @@ for run in RUNS:
                 matrix_morph_act_area_sco[delta-1,-1]=np.std(matrix_morph_act_area_sco[delta-1,:len(files)-delta])
 
                 # Fill active thickness matrix:
-                matrix_act_thickness[delta-1,h]=act_thickness
-                matrix_act_thickness_dep[delta-1,h]=act_thickness_dep
-                matrix_act_thickness_sco[delta-1,h]=act_thickness_sco
-                matrix_act_thickness[delta-1,-2]=np.average(matrix_act_thickness[delta-1,:len(files)-delta])
-                matrix_act_thickness[delta-1,-1]=np.std(matrix_act_thickness[delta-1,:len(files)-delta])
-
+                matrix_act_thickness[delta-1,h]=act_thickness #Fill matrix with active thickness data calculated from total volume matrix
+                matrix_act_thickness_dep[delta-1,h]=act_thickness_dep #Fill matrix with active thickness data calculated from deposition volume matrix
+                matrix_act_thickness_sco[delta-1,h]=act_thickness_sco #Fill matrix with active thickness data calculated from scour volume matrix
+                
+                matrix_act_thickness[delta-1,-2]=np.average(matrix_act_thickness[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from total volume matrix
+                matrix_act_thickness_dep[delta-1,-2]=np.average(matrix_act_thickness_dep[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from deposition volume matrix
+                matrix_act_thickness_sco[delta-1,-2]=np.average(matrix_act_thickness_sco[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from scour volume matrix
+                
+                matrix_act_thickness[delta-1,-1]=np.std(matrix_act_thickness[delta-1,:len(files)-delta]) # Fill matrix with active thickness standard deviation calculated from total volume matrix
+                matrix_act_thickness_dep[delta-1,-1]=np.std(matrix_act_thickness_dep[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from deposition volume matrix
+                matrix_act_thickness_sco[delta-1,-1]=np.std(matrix_act_thickness_sco[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from scour volume matrix
 
                 # Fill Wact/W MEAN matrix as below:
-                # DoD step0  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  MIN MAX average STDEV
-                # DoD step1  2-0   3-1   4-2   5-3   6-4   7-5   8-6   9-7        MIN MAX average STDEV
-                # DoD step2  3-0   4-1   5-2   6-3   7-4   8-5   9-6              MIN MAX average STDEV
-                # DoD step3  4-0   5-1   6-2   7-3   8-4   9-5                    MIN MAX average STDEV
-                # DoD step4  5-0   6-1   7-2   8-3   9-4                          MIN MAX average STDEV
-                # DoD step5  6-0   7-1   8-2   9-3                                MIN MAX average STDEV
-                # DoD step6  7-0   8-1   9-2                                      MIN MAX average STDEV
-                # DoD step7  8-0   9-1                                            MIN MAX average STDEV
-                # DoD step8  9-0                                                  MIN MAX average STDEV
+                # DoD step0  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  Iquantile IIIquantile average STDEV
+                # DoD step1  2-0   3-1   4-2   5-3   6-4   7-5   8-6   9-7        Iquantile IIIquantile average STDEV
+                # DoD step2  3-0   4-1   5-2   6-3   7-4   8-5   9-6              Iquantile IIIquantile average STDEV
+                # DoD step3  4-0   5-1   6-2   7-3   8-4   9-5                    Iquantile IIIquantile average STDEV
+                # DoD step4  5-0   6-1   7-2   8-3   9-4                          Iquantile IIIquantile average STDEV
+                # DoD step5  6-0   7-1   8-2   9-3                                Iquantile IIIquantile average STDEV
+                # DoD step6  7-0   8-1   9-2                                      Iquantile IIIquantile average STDEV
+                # DoD step7  8-0   9-1                                            Iquantile IIIquantile average STDEV
+                # DoD step8  9-0                                                  Iquantile IIIquantile average STDEV
 
                 matrix_Wact[delta-1,h]=act_width_mean
                 matrix_Wact[delta-1,-2]=np.average(matrix_Wact[delta-1,:len(files)-delta])
@@ -762,27 +767,27 @@ for run in RUNS:
 
                 # Fill Wact/W MAX (MIN) matrix as below:
                 # NB: MIN and MAX columns are to be intended as the maximum and the minimum value
-                # of the maximum (or minimum) values of DoDs row. So the MIN value of the
-                # matrix_Wact_max is the minimum value between the maximum value.
-                # DoD step0  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  MIN MAX
-                # DoD step1  2-0   3-1   4-2   5-3   6-4   7-5   8-6   9-7        MIN MAX
-                # DoD step2  3-0   4-1   5-2   6-3   7-4   8-5   9-6              MIN MAX
-                # DoD step3  4-0   5-1   6-2   7-3   8-4   9-5                    MIN MAX
-                # DoD step4  5-0   6-1   7-2   8-3   9-4                          MIN MAX
-                # DoD step5  6-0   7-1   8-2   9-3                                MIN MAX
-                # DoD step6  7-0   8-1   9-2                                      MIN MAX
-                # DoD step7  8-0   9-1                                            MIN MAX
-                # DoD step8  9-0                                                  MIN MAX
+                # of the IIIquantile (or Iquantile) values of DoDs row. So the MIN value of the
+                # matrix_Wact_IIIquantile is the minimum value between the maximum value.
+                # DoD step0  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  min(Iquantile) max(Iquantile)
+                # DoD step1  2-0   3-1   4-2   5-3   6-4   7-5   8-6   9-7        min(Iquantile) max(Iquantile)
+                # DoD step2  3-0   4-1   5-2   6-3   7-4   8-5   9-6              min(Iquantile) max(Iquantile)
+                # DoD step3  4-0   5-1   6-2   7-3   8-4   9-5                    min(Iquantile) max(Iquantile)
+                # DoD step4  5-0   6-1   7-2   8-3   9-4                          min(Iquantile) max(Iquantile)
+                # DoD step5  6-0   7-1   8-2   9-3                                min(Iquantile) max(Iquantile)
+                # DoD step6  7-0   8-1   9-2                                      min(Iquantile) max(Iquantile)
+                # DoD step7  8-0   9-1                                            min(Iquantile) max(Iquantile)
+                # DoD step8  9-0                                                  min(Iquantile) max(Iquantile)
 
-                # Fill MAX Wact/W matrix:
-                matrix_Wact_max[delta-1,h]=np.max(act_width_array)
-                matrix_Wact_max[delta-1,-2]=np.min(matrix_Wact_max[delta-1,:len(files)-delta])
-                matrix_Wact_max[delta-1,-1]=np.max(matrix_Wact_max[delta-1,:len(files)-delta])
+                # Fill III quantile Wact/W matrix:
+                matrix_Wact_IIIquantile[delta-1,h]=np.quantile(act_width_array, .75)
+                matrix_Wact_IIIquantile[delta-1,-2]=np.min(matrix_Wact_IIIquantile[delta-1,:len(files)-delta])
+                matrix_Wact_IIIquantile[delta-1,-1]=np.max(matrix_Wact_IIIquantile[delta-1,:len(files)-delta])
 
-                # Fill MIN Wact/W matrix:
-                matrix_Wact_min[delta-1,h]=np.min(act_width_array)
-                matrix_Wact_min[delta-1,-2]=np.min(matrix_Wact_min[delta-1,:len(files)-delta])
-                matrix_Wact_min[delta-1,-1]=np.max(matrix_Wact_min[delta-1,:len(files)-delta])                
+                # Fill I quantile Wact/W matrix:
+                matrix_Wact_Iquantile[delta-1,h]=np.quantile(act_width_array, .25)
+                matrix_Wact_Iquantile[delta-1,-2]=np.min(matrix_Wact_Iquantile[delta-1,:len(files)-delta])
+                matrix_Wact_Iquantile[delta-1,-1]=np.max(matrix_Wact_Iquantile[delta-1,:len(files)-delta])                
                 
                 
             else:
@@ -1008,18 +1013,34 @@ for run in RUNS:
     report_sco_name = os.path.join(report_dir, run +'_sco_report.txt')
     np.savetxt(report_sco_name, matrix_sco, fmt='%.1f', delimiter=',', newline='\n')
     
-    # Create active thickness matrix report
+    # Create total active thickness matrix report (calculated from volume matrix)
     report_act_thickness_name = os.path.join(report_dir, run +'_act_thickness_report.txt')
     np.savetxt(report_act_thickness_name, matrix_act_thickness , fmt='%.3f', delimiter=',', newline='\n')
     
-    # Create active area matrix report
+    # Create deposition active thickness matrix report (calculated from deposition volume matrix)
+    report_act_thickness_name_dep = os.path.join(report_dir, run +'_act_thickness_report_dep.txt')
+    np.savetxt(report_act_thickness_name_dep, matrix_act_thickness_dep , fmt='%.3f', delimiter=',', newline='\n')
+    
+    # Create scour active thickness matrix report (calculated from scour volume matrix)
+    report_act_thickness_name_sco = os.path.join(report_dir, run +'_act_thickness_report_sco.txt')
+    np.savetxt(report_act_thickness_name_sco, matrix_act_thickness_sco , fmt='%.3f', delimiter=',', newline='\n')
+    
+    # Create total active area matrix report (calculated from volume matrix)
     report_act_area_name = os.path.join(report_dir, run + '_act_area_report.txt')
     np.savetxt(report_act_area_name, matrix_morph_act_area, fmt='%.3f', delimiter=',', newline='\n')
+    
+    # Create deposition active area matrix report (calculated from volume matrix)
+    report_act_area_name_dep = os.path.join(report_dir, run + '_act_area_report_dep.txt')
+    np.savetxt(report_act_area_name_dep, matrix_morph_act_area_dep, fmt='%.3f', delimiter=',', newline='\n')
+    
+    # Create scour active area matrix report (calculated from volume matrix)
+    report_act_area_name_sco = os.path.join(report_dir, run + '_act_area_report.txt')
+    np.savetxt(report_act_area_name_sco, matrix_morph_act_area_sco, fmt='%.3f', delimiter=',', newline='\n')
 
     # Create Wact report matrix
-    matrix_Wact[:,len(files)-1]=matrix_Wact_min[:,len(files)-1] # Fill matrix_Wact report with minimum values
-    matrix_Wact[:,len(files)]=matrix_Wact_max[:,len(files)-1] # Fill matrix_Wact report with maximum values
-    matrix_Wact=matrix_Wact[:len(files)-1,:]
+    matrix_Wact=matrix_Wact[:len(files)-1,:] # Fill matrix_Wact with morphological  active width values
+    matrix_Wact[:,len(files)-1]=matrix_Wact_Iquantile[:,len(files)-1] # Fill matrix_Wact report with minimum values
+    matrix_Wact[:,len(files)]=matrix_Wact_IIIquantile[:,len(files)] # Fill matrix_Wact report with maximum values
     report_Wact_name = os.path.join(report_dir, run +'_morphWact_report.txt')
     np.savetxt(report_Wact_name, matrix_Wact, fmt='%.3f', delimiter=',', newline='\n')
 
