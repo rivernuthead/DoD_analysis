@@ -116,6 +116,7 @@ engelund_model_report=np.zeros((len(RUNS),3))
 # It will be used to create the morphWact_matrix
 morphWact_dim = [] # Array with the dimensions of morphWact_values array
 
+DoD_length_array=[] # DoD length array
 
 ###############################################################################
 # MAIN LOOP OVER RUNS
@@ -176,6 +177,7 @@ for run in RUNS:
     volumes_array=[] # Tot volume
     dep_array=[] # Deposition volume
     sco_array=[] # Scour volume
+    sum_array=[] # Sum of scour and deposition volume
     morph_act_area_array=[] # Total active area array
     morph_act_area_array_dep=[] # Deposition active area array
     morph_act_area_array_sco=[] # Active active area array
@@ -186,6 +188,7 @@ for run in RUNS:
     report_matrix = [] #Report matrix
     # matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
     matrix_volumes=np.zeros((len(files)-1, len(files)+1)) # Volumes report matrix
+    matrix_sum_volumes=np.zeros((len(files)-1, len(files)+1)) # Sum of scour and deposition volumes
     # matrix_dep=np.zeros((len(files)-1, len(files)+1)) # Deposition volume report matrix
     matrix_dep=np.zeros((len(files)+3, len(files)+1)) # Deposition volume report matrix
     matrix_morph_act_area=np.zeros((len(files)+3, len(files)+1)) # Total active area report matrix
@@ -483,6 +486,8 @@ for run in RUNS:
             # dim_x, dim_x = DEM1.shape
             
             DoD_length = DEM1.shape[1]*px_x/1000 # DoD length [m]
+            
+            DoD_length_array = np.append(DoD_length_array, DoD_length)
 
             # Creating DoD array with np.nan
             DoD_raw = np.zeros(DEM1.shape)
@@ -529,7 +534,6 @@ for run in RUNS:
             # Create a GIS readable DoD mean (np.nan as -999)
             DoD_mean = np.round(DoD_mean, 1) # Round data to 1 decimal precision
             DoD_mean_rst = np.where(np.isnan(DoD_mean), NaN, DoD_mean)
-
 
             # Threshold and Neighbourhood analysis process
             DoD_filt = np.copy(DoD_mean) # Initialize filtered DoD array as a copy of the averaged one
@@ -624,13 +628,15 @@ for run in RUNS:
             sco_DoD = (DoD_vol<0)*DoD_vol # DoD of only scour data
             
             
-            tot_vol = np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000) # Total volume as V/(L*W) [mm]
+            tot_vol = np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000) # Total volume as V/(L*W) [mm] considering negative sign for scour
+            sum_vol = np.sum(np.abs(DoD_vol))*px_x*px_y/(W*DoD_length*1000) # Sum of scour and deposition volume as V/(L*W) [mm]
             dep_vol = np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*1000) # Deposition volume as V/(L*W) [mm]
             sco_vol = np.sum(sco_DoD)*px_x*px_y/(W*DoD_length*1000) # Scour volume as V/(L*W) [mm]
             
             
             #Print results:
             print('Total volume V/(L*W) [mm]:', "{:.1f}".format(tot_vol))
+            print('Sum of deposition and scour volume V/(L*W) [mm]:', "{:.1f}".format(sum_vol))
             print('Deposition volume V/(L*W) [mm]:', "{:.1f}".format(dep_vol))
             print('Scour volume V/(L*W) [mm]:', "{:.1f}".format(sco_vol))
 
@@ -638,6 +644,7 @@ for run in RUNS:
             volumes_array = np.append(volumes_array, tot_vol)
             dep_array = np.append(dep_array, dep_vol)
             sco_array = np.append(sco_array, sco_vol)
+            sum_array = np.append(sum_array, sum_vol)
 
 
             ###################################################################
@@ -673,9 +680,7 @@ for run in RUNS:
             act_thickness_dep = (np.sum(np.abs(dep_DoD))*px_x*px_y)/morph_act_area_dep # Deposition active thickness (abs(V_sco) + V_dep)/act_area [mm]
             act_thickness_sco = (np.sum(np.abs(sco_DoD))*px_x*px_y)/morph_act_area_sco # Scour active thickness (abs(V_sco) + V_dep)/act_area [mm]
             
-            print('Active thickness [mm]:')
-            print(act_thickness)
-
+            print('Active thickness [mm]:', act_thickness)
             print('Morphological active area: ', "{:.1f}".format(morph_act_area), '[mm²]')
             print('Morphological active width (mean):', "{:.3f}".format(act_width_mean), '%')
             print()
@@ -709,7 +714,8 @@ for run in RUNS:
             # Fill Scour, Deposition and morphWact/w matrix:
             if delta != 0:
                 # Fill matrix with values
-                matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000) # Total volumes as the sum of scour and deposition volumes
+                matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000) # Total volumes as the algebric sum of scour and deposition volumes
+                matrix_sum_volumes[delta-1,h]=np.sum(np.abs(DoD_vol))*px_x*px_y/(W*DoD_length*1000) # Total volumes as the sum of scour and deposition volumes
                 matrix_dep[delta-1,h]=np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*1000) # Deposition volumes as V/(W*L) [mm]
                 matrix_sco[delta-1,h]=np.sum(sco_DoD)*px_x*px_y/(W*DoD_length*1000) # Scour volumes
                 matrix_morph_act_area[delta-1,h]=morph_act_area # Total morphological active area
@@ -718,6 +724,7 @@ for run in RUNS:
 
                 # Fill last two columns with AVERAGE and STDEV
                 matrix_volumes[delta-1,-2]=np.average(matrix_volumes[delta-1,:len(files)-delta]) #Total volumes
+                matrix_sum_volumes[delta-1,-2]=np.average(matrix_sum_volumes[delta-1,:len(files)-delta]) #Total sum volumes
                 matrix_dep[delta-1,-2]=np.average(matrix_dep[delta-1,:len(files)-delta]) # Deposition volumes
                 matrix_sco[delta-1,-2]=np.average(matrix_sco[delta-1,:len(files)-delta]) # Scour volumes
                 matrix_morph_act_area[delta-1,-2]=np.average(matrix_morph_act_area[delta-1,:len(files)-delta]) # Morphological total active area
@@ -725,6 +732,7 @@ for run in RUNS:
                 matrix_morph_act_area_sco[delta-1,-2]=np.average(matrix_morph_act_area_sco[delta-1,:len(files)-delta]) # Morphological scour active area
                 
                 matrix_volumes[delta-1,-1]=np.std(matrix_volumes[delta-1,:len(files)-delta])
+                matrix_sum_volumes[delta-1,-1]=np.std(matrix_sum_volumes[delta-1,:len(files)-delta])
                 matrix_dep[delta-1,-1]=np.std(matrix_dep[delta-1,:len(files)-delta])
                 matrix_sco[delta-1,-1]=np.std(matrix_sco[delta-1,:len(files)-delta])
                 matrix_morph_act_area[delta-1,-1]=np.std(matrix_morph_act_area[delta-1,:len(files)-delta])
@@ -855,6 +863,9 @@ for run in RUNS:
                 fp.write(DoD_filt_gis)
             with open(path_out + '/' + 'gis-' + DoD_name + 'filt_nozero_rst.txt', 'w') as fp:
                 fp.write(DoD_filt_nozero_gis)
+                
+    # Fill DoD lenght array
+    DoD_length_array = np.append(DoD_length_array, DoD_length)
 
     # Print the last DoD outcome
     if save_plot_mode == 1:
@@ -866,6 +877,8 @@ for run in RUNS:
         plt.show()
     else:
         pass
+    
+
 
     ###########################################################################
     # VOLUME AND MORPHOLOGICA ACTIVE WIDTH INTERPOLATION
@@ -1000,6 +1013,11 @@ for run in RUNS:
     fp.close()
 
 
+    # Create total sum volumes matrix report
+    # TODO
+    report_sum_vol_name = os.path.join(report_dir, run +'_sum_vol_report.txt')
+    np.savetxt(report_sum_vol_name, matrix_sum_volumes, fmt='%.1f', delimiter=',', newline='\n')
+    
     # Create deposition matrix report
     report_dep_name = os.path.join(report_dir, run +'_dep_report.txt')
     np.savetxt(report_dep_name, matrix_dep, fmt='%.1f', delimiter=',', newline='\n')
@@ -1029,7 +1047,7 @@ for run in RUNS:
     np.savetxt(report_act_area_name_dep, matrix_morph_act_area_dep, fmt='%.3f', delimiter=',', newline='\n')
     
     # Create scour active area matrix report (calculated from volume matrix)
-    report_act_area_name_sco = os.path.join(report_dir, run + '_act_area_report.txt')
+    report_act_area_name_sco = os.path.join(report_dir, run + '_act_area_report_sco.txt')
     np.savetxt(report_act_area_name_sco, matrix_morph_act_area_sco, fmt='%.3f', delimiter=',', newline='\n')
 
     # Create Wact report matrix
