@@ -224,6 +224,8 @@ for run in RUNS:
         
         xData = np.arange(1, file_N+1, 1)*dt # Time in Txnr
         #TODO Check parameter boundaries https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
+        
+        
         # TOTAL VOLUME INTERPOLATION AS SUM OF DEPOSITION AND SCOUR
         sum_vol_yData = int_d["int_sum_vol_data_" + run][:,i]
         # Decide interpolation function
@@ -429,6 +431,13 @@ for run in RUNS:
         #######################################################################
         #   PLOTS
         #######################################################################
+        
+        font = {'family': 'serif',
+                'color':  'black',
+                'weight': 'regular',
+                'size': 12
+                }
+        
         if plot_mode == 1:
             # Deposition volume plot
             fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
@@ -438,6 +447,7 @@ for run in RUNS:
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Volume V/(L*W) [mm]')
             plt.savefig(os.path.join(plot_dir, 'sco_interp', run + '_func_mode' + str(volume_func_mode) + 'series_' + str(i+1) +'_dep_interp.png'), dpi=200)
+            plt.text(np.max(xData)*0.7, np.min(dep_intCurve), r'$\tau$=' + str(np.round(dep_params_interp[2], decimals=1)) + 'min \n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
             
             # Scour volume plot
@@ -448,6 +458,7 @@ for run in RUNS:
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Volume V/(L*W) [mm]')
             plt.savefig(os.path.join(plot_dir, 'dep_interp', run + '_func_mode' + str(volume_func_mode) + 'series_' + str(i+1) +'_sco_interp.png'), dpi=200)
+            plt.text(np.max(xData)*0.7, np.min(sco_intCurve), r'$\tau$=' + str(np.round(sco_params_interp[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
             
             # Morphological active width plot
@@ -458,6 +469,7 @@ for run in RUNS:
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('morphWact/W [-]')
             plt.savefig(os.path.join(plot_dir, 'morphWact_interp', run + '_func_mode' + str(morphWact_func_mode) + 'series_' + str(i+1) +'_morphWact_interp.png'), dpi=200)
+            plt.text(np.max(xData)*0.7, np.min(morphWact_intCurve), r'$\tau$=' + str(np.round(morphWact_params_interp[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
             
             # Active thickness plot
@@ -468,6 +480,7 @@ for run in RUNS:
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Active thickness [mm]')
             plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(act_thickness_func_mode) + 'series_' + str(i+1) +'_act_thickness_interp.png'), dpi=200)
+            plt.text(np.max(xData)*0.7, np.min(act_thickness_intCurve), r'$\tau$=' + str(np.round(act_thickness_params_interp[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
             
             # Active deposition thickness plot
@@ -478,6 +491,7 @@ for run in RUNS:
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Active thickness [mm]')
             plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(act_thickness_func_mode) + 'series_' + str(i+1) +'_act_thickness_interp_dep.png'), dpi=200)
+            plt.text(np.max(xData)*0.7, np.min(act_thickness_intCurve_dep), r'$\tau$=' + str(np.round(act_thickness_params_interp_dep[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
             
             # Active scour thickness plot
@@ -488,6 +502,7 @@ for run in RUNS:
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Active thickness [mm]')
             plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(act_thickness_func_mode) + 'series_' + str(i+1) +'_act_thickness_interp_sco.png'), dpi=200)
+            plt.text(np.max(xData)*0.7, np.min(act_thickness_intCurve_sco), r'$\tau$=' + str(np.round(act_thickness_params_interp_sco[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
             
             # Active area interpolation 
@@ -498,6 +513,7 @@ for run in RUNS:
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Active area [mm²]')
             plt.savefig(os.path.join(plot_dir, 'act_area_interp', run + '_func_mode' + str(act_area_func_mode) + 'series_' + str(i+1) +'_act_area_interp.png'), dpi=200)
+            plt.text(np.max(xData)*0.7, np.min(act_area_intCurve), r'$\tau$='    + str(np.round(act_area_params_interp[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
             
             #  Volume interpolation as act_thickness*act_area
@@ -510,6 +526,7 @@ for run in RUNS:
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('Volume [mm³]')
             plt.savefig(os.path.join(plot_dir, 'vol_interp', run + 'series_' + str(i+1) +'_volume_interp.png'), dpi=200)
+            plt.text(np.max(xData)*0.7, np.min(sum_vol_intCurve*(W*14*1000)), r'$\tau$=' + str(np.round(sum_vol_params_interp[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
 
         else:
