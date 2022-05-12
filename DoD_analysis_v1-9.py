@@ -37,7 +37,7 @@ Save mode:
     0 = save only reports
     1 = save all chart and figure
 '''
-run_mode = 2
+run_mode = 1
 DEM_analysis_mode = 0
 mask_mode = 1
 process_mode = 1
@@ -487,7 +487,7 @@ for run in RUNS:
             
             DoD_length = DEM1.shape[1]*px_x/1000 # DoD length [m]
             
-            DoD_length_array = np.append(DoD_length_array, DoD_length)
+            # DoD_length_array = np.append(DoD_length_array, DoD_length)
 
             # Creating DoD array with np.nan
             DoD_raw = np.zeros(DEM1.shape)
@@ -714,10 +714,10 @@ for run in RUNS:
             # Fill Scour, Deposition and morphWact/w matrix:
             if delta != 0:
                 # Fill matrix with values
-                matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000) # Total volumes as the algebric sum of scour and deposition volumes
-                matrix_sum_volumes[delta-1,h]=np.sum(np.abs(DoD_vol))*px_x*px_y/(W*DoD_length*1000) # Total volumes as the sum of scour and deposition volumes
-                matrix_dep[delta-1,h]=np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*1000) # Deposition volumes as V/(W*L) [mm]
-                matrix_sco[delta-1,h]=np.sum(sco_DoD)*px_x*px_y/(W*DoD_length*1000) # Scour volumes
+                matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*1000*1000) # Total volumes as the algebric sum of scour and deposition volumes V/(W*L) [mm]
+                matrix_sum_volumes[delta-1,h]=np.sum(np.abs(DoD_vol))*px_x*px_y/(W*DoD_length*1000*1000) # Total volumes as the sum of scour and deposition volumes V/(W*L) [mm]
+                matrix_dep[delta-1,h]=np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*1000*1000) # Deposition volumes as V/(W*L) [mm]
+                matrix_sco[delta-1,h]=np.sum(sco_DoD)*px_x*px_y#/(W*DoD_length*1000*1000) # Scour volumes as V/(W*L) [mm]
                 matrix_morph_act_area[delta-1,h]=morph_act_area # Total morphological active area
                 matrix_morph_act_area_dep[delta-1,h]=morph_act_area_dep # Deposition morphological active area
                 matrix_morph_act_area_sco[delta-1,h]=morph_act_area_sco # Scour morphological active area
@@ -1141,6 +1141,8 @@ for run in RUNS:
             fp.writelines(['\n'])
         fp.writelines(['\n'])
     fp.close()
+    
+DoD_length_array = np.append(DoD_length_array, DoD_length)
 
 
 
