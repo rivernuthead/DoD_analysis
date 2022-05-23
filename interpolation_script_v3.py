@@ -516,20 +516,20 @@ for run in RUNS:
             plt.text(np.max(xData)*0.7, np.min(act_area_intCurve), r'$\tau$='    + str(np.round(act_area_params_interp[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font)
             plt.show()
             
-            #  Volume interpolation as act_thickness*act_area
-            fig8, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-            axs.plot(xData, (sum_vol_yData)*(W*14*1000), 'o', c='blue')
-            axs.plot(xData, (sum_vol_intCurve)*(W*14*1000), c='green')
-            axs.plot(xData, act_area_intCurve*act_thickness_intCurve, c='black')
-            # axs.plot(xData, act_area_sco_intCurve*act_thickness_intCurve_sco + act_area_dep_intCurve*act_thickness_intCurve_dep, c='turquoise')
-            axs.set_title('Volume interpolation as act_thickness*act_area series # '+str(i+1)+'- '+run)
-            axs.set_xlabel('Time [min]')
-            axs.set_ylabel('Volume [mm³]')
-            plt.savefig(os.path.join(plot_dir, 'vol_interp', run + 'series_' + str(i+1) +'_volume_interp.png'), dpi=200)
-            plt.text(np.max(xData)*0.7, np.min(sum_vol_intCurve*(W*14*1000)), r'$\tau$=' + str(np.round(sum_vol_params_interp[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font, bbox={
-                #'facecolor': 'green',
-                'alpha': 0.05, 'pad': 4.0})
-            plt.show()
+            # #  Volume interpolation as act_thickness*act_area
+            # fig8, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            # axs.plot(xData, (sum_vol_yData)*(W*14*1000), 'o', c='blue')
+            # axs.plot(xData, (sum_vol_intCurve)*(W*14*1000), c='green')
+            # axs.plot(xData, act_area_intCurve*act_thickness_intCurve, c='black')
+            # # axs.plot(xData, act_area_sco_intCurve*act_thickness_intCurve_sco + act_area_dep_intCurve*act_thickness_intCurve_dep, c='turquoise')
+            # axs.set_title('Volume interpolation as act_thickness*act_area series # '+str(i+1)+'- '+run)
+            # axs.set_xlabel('Time [min]')
+            # axs.set_ylabel('Volume [mm³]')
+            # plt.savefig(os.path.join(plot_dir, 'vol_interp', run + 'series_' + str(i+1) +'_volume_interp.png'), dpi=200)
+            # plt.text(np.max(xData)*0.7, np.min(sum_vol_intCurve*(W*14*1000)), r'$\tau$=' + str(np.round(sum_vol_params_interp[2], decimals=1)) + 'min\n' + 'Txnr=' + str(dt) + 'min', fontdict=font, bbox={
+            #     #'facecolor': 'green',
+            #     'alpha': 0.05, 'pad': 4.0})
+            # plt.show()
 
         else:
             pass

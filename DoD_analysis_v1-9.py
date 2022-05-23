@@ -20,25 +20,29 @@ start = time.time() # Set initial time
 
 
 '''
-Run mode:
+run mode:
     1 = one run at time
     2 = bath process
 DEM analysis mode:
     0 = do not perform DEM analysis
     1 = perform DEM analysis
-Mask mode:
+data_interpolatuon_mode:
+    0 = no interpolation
+    1 = data interpolation
+mask mode:
     1 = mask the flume edge
     2 = mask the upstream half flume
     3 = mask the downstream half flume
-Process mode: (NB: set DEMs name)
+process mode: (NB: set DEMs name)
     1 = batch process
     2 = single run process
-Save mode:
+save mode:
     0 = save only reports
     1 = save all chart and figure
 '''
-run_mode = 1
+run_mode = 2
 DEM_analysis_mode = 0
+data_interpolation_mode = 0
 mask_mode = 1
 process_mode = 1
 save_plot_mode = 1
@@ -796,7 +800,10 @@ for run in RUNS:
             else:
                 pass
 
-            # Stack consecutive DoDs in a 3D array
+            ###################################################################
+            # STACK CONSECUTIVE DODS IN A 3D ARRAY
+            ###################################################################
+            
             if h==0 and k==0: # initialize the first array with the DEM shape
                 DoD_stack = np.zeros([len(files)-1, dim_y, dim_x])
             else:
@@ -804,6 +811,10 @@ for run in RUNS:
 
             if delta==1:
                 DoD_stack[h,:,:] = DoD_filt_nozero_rst[:,:]
+                
+            DoD_stack_nan = np.where(DoD_stack == NaN, np.nan, DoD_stack)
+            DoD_stack_bool = np.where(DoD_stack>0, 1, DoD_stack_nan)
+            DoD_stack_bool = np.where(DoD_stack_nan<0, -1, DoD_stack_bool)
 
             ###################################################################
             # SAVE DATA
@@ -883,85 +894,88 @@ for run in RUNS:
     ###########################################################################
     # VOLUME AND MORPHOLOGICA ACTIVE WIDTH INTERPOLATION
     ###########################################################################
-    '''
-    Interpolation performed all over the volume data.
-    Standard deviation is then applied to function parameters
-    '''
-    # Initialize arrays
-    xData=[] # xData as time array
-    yData_dep=[] # yData_dep deposition volume array
-    yData_sco=[] # yData_sco scour volume array
-    yData_morphW=[] # yData_morphW morphological active width array
+    if data_interpolation_mode == 1:
+        '''
+        Interpolation performed all over the volume data.
+        Standard deviation is then applied to function parameters
+        '''
+        # Initialize arrays
+        xData=[] # xData as time array
+        yData_dep=[] # yData_dep deposition volume array
+        yData_sco=[] # yData_sco scour volume array
+        yData_morphW=[] # yData_morphW morphological active width array
+    
+        for i in range(0,len(files)-1):
+            xData=np.append(xData, np.ones(len(files)-i-1)*(i+1)*dt) # Create xData array for all the volume points
+            yData_dep=np.append(yData_dep, matrix_dep[i,:len(files)-i-1]) # deposition volumes (unroll yData)
+            yData_sco=np.append(yData_sco, abs(matrix_sco[i,:len(files)-i-1])) # scour volumes (unroll yData)
+            yData_morphW=np.append(yData_morphW, abs(matrix_Wact[i,:len(files)-i-1])) # scour volumes (unroll yData)
+    
+    
+    
+        # Define interpolation array and initial guess:
+        volume_temp_scale_array = [] # Define volume temporal scale array
+        morphW_temp_scale_array = [] # Define morphW temporal scale array
+        ic_dep=np.array([np.mean(yData_dep),np.min(xData)]) # Initial deposition parameter guess
+        ic_sco=np.array([np.mean(yData_sco),np.min(xData)]) # Initial scour parameter guess
+        ic_morphW=np.array([np.mean(yData_morphW),np.min(xData)]) # Initial morphW parameter guess
+    
+        # Perform interpolation for deposition and scour volumes, and for morphological active width
+        par_dep, intCurve_dep, covar_dep = interpolate(func_exp, xData, yData_dep, ic_dep) # Deposition interpolation
+        par_sco, intCurve_sco, covar_sco = interpolate(func_exp, xData, yData_sco, ic_sco) # Scour interpolation
+        par_morphW, intCurve_morphW, covar_morphW = interpolate(func_exp3, xData, yData_morphW, ic_morphW) # morphW interpolation
+    
+    
+       # Build up volume temporal scale array for each runs
+        if run_mode==2:
+            volume_temp_scale_array = np.append(volume_temp_scale_array, (par_dep[1], covar_dep[1,1], par_sco[1], covar_sco[1,1])) # Append values
+            volume_temp_scale_report[int(np.where(RUNS==run)[0]),:]=volume_temp_scale_array # Populate temporal scale report
+    
+        # Build up morphW temporal scale array for each runs
+        if run_mode==2:
+            morphW_temp_scale_array = np.append(morphW_temp_scale_array, (par_morphW[1], covar_morphW[1,1])) # Append values
+            morphW_temp_scale_report[int(np.where(RUNS==run)[0]),:]=morphW_temp_scale_array # Populate temporal scale report
+    
+        print()
+        print('All volume points interpolation parameters:')
+        print('Deposition interpolation parameters')
+        print('A=', par_dep[0], 'Variance=', covar_dep[0,0])
+        print('B=', par_dep[1], 'Variance=', covar_dep[1,1])
+        print('Scour interpolation parameters')
+        print('A=', par_sco[0], 'Variance=', covar_sco[0,0])
+        print('B=', par_sco[1], 'Variance=', covar_sco[1,1])
+        print()
+        print('All morphW points interpolation parameters:')
+        print('A=', par_morphW[0], 'Variance=', covar_morphW[0,0])
+        print('B=', par_morphW[1], 'Variance=', covar_morphW[1,1])
 
-    for i in range(0,len(files)-1):
-        xData=np.append(xData, np.ones(len(files)-i-1)*(i+1)*dt) # Create xData array for all the volume points
-        yData_dep=np.append(yData_dep, matrix_dep[i,:len(files)-i-1]) # deposition volumes (unroll yData)
-        yData_sco=np.append(yData_sco, abs(matrix_sco[i,:len(files)-i-1])) # scour volumes (unroll yData)
-        yData_morphW=np.append(yData_morphW, abs(matrix_Wact[i,:len(files)-i-1])) # scour volumes (unroll yData)
 
-
-
-    # Define interpolation array and initial guess:
-    volume_temp_scale_array = [] # Define volume temporal scale array
-    morphW_temp_scale_array = [] # Define morphW temporal scale array
-    ic_dep=np.array([np.mean(yData_dep),np.min(xData)]) # Initial deposition parameter guess
-    ic_sco=np.array([np.mean(yData_sco),np.min(xData)]) # Initial scour parameter guess
-    ic_morphW=np.array([np.mean(yData_morphW),np.min(xData)]) # Initial morphW parameter guess
-
-    # Perform interpolation for deposition and scour volumes, and for morphological active width
-    par_dep, intCurve_dep, covar_dep = interpolate(func_exp, xData, yData_dep, ic_dep) # Deposition interpolation
-    par_sco, intCurve_sco, covar_sco = interpolate(func_exp, xData, yData_sco, ic_sco) # Scour interpolation
-    par_morphW, intCurve_morphW, covar_morphW = interpolate(func_exp3, xData, yData_morphW, ic_morphW) # morphW interpolation
-
-
-   # Build up volume temporal scale array for each runs
-    if run_mode==2:
-        volume_temp_scale_array = np.append(volume_temp_scale_array, (par_dep[1], covar_dep[1,1], par_sco[1], covar_sco[1,1])) # Append values
-        volume_temp_scale_report[int(np.where(RUNS==run)[0]),:]=volume_temp_scale_array # Populate temporal scale report
-
-    # Build up morphW temporal scale array for each runs
-    if run_mode==2:
-        morphW_temp_scale_array = np.append(morphW_temp_scale_array, (par_morphW[1], covar_morphW[1,1])) # Append values
-        morphW_temp_scale_report[int(np.where(RUNS==run)[0]),:]=morphW_temp_scale_array # Populate temporal scale report
-
-    print()
-    print('All volume points interpolation parameters:')
-    print('Deposition interpolation parameters')
-    print('A=', par_dep[0], 'Variance=', covar_dep[0,0])
-    print('B=', par_dep[1], 'Variance=', covar_dep[1,1])
-    print('Scour interpolation parameters')
-    print('A=', par_sco[0], 'Variance=', covar_sco[0,0])
-    print('B=', par_sco[1], 'Variance=', covar_sco[1,1])
-    print()
-    print('All morphW points interpolation parameters:')
-    print('A=', par_morphW[0], 'Variance=', covar_morphW[0,0])
-    print('B=', par_morphW[1], 'Variance=', covar_morphW[1,1])
-
-
-    if save_plot_mode == 1:
-        fig1, axs = plt.subplots(2,1,dpi=200, sharex=True, tight_layout=True)
-        axs[0].plot(xData, yData_dep, 'o')
-        axs[0].plot(xData, intCurve_dep, c='red')
-        axs[0].set_title('Deposition volumes interpolation '+run)
-        axs[0].set_xlabel('Time [min]')
-        axs[0].set_ylabel('Volume V/(L*W) [mm]')
-        axs[1].plot(xData, yData_sco, 'o')
-        axs[1].plot(xData, intCurve_sco, c='red')
-        axs[1].set_title('Scour volumes interpolation '+run)
-        axs[1].set_xlabel('Time [min]')
-        axs[1].set_ylabel('Volume V/(L*W) [mm]')
-        plt.savefig(os.path.join(plot_dir, run +'_volume_interp.png'), dpi=200)
-        plt.show()
-
-        fig2, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(xData, yData_morphW, 'o', c='brown')
-        axs.plot(xData, intCurve_morphW, c='green')
-        axs.set_title('Morphological active width (morphW/W) '+run)
-        axs.set_xlabel('Time [min]')
-        axs.set_ylabel('morphW/W [-]')
-        plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-
+        if save_plot_mode == 1:
+            fig1, axs = plt.subplots(2,1,dpi=200, sharex=True, tight_layout=True)
+            axs[0].plot(xData, yData_dep, 'o')
+            axs[0].plot(xData, intCurve_dep, c='red')
+            axs[0].set_title('Deposition volumes interpolation '+run)
+            axs[0].set_xlabel('Time [min]')
+            axs[0].set_ylabel('Volume V/(L*W) [mm]')
+            axs[1].plot(xData, yData_sco, 'o')
+            axs[1].plot(xData, intCurve_sco, c='red')
+            axs[1].set_title('Scour volumes interpolation '+run)
+            axs[1].set_xlabel('Time [min]')
+            axs[1].set_ylabel('Volume V/(L*W) [mm]')
+            plt.savefig(os.path.join(plot_dir, run +'_volume_interp.png'), dpi=200)
+            plt.show()
+    
+            fig2, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(xData, yData_morphW, 'o', c='brown')
+            axs.plot(xData, intCurve_morphW, c='green')
+            axs.set_title('Morphological active width (morphW/W) '+run)
+            axs.set_xlabel('Time [min]')
+            axs.set_ylabel('morphW/W [-]')
+            plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+    
+        else:
+            pass
     else:
         pass
 
