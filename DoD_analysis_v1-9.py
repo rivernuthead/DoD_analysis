@@ -7,6 +7,7 @@ Created on Thu Apr 15 09:44:30 2021
 """
 import os
 import time
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from DoD_analysis_functions import *
@@ -29,6 +30,9 @@ DEM analysis mode:
 data_interpolatuon_mode:
     0 = no interpolation
     1 = data interpolation
+windows_mode:
+    0 = fixed windows (all the channel)
+    1 = floating windows
 mask mode:
     1 = mask the flume edge
     2 = mask the upstream half flume
@@ -40,9 +44,10 @@ save mode:
     0 = save only reports
     1 = save all chart and figure
 '''
-run_mode = 2
+run_mode = 1
 DEM_analysis_mode = 0
 data_interpolation_mode = 0
+windows_mode = 1
 mask_mode = 1
 process_mode = 1
 save_plot_mode = 1
@@ -142,6 +147,8 @@ for run in RUNS:
         os.mkdir(report_dir)
     if not(os.path.exists(DoDs_dir)):
         os.mkdir(DoDs_dir)
+    if not(os.path.exists(os.path.join(DoDs_dir, 'DoDs_stack'))):
+        os.mkdir(os.path.join(DoDs_dir, 'DoDs_stack'))
     if not(os.path.exists(plot_dir)):
         os.mkdir(plot_dir)
 
@@ -505,7 +512,7 @@ for run in RUNS:
 
             # Count the number of pixels in the channel area
             DoD_count = np.count_nonzero(np.where(np.isnan(DoD_raw), 0, 1))
-            print('Active pixels:', DoD_count)
+            print('Number of channel pixel pixels:', DoD_count)
             DoD_count_array = np.append(DoD_count_array, DoD_count)
 
             # DoD statistics
@@ -619,13 +626,14 @@ for run in RUNS:
             # #plt.imshow(DoD_out, cmap='RdYlGn')
 
             ##############################################################################
-            # VOLUMES
+            # TOTAL VOLUMES, DEPOSITION VOLUMES AND SCOUR VOLUMES
             ##############################################################################
             # DoD filtered name: DoD_filt
             # Create new raster where apply volume calculation
             # DoD>0 --> Deposition, DoD<0 --> Scour
             # =+SUMIFS(A1:JS144, A1:JS144,">0")*5*50(LibreCalc function)
-
+            
+                
             # Define total volume matrix, Deposition matrix and Scour matrix
             DoD_vol = np.where(np.isnan(DoD_filt_nozero), 0, DoD_filt_nozero) # Total volume matrix
             dep_DoD = (DoD_vol>0)*DoD_vol # DoD of only deposition data
@@ -800,21 +808,18 @@ for run in RUNS:
             else:
                 pass
 
+
             ###################################################################
-            # STACK CONSECUTIVE DODS IN A 3D ARRAY
+            # STACK CONSECUTIVE DoDS IN A 3D ARRAY
             ###################################################################
-            
+            # Initialize 3D array to stack DoDs
             if h==0 and k==0: # initialize the first array with the DEM shape
                 DoD_stack = np.zeros([len(files)-1, dim_y, dim_x])
             else:
                 pass
-
+            # Stack all the DoDs inside the 3D array
             if delta==1:
                 DoD_stack[h,:,:] = DoD_filt_nozero_rst[:,:]
-                
-            DoD_stack_nan = np.where(DoD_stack == NaN, np.nan, DoD_stack)
-            DoD_stack_bool = np.where(DoD_stack>0, 1, DoD_stack_nan)
-            DoD_stack_bool = np.where(DoD_stack_nan<0, -1, DoD_stack_bool)
 
             ###################################################################
             # SAVE DATA
@@ -874,7 +879,26 @@ for run in RUNS:
                 fp.write(DoD_filt_gis)
             with open(path_out + '/' + 'gis-' + DoD_name + 'filt_nozero_rst.txt', 'w') as fp:
                 fp.write(DoD_filt_nozero_gis)
-                
+    
+    ###################################################################
+    # 3D ARRAY ANALISYS
+    ###################################################################
+    # TODO go on with this section
+    DoD_stack_nan = np.where(DoD_stack == NaN, np.nan, DoD_stack)
+    
+    # Save 3D array as binary file
+    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack_"+run+".npy"), DoD_stack_nan)
+    
+    # Create 3D array where scours are -1, depositions are +1 and no changes are 0
+    
+    DoD_stack_bool = np.where(DoD_stack>0, 1, DoD_stack_nan)
+    DoD_stack_bool = np.where(DoD_stack_nan<0, -1, DoD_stack_bool)
+    
+    # Save 3D array as binary file
+    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack_bool_"+run+".npy"), DoD_stack_bool)
+    print('ciao')
+
+
     # Fill DoD lenght array
     DoD_length_array = np.append(DoD_length_array, DoD_length)
 
