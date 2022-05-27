@@ -11,18 +11,25 @@ import math
 import matplotlib.pyplot as plt
 
 # SINGLE RUN NAME
-run = 'q20_2'
+run = 'q07_1'
 DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
 # Step between surveys
 DoD_delta = 1
 
-windows_mode = 1
+windows_mode = 3
 '''
 windows_mode:
     0 = fixed windows (all the channel)
     1 = expanding window
     2 = floating fixed windows (WxW, Wx2W, Wx3W, ...) without overlapping
     3 = floating fixed windows (WxW, Wx2W, Wx3W, ...) with overlapping
+'''
+
+plot_mode = 2
+'''
+plot_mode:
+    1 = only summary plot
+    2 = all single DoD plot
 '''
 # Parameters
 # Survey pixel dimension
@@ -48,6 +55,7 @@ for f in sorted(os.listdir(DoDs_folder)):
         
 # Initialize overall arrays
 dep_vol_w_array_all = []
+sco_vol_w_array_all = []
 
 # Loop over the DoDs with step of delta_step
 for f in DoDs_name_array:
@@ -217,41 +225,41 @@ for f in DoDs_name_array:
             act_thickness_dep_w_array = np.append(act_thickness_dep_w_array, act_thickness_dep_w)
             act_thickness_sco_w_array = np.append(act_thickness_sco_w_array, act_thickness_sco_w)
             
-            # dep_vol_w_array_all = dep_vol_w_array
 
+        if plot_mode ==2:
+            
+            # Plots
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, dep_vol_w_array, '-', c='brown')
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Deposition volumes V/(W*L*d50) [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
         
-        # Plots
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, dep_vol_w_array, '-', c='brown')
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Deposition volumes V/(W*L*d50) [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, sco_vol_w_array, '-', c='brown')
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Scour volumes V/(W*L*d50) [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, act_width_mean_w_array, '-', c='brown')
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Active width actW/W [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, act_thickness_w_array, '-', c='brown')
-        axs.set_title(run)
-        axs.set_xlabel('Longitudinal coordinate [m]')
-        axs.set_ylabel('Active thickness [mm]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, sco_vol_w_array, '-', c='brown')
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Scour volumes V/(W*L*d50) [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+        
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, act_width_mean_w_array, '-', c='brown')
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Active width actW/W [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+        
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, act_thickness_w_array, '-', c='brown')
+            axs.set_title(run)
+            axs.set_xlabel('Longitudinal coordinate [m]')
+            axs.set_ylabel('Active thickness [mm]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
             
             
     
@@ -280,7 +288,7 @@ for f in DoDs_name_array:
                 f_cols_array = np.vstack((f_cols_array, f_cols))
                 x_data = np.append(x_data, n)
                 
-        x_data = (x_data+W)*W   
+        x_data = (x_data)*W
         
         # Resize f_cols_array
         f_cols_array = f_cols_array[1:]
@@ -339,39 +347,41 @@ for f in DoDs_name_array:
             act_thickness_w_array = np.append(act_thickness_w_array, act_thickness_w)
             act_thickness_dep_w_array = np.append(act_thickness_dep_w_array, act_thickness_dep_w)
             act_thickness_sco_w_array = np.append(act_thickness_sco_w_array, act_thickness_sco_w)
+        
             
-        # Plots
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, dep_vol_w_array, 'o', c='brown')
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Deposition volumes V/(W*L*d50) [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, sco_vol_w_array, 'o', c='brown')
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Scour volumes V/(W*L*d50) [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, act_width_mean_w_array, 'o', c='brown')
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Active width actW/W [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, act_thickness_w_array, 'o', c='brown')
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Active thickness [mm]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
+        if plot_mode ==2:
+            # Plots
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, dep_vol_w_array, 'o', c='brown')
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Deposition volumes V/(W*L*d50) [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+        
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, sco_vol_w_array, 'o', c='brown')
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Scour volumes V/(W*L*d50) [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+        
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, act_width_mean_w_array, 'o', c='brown')
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Active width actW/W [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+        
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, act_thickness_w_array, 'o', c='brown')
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Active thickness [mm]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
     
     # Fixed window with overlapping
     if windows_mode == 3:
@@ -451,47 +461,93 @@ for f in DoDs_name_array:
             act_thickness_dep_w_array = np.append(act_thickness_dep_w_array, act_thickness_dep_w)
             act_thickness_sco_w_array = np.append(act_thickness_sco_w_array, act_thickness_sco_w)
         
-        # Plots
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, dep_vol_w_array, 'o', c='brown', markersize=0.1)
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Deposition volumes V/(W*L*d50) [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, sco_vol_w_array, 'o', c='brown', markersize=0.1)
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Scour volumes V/(W*L*d50) [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, act_width_mean_w_array, 'o', c='brown', markersize=0.1)
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Active width actW/W [-]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-    
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-        axs.plot(x_data, act_thickness_w_array, 'o', c='brown', markersize=0.1)
-        axs.set_title(run)
-        axs.set_xlabel('Window analysis length [m]')
-        axs.set_ylabel('Active thickness [mm]')
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
+        if plot_mode ==2:
+            # Plots
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, dep_vol_w_array, 'o', c='brown', markersize=0.1)
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Deposition volumes V/(W*L*d50) [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+        
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, sco_vol_w_array, 'o', c='brown', markersize=0.1)
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Scour volumes V/(W*L*d50) [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+        
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, act_width_mean_w_array, 'o', c='brown', markersize=0.1)
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Active width actW/W [-]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
+        
+            fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
+            axs.plot(x_data, act_thickness_w_array, 'o', c='brown', markersize=0.1)
+            axs.set_title(run)
+            axs.set_xlabel('Window analysis length [m]')
+            axs.set_ylabel('Active thickness [mm]')
+            # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+            plt.show()
 
     if f == DoDs_name_array[0]:
         dep_vol_w_array_all = np.transpose(np.array(dep_vol_w_array))
+        sco_vol_w_array_all = np.transpose(np.array(sco_vol_w_array))
     else:
         pass
     
     dep_vol_w_array_all = np.vstack((dep_vol_w_array_all,dep_vol_w_array))
     dep_vol_mean = np.mean(dep_vol_w_array_all, axis=0)
     dep_vol_std = np.std(dep_vol_w_array_all, axis=0)
+    
+    sco_vol_w_array_all = np.vstack((sco_vol_w_array_all,sco_vol_w_array))
+    sco_vol_mean = np.mean(sco_vol_w_array_all, axis=0)
+    sco_vol_std = np.std(sco_vol_w_array_all, axis=0)
+    
+    if windows_mode==2:
+        
+        # Loop to define the windows to clusterize data
+        array = [0]
+        num=0
+        for n in range(0,len(c_array)):
+            num += c_array[n]
+            array = np.append(array, num) # Clusterize window dimension
+            
+        dep_vol_mean = []
+        sco_vol_mean = []
+        dep_vol_std = []
+        sco_vol_std = []
+
+        x_data_full = x_data
+        x_data = []
+        for n in range(0, len(array)-1):
+            x_data = np.append(x_data, x_data_full[int(array[n])])
+            dep_vol_mean = np.append(dep_vol_mean, np.mean(dep_vol_w_array_all[:,int(array[n]):int(array[n+1])]))
+            sco_vol_mean = np.append(sco_vol_mean, np.mean(sco_vol_w_array_all[:,int(array[n]):int(array[n+1])]))
+            dep_vol_std = np.append(dep_vol_std, np.std(dep_vol_w_array_all[:,int(array[n]):int(array[n+1])]))
+            sco_vol_std = np.append(sco_vol_std, np.std(sco_vol_w_array_all[:,int(array[n]):int(array[n+1])]))
+    
+    
+fig3, axs = plt.subplots(2,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
+fig3.suptitle(run + ' - Volume')
+axs[0].errorbar(x_data, sco_vol_mean, sco_vol_std, linestyle='--', marker='^', color='red')
+# axs[0].set_ylim(bottom=0)
+axs[0].set_title('Scour')
+# axs[0].set_xlabel()
+axs[0].set_ylabel('Scour volume V/(L*W*d50) [-]')
+axs[1].errorbar(x_data, dep_vol_mean, dep_vol_std, linestyle='--', marker='^', color='blue')
+axs[1].set_ylim(bottom=0)
+axs[1].set_title('Deposition')
+axs[1].set_xlabel('Exner time')
+axs[1].set_ylabel('Scour olume V/(L*W*d50) [-]')
+# plt.savefig(os.path.join(plot_dir, run +'dep_scour.png'), dpi=200)
+plt.show()
+    
     # # Plots
     # fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
     # axs.plot(x_data, dep_vol_w_array, 'o', c='brown')
