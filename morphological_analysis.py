@@ -11,15 +11,15 @@ import math
 import matplotlib.pyplot as plt
 
 # SINGLE RUN NAME
-run = 'q07_1'
-DoD_name = 'DoD_s3-s0_filt_nozero_rst.txt'
-windows_mode = 2
+run = 'q20_2'
+DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
+windows_mode = 3
 '''
 windows_mode:
     0 = fixed windows (all the channel)
-    1 = floating windows
-    2 = fixed windows (WxW, Wx2W, Wx3W, ...) without overlapping
-    3 = fixed windows (WxW, Wx2W, Wx3W, ...) with overlapping
+    1 = expanding window
+    2 = floating fixed windows (WxW, Wx2W, Wx3W, ...) without overlapping
+    3 = floating fixed windows (WxW, Wx2W, Wx3W, ...) with overlapping
 '''
 
 # setup working directory and DEM's name
@@ -197,7 +197,7 @@ if windows_mode == 1:
     fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
     axs.plot(x_data, dep_vol_w_array, '-', c='brown')
     axs.set_title(run)
-    axs.set_xlabel('Longitudinal coordinate [m]')
+    axs.set_xlabel('Window analysis length [m]')
     axs.set_ylabel('Deposition volumes V/(W*L*d50) [-]')
     # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
     plt.show()
@@ -205,7 +205,7 @@ if windows_mode == 1:
     fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
     axs.plot(x_data, sco_vol_w_array, '-', c='brown')
     axs.set_title(run)
-    axs.set_xlabel('Longitudinal coordinate [m]')
+    axs.set_xlabel('Window analysis length [m]')
     axs.set_ylabel('Scour volumes V/(W*L*d50) [-]')
     # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
     plt.show()
@@ -213,7 +213,7 @@ if windows_mode == 1:
     fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
     axs.plot(x_data, act_width_mean_w_array, '-', c='brown')
     axs.set_title(run)
-    axs.set_xlabel('Longitudinal coordinate [m]')
+    axs.set_xlabel('Window analysis length [m]')
     axs.set_ylabel('Active width actW/W [-]')
     # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
     plt.show()
@@ -454,7 +454,7 @@ if windows_mode == 3:
     
     # Plots
     fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-    axs.plot(x_data, dep_vol_w_array, 'o', c='brown')
+    axs.plot(x_data, dep_vol_w_array, 'o', c='brown', markersize=0.1)
     axs.set_title(run)
     axs.set_xlabel('Window analysis length [m]')
     axs.set_ylabel('Deposition volumes V/(W*L*d50) [-]')
@@ -462,7 +462,7 @@ if windows_mode == 3:
     plt.show()
 
     fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-    axs.plot(x_data, sco_vol_w_array, 'o', c='brown')
+    axs.plot(x_data, sco_vol_w_array, 'o', c='brown', markersize=0.1)
     axs.set_title(run)
     axs.set_xlabel('Window analysis length [m]')
     axs.set_ylabel('Scour volumes V/(W*L*d50) [-]')
@@ -470,7 +470,7 @@ if windows_mode == 3:
     plt.show()
 
     fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-    axs.plot(x_data, act_width_mean_w_array, 'o', c='brown')
+    axs.plot(x_data, act_width_mean_w_array, 'o', c='brown', markersize=0.1)
     axs.set_title(run)
     axs.set_xlabel('Window analysis length [m]')
     axs.set_ylabel('Active width actW/W [-]')
@@ -478,7 +478,7 @@ if windows_mode == 3:
     plt.show()
 
     fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
-    axs.plot(x_data, act_thickness_w_array, 'o', c='brown')
+    axs.plot(x_data, act_thickness_w_array, 'o', c='brown', markersize=0.1)
     axs.set_title(run)
     axs.set_xlabel('Window analysis length [m]')
     axs.set_ylabel('Active thickness [mm]')
