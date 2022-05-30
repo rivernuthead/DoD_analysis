@@ -14,8 +14,6 @@ import math
 import matplotlib.pyplot as plt
 
 
-
-
 # SINGLE RUN NAME
 run = 'q07_1'
 # Step between surveys
@@ -26,15 +24,23 @@ home_dir = os.getcwd()
 # Source DoDs folder
 DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack')
 
-stack_name = 'DoD_stack_bool' + str(DoD_delta) + '_' + run + '.npy' # Define stack name
+stack_name = 'DoD_stack' + str(DoD_delta) + '_' + run + '.npy' # Define stack name
 stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
 stack = np.load(stack_path) # Load DoDs stack
 
+# Create boolean stack # 1=dep, 0=no changes, -1=sco
+stack_bool = np.where(stack>0, 1, stack)
+stack_bool = np.where(stack<0, -1, stack_bool)
+
 dim_t, dim_y, dim_x = stack.shape # Define time dimension, crosswise dimension and longitudinal dimension
 
-matrix0 = stack[0,:,:]
-for t in range(1,dim_t):
-    matrix = np.multiply(matrix0, stack[t,:,:])
+
+for t in range(0,dim_t):
+    if t == 0:
+        matrix0 = stack_bool[0,:,:]
+    else:
+        pass
+    matrix = np.multiply(matrix0, stack_bool[t,:,:])
     matrix0 = matrix
     
 pixel_tot = dim_x*dim_y - np.sum(np.isnan(matrix0)) # Pixel domain without considering NaN value
@@ -42,15 +48,25 @@ pixel_tot = dim_x*dim_y - np.sum(np.isnan(matrix0)) # Pixel domain without consi
 
 
 # Pixel attivi sia all'inizio che alla fine
-a = np.nansum(abs(np.multiply(stack[0,:,:],stack[dim_t-1,:,:])))/pixel_tot
+a = np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:])))/pixel_tot
 
 # Pixel attivi all'inizio ma non alla fine
-b = (np.nansum(abs(stack[0,:,:])) - np.nansum(abs(np.multiply(stack[0,:,:],stack[dim_t-1,:,:]))))/pixel_tot
+b = (np.nansum(abs(stack_bool[0,:,:])) - np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:]))))/pixel_tot
 
 # Pixel attivi alla fine ma non all'inizio
-c = (np.nansum(abs(stack[dim_t -1,:,:])) - np.nansum(abs(np.multiply(stack[0,:,:],stack[dim_t-1,:,:]))))/pixel_tot
+c = (np.nansum(abs(stack_bool[dim_t -1,:,:])) - np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:]))))/pixel_tot
 
 # Pixel attivi nè all'inizio nè alla fine
 d = dim_x*dim_y/pixel_tot - (a+b+c)
 
+# Active area
+act_A = []
+for t in range(0,dim_t):
+    DoD_act_A = np.nansum(abs(stack_bool[t,:,:]))
+    act_A = np.append(act_A, DoD_act_A) # Active area array for each DoD in the stack
 
+# Number of activated pixel from a DoD and the consecutive one
+activated_pixels = []
+for t in range(0,dim_t-1):
+    activated_pixel_count = np.nansum(abs(stack_bool[t+1,:,:])) - np.nansum(abs(np.multiply(stack_bool[t,:,:],stack_bool[t+1,:,:])))
+    activated_pixels = np.append(activated_pixels, activated_pixel_count)
