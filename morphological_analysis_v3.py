@@ -11,7 +11,7 @@ import math
 import matplotlib.pyplot as plt
 
 # SINGLE RUN NAME
-run = 'q07_1'
+run = 'q20_2'
 DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
 # Step between surveys
 DoD_delta = 1

@@ -46,7 +46,7 @@ save mode:
     0 = save only reports
     1 = save all chart and figure
 '''
-run_mode = 1
+run_mode = 2
 DEM_analysis_mode = 0
 data_interpolation_mode = 0
 windows_mode = 3
@@ -702,309 +702,6 @@ for run in RUNS:
             print()
             print()
             
-            ###################################################################
-            # MOVING WINDOWS ANALYSIS
-            ###################################################################
-            
-            delta=int(DEM2_name[-5:-4])-int(DEM1_name[-5:-4]) # Calculate delta between DEM
-            
-            
-            if delta ==1:
-                # TODO Go on with this section
-                if windows_mode == 1:
-                    # Initialize array
-                    tot_vol_w_array = []
-                    sum_vol_w_array = []
-                    dep_vol_w_array = []
-                    sco_vol_w_array =[]
-                    morph_act_area_w_array = []
-                    morph_act_area_dep_w_array = []
-                    morph_act_area_sco_w_array = []
-                    act_width_mean_w_array = []
-                    act_width_mean_dep_w_array = []
-                    act_width_mean_sco_w_array = []
-                    act_thickness_w_array = []
-                    act_thickness_dep_w_array = []
-                    act_thickness_sco_w_array = []
-                    
-                    for n in range(1,math.floor(DoD_length/W)+1):
-                        
-                        w_cols = n*round(W/(px_x/1000)) # Window analysis length in number of columns
-                        w_len = round(n*W,1) # Window analysis lenght im meter [m]
-                        
-                        # Define total volume matrix, Deposition matrix and Scour matrix
-                        DoD_vol_w = DoD_vol[:,0:w_cols] # Total volume matrix
-                        dep_DoD_w = dep_DoD[:,0:w_cols] # DoD of only deposition data
-                        sco_DoD_w = sco_DoD[:,0:w_cols] # DoD of only scour data
-                        
-                        # Define active pixel matrix
-                        act_px_matrix_w = act_px_matrix[:,0:w_cols] # Active pixel matrix, both scour and deposition
-                        act_px_matrix_dep_w = act_px_matrix_dep[:,0:w_cols] # Active deposition matrix 
-                        act_px_matrix_sco_w = act_px_matrix_sco[:,0:w_cols] # Active scour matrix
-                        
-                        # Calculate principal quantities:
-                        # Volumes
-                        tot_vol_w = np.sum(DoD_vol_w)*px_x*px_y/(W*w_len*d50*1e09)# Total volume as V/(L*W*d50) [-] considering negative sign for scour
-                        sum_vol_w = np.sum(np.abs(DoD_vol_w))*px_x*px_y/(W*w_len*d50*1e09) # Sum of scour and deposition volume as V/(L*W*d50) [-]
-                        dep_vol_w = np.sum(dep_DoD_w)*px_x*px_y/(W*w_len*d50*1e09) # Deposition volume as V/(L*W*d50) [-]
-                        sco_vol_w = np.sum(sco_DoD_w)*px_x*px_y/(W*w_len*d50*1e09) # Scour volume as V/(L*W*d50) [-]
-                        
-                        # Areas:
-                        morph_act_area_w = np.count_nonzero(act_px_matrix_w)*px_x*px_y/(W*w_len*1e06) # Active area both in terms of scour and deposition as A/(W*L) [-]
-                        morph_act_area_dep_w = np.count_nonzero(act_px_matrix_dep_w)*px_x*px_y/(W*w_len*1e06) # Active deposition area as A/(W*L) [-]
-                        morph_act_area_sco_w = np.count_nonzero(act_px_matrix_sco_w)*px_x*px_y/(W*w_len*1e06) # Active scour area as A/(W*L) [-]
-                        
-                        # Widths:
-                        act_width_mean_w = np.count_nonzero(act_px_matrix_w)*px_x*px_y/(W*w_len*1e06) # Total mean active width [%] - Wact/W
-                        act_width_mean_dep_w = np.count_nonzero(act_px_matrix_dep_w)*px_x*px_y/(W*w_len*1e06) # Deposition mean active width [%] - Wact/W
-                        act_width_mean_sco_w = np.count_nonzero(act_px_matrix_sco_w)*px_x*px_y/(W*w_len*1e06) # Scour mean active width [%] - Wact/W
-                        
-                        # Thicknesses:
-                        act_thickness_w = sum_vol_w/morph_act_area_w*(d50*1e03) # Total active thickness (abs(V_sco) + V_dep)/act_area [mm]
-                        act_thickness_dep_w = dep_vol_w/morph_act_area_dep_w*(d50*1e03) # Deposition active thickness V_dep/act_area [mm]
-                        act_thickness_sco_w = sco_vol_w/act_width_mean_sco_w*(d50*1e03) # Scour active thickness V_sco/act_area [mm]
-                        
-                        # Append all values in arrays
-                        tot_vol_w_array = np.append(tot_vol_w_array, tot_vol_w)
-                        sum_vol_w_array = np.append(sum_vol_w, sum_vol_w)
-                        dep_vol_w_array = np.append(dep_vol_w, dep_vol_w)
-                        sco_vol_w_array = np.append(sco_vol_w, sco_vol_w)
-                        
-                        morph_act_area_w_array = np.append(morph_act_area_w_array, morph_act_area_w)
-                        morph_act_area_dep_w_array = np.append(morph_act_area_dep_w_array, morph_act_area_dep_w)
-                        morph_act_area_sco_w_array = np.append(morph_act_area_sco_w_array, morph_act_area_sco_w)
-                                       
-                        act_width_mean_w_array = np.append(act_width_mean_w_array, act_width_mean_w)
-                        act_width_mean_dep_w_array = np.append(act_width_mean_dep_w_array, act_width_mean_dep_w)
-                        act_width_mean_sco_w_array = np.append(act_width_mean_sco_w_array, act_width_mean_sco_w)
-                        
-                        act_thickness_w_array = np.append(act_thickness_w_array, act_thickness_w)
-                        act_thickness_dep_w_array = np.append(act_thickness_dep_w_array, act_thickness_dep_w)
-                        act_thickness_sco_w_array = np.append(act_thickness_sco_w_array, act_thickness_sco_w)
-    
-                # Fixed window without overlapping
-                if windows_mode == 2:
-                    
-                    #     c_array = []
-                    #     for i in range(1, round(DoD_length/W)):
-                    #         c = math.floor(DoD_length/(W*i))
-                    #         print(c)
-                    #         print(c*W*i<=DoD_length)
-                    #         if c*W*i<=DoD_length:
-                    #             c_array = np.append(c_array, c)
-                    #         else:
-                    #             pass
-                    
-                    
-                    # for m in range(0,len(c_array)):
-                    #     print()
-                    #     for n in range(1,(math.floor(DoD_length/(W*(m+1)))+1)):
-                    #         f_cols = [round(W*(m+1)*(n-1), 1), round(W*(m+1)*(n),1)]
-                    #         print(f_cols)
-                    #     print(len(f_cols))
-                    
-                    # Calculate the number of availabale increasing window iteration
-                    c_array = []
-                    W_cols = int(W/px_x*1e03)
-                    for i in range(1, round(dim_x/W_cols)):
-                        c = math.floor(dim_x/(W_cols*i))
-                        if c*W_cols*i<=dim_x:
-                            c_array = np.append(c_array, c)
-                        else:
-                            pass
-                
-                    # Define the components of the slicing operation (exclude the first one)
-                    f_cols_array = [0,0]
-                    x_data = [] # X data for the plot
-                    n = 0 # Initialize variable count
-                    for m in range(0,len(c_array)):
-                        # m is the window dimension in columns
-                        n+=1
-                        for i in range(1,(math.floor(dim_x/(W_cols*(m+1)))+1)):
-                            f_cols = [round(W_cols*(m+1)*(i-1), 1), round(W_cols*(m+1)*(i),1)]
-                            f_cols_array = np.vstack((f_cols_array, f_cols))
-                            x_data = np.append(x_data, n)
-                    
-                    # Initialize array
-                    tot_vol_w_array = []
-                    sum_vol_w_array = []
-                    dep_vol_w_array = []
-                    sco_vol_w_array =[]
-                    morph_act_area_w_array = []
-                    morph_act_area_dep_w_array = []
-                    morph_act_area_sco_w_array = []
-                    act_width_mean_w_array = []
-                    act_width_mean_dep_w_array = []
-                    act_width_mean_sco_w_array = []
-                    act_thickness_w_array = []
-                    act_thickness_dep_w_array = []
-                    act_thickness_sco_w_array = []
-                    
-                    for p in range(1, f_cols_array.shape[0]): # Loop over all the available window
-                        
-                        w_len = (f_cols_array[p,1] - f_cols_array[p,0])*px_x/1e03 # Define the window lwgth
-                                            
-                        # Define total volume matrix, Deposition matrix and Scour matrix
-                        DoD_vol_w = DoD_vol[:, f_cols_array[p,0]:f_cols_array[p,1]] # Total volume matrix
-                        dep_DoD_w = dep_DoD[:, f_cols_array[p,0]:f_cols_array[p,1]] # DoD of only deposition data
-                        sco_DoD_w = sco_DoD[:, f_cols_array[p,0]:f_cols_array[p,1]] # DoD of only scour data
-                        
-                        # Define active pixel matrix
-                        act_px_matrix_w = act_px_matrix[:, f_cols_array[p,0]:f_cols_array[p,1]] # Active pixel matrix, both scour and deposition
-                        act_px_matrix_dep_w = act_px_matrix_dep[:, f_cols_array[p,0]:f_cols_array[p,1]] # Active deposition matrix 
-                        act_px_matrix_sco_w = act_px_matrix_sco[:, f_cols_array[p,0]:f_cols_array[p,1]] # Active scour matrix
-                        
-                        # Calculate principal quantities:
-                        # Volumes
-                        tot_vol_w = np.sum(DoD_vol_w)*px_x*px_y/(W*w_len*d50*1e09)# Total volume as V/(L*W*d50) [-] considering negative sign for scour
-                        sum_vol_w = np.sum(np.abs(DoD_vol_w))*px_x*px_y/(W*w_len*d50*1e09) # Sum of scour and deposition volume as V/(L*W*d50) [-]
-                        dep_vol_w = np.sum(dep_DoD_w)*px_x*px_y/(W*w_len*d50*1e09) # Deposition volume as V/(L*W*d50) [-]
-                        sco_vol_w = np.sum(sco_DoD_w)*px_x*px_y/(W*w_len*d50*1e09) # Scour volume as V/(L*W*d50) [-]
-                        
-                        # Areas:
-                        morph_act_area_w = np.count_nonzero(act_px_matrix_w)*px_x*px_y/(W*w_len*1e06) # Active area both in terms of scour and deposition as A/(W*L) [-]
-                        morph_act_area_dep_w = np.count_nonzero(act_px_matrix_dep_w)*px_x*px_y/(W*w_len*1e06) # Active deposition area as A/(W*L) [-]
-                        morph_act_area_sco_w = np.count_nonzero(act_px_matrix_sco_w)*px_x*px_y/(W*w_len*1e06) # Active scour area as A/(W*L) [-]
-                        
-                        # Widths:
-                        act_width_mean_w = np.count_nonzero(act_px_matrix_w)*px_x*px_y/(W*w_len*1e06) # Total mean active width [%] - Wact/W
-                        act_width_mean_dep_w = np.count_nonzero(act_px_matrix_dep_w)*px_x*px_y/(W*w_len*1e06) # Deposition mean active width [%] - Wact/W
-                        act_width_mean_sco_w = np.count_nonzero(act_px_matrix_sco_w)*px_x*px_y/(W*w_len*1e06) # Scour mean active width [%] - Wact/W
-                        
-                        # Thicknesses:
-                        act_thickness_w = sum_vol_w/morph_act_area_w*(d50*1e03) # Total active thickness (abs(V_sco) + V_dep)/act_area [mm]
-                        act_thickness_dep_w = dep_vol_w/morph_act_area_dep_w*(d50*1e03) # Deposition active thickness V_dep/act_area [mm]
-                        act_thickness_sco_w = sco_vol_w/act_width_mean_sco_w*(d50*1e03) # Scour active thickness V_sco/act_area [mm]
-                        
-                        # Append all values in arrays
-                        tot_vol_w_array = np.append(tot_vol_w_array, tot_vol_w)
-                        sum_vol_w_array = np.append(sum_vol_w, sum_vol_w)
-                        dep_vol_w_array = np.append(dep_vol_w, dep_vol_w)
-                        sco_vol_w_array = np.append(sco_vol_w, sco_vol_w)
-                        
-                        morph_act_area_w_array = np.append(morph_act_area_w_array, morph_act_area_w)
-                        morph_act_area_dep_w_array = np.append(morph_act_area_dep_w_array, morph_act_area_dep_w)
-                        morph_act_area_sco_w_array = np.append(morph_act_area_sco_w_array, morph_act_area_sco_w)
-                                       
-                        act_width_mean_w_array = np.append(act_width_mean_w_array, act_width_mean_w)
-                        act_width_mean_dep_w_array = np.append(act_width_mean_dep_w_array, act_width_mean_dep_w)
-                        act_width_mean_sco_w_array = np.append(act_width_mean_sco_w_array, act_width_mean_sco_w)
-                        
-                        act_thickness_w_array = np.append(act_thickness_w_array, act_thickness_w)
-                        act_thickness_dep_w_array = np.append(act_thickness_dep_w_array, act_thickness_dep_w)
-                        act_thickness_sco_w_array = np.append(act_thickness_sco_w_array, act_thickness_sco_w)
-                
-                # Fixed window with overlapping
-                if windows_mode == 3:
-    
-                    W_cols = int(W/px_x*1e03) # Number of columns that define the channel width
-                    f_cols_array = [0,0]
-                    x_data = []
-                    n = 0
-                    for m in range(W_cols,dim_x+1):
-                        # m is the window dimension in columns
-                        n+=1
-                        for i in range(0,dim_x-m):
-                            f_cols = [i, i+m]
-                            f_cols_array = np.vstack((f_cols_array, f_cols))
-                            x_data = np.append(x_data, n)
-                        
-                    # Initialize array
-                    tot_vol_w_array = []
-                    sum_vol_w_array = []
-                    dep_vol_w_array = []
-                    sco_vol_w_array =[]
-                    morph_act_area_w_array = []
-                    morph_act_area_dep_w_array = []
-                    morph_act_area_sco_w_array = []
-                    act_width_mean_w_array = []
-                    act_width_mean_dep_w_array = []
-                    act_width_mean_sco_w_array = []
-                    act_thickness_w_array = []
-                    act_thickness_dep_w_array = []
-                    act_thickness_sco_w_array = []
-                    
-                    for p in range(1, f_cols_array.shape[0]):
-                        
-                        w_len = (f_cols_array[p,1] - f_cols_array[p,0])*px_x/1e03 # Define the window lwgth
-                        
-                        print()
-                        print(f_cols_array[p,:])
-                        print(w_len)
-                        
-                        # Define total volume matrix, Deposition matrix and Scour matrix
-                        DoD_vol_w = DoD_vol[:, f_cols_array[p,0]:f_cols_array[p,1]] # Total volume matrix
-                        dep_DoD_w = dep_DoD[:, f_cols_array[p,0]:f_cols_array[p,1]] # DoD of only deposition data
-                        sco_DoD_w = sco_DoD[:, f_cols_array[p,0]:f_cols_array[p,1]] # DoD of only scour data
-                        
-                        # Define active pixel matrix
-                        act_px_matrix_w = act_px_matrix[:, f_cols_array[p,0]:f_cols_array[p,1]] # Active pixel matrix, both scour and deposition
-                        act_px_matrix_dep_w = act_px_matrix_dep[:, f_cols_array[p,0]:f_cols_array[p,1]] # Active deposition matrix 
-                        act_px_matrix_sco_w = act_px_matrix_sco[:, f_cols_array[p,0]:f_cols_array[p,1]] # Active scour matrix
-                        
-                        # Calculate principal quantities:
-                        # Volumes
-                        tot_vol_w = np.sum(DoD_vol_w)*px_x*px_y/(W*w_len*d50*1e09)# Total volume as V/(L*W*d50) [-] considering negative sign for scour
-                        sum_vol_w = np.sum(np.abs(DoD_vol_w))*px_x*px_y/(W*w_len*d50*1e09) # Sum of scour and deposition volume as V/(L*W*d50) [-]
-                        dep_vol_w = np.sum(dep_DoD_w)*px_x*px_y/(W*w_len*d50*1e09) # Deposition volume as V/(L*W*d50) [-]
-                        sco_vol_w = np.sum(sco_DoD_w)*px_x*px_y/(W*w_len*d50*1e09) # Scour volume as V/(L*W*d50) [-]
-                        
-                        # Areas:
-                        morph_act_area_w = np.count_nonzero(act_px_matrix_w)*px_x*px_y/(W*w_len*1e06) # Active area both in terms of scour and deposition as A/(W*L) [-]
-                        morph_act_area_dep_w = np.count_nonzero(act_px_matrix_dep_w)*px_x*px_y/(W*w_len*1e06) # Active deposition area as A/(W*L) [-]
-                        morph_act_area_sco_w = np.count_nonzero(act_px_matrix_sco_w)*px_x*px_y/(W*w_len*1e06) # Active scour area as A/(W*L) [-]
-                        
-                        # Widths:
-                        act_width_mean_w = np.count_nonzero(act_px_matrix_w)*px_x*px_y/(W*w_len*1e06) # Total mean active width [%] - Wact/W
-                        act_width_mean_dep_w = np.count_nonzero(act_px_matrix_dep_w)*px_x*px_y/(W*w_len*1e06) # Deposition mean active width [%] - Wact/W
-                        act_width_mean_sco_w = np.count_nonzero(act_px_matrix_sco_w)*px_x*px_y/(W*w_len*1e06) # Scour mean active width [%] - Wact/W
-                        
-                        # Thicknesses:
-                        act_thickness_w = sum_vol_w/morph_act_area_w*(d50*1e03) # Total active thickness (abs(V_sco) + V_dep)/act_area [mm]
-                        act_thickness_dep_w = dep_vol_w/morph_act_area_dep_w*(d50*1e03) # Deposition active thickness V_dep/act_area [mm]
-                        act_thickness_sco_w = sco_vol_w/act_width_mean_sco_w*(d50*1e03) # Scour active thickness V_sco/act_area [mm]
-                        
-                        # Append all values in arrays
-                        tot_vol_w_array = np.append(tot_vol_w_array, tot_vol_w)
-                        sum_vol_w_array = np.append(sum_vol_w, sum_vol_w)
-                        dep_vol_w_array = np.append(dep_vol_w, dep_vol_w)
-                        sco_vol_w_array = np.append(sco_vol_w, sco_vol_w)
-                        
-                        morph_act_area_w_array = np.append(morph_act_area_w_array, morph_act_area_w)
-                        morph_act_area_dep_w_array = np.append(morph_act_area_dep_w_array, morph_act_area_dep_w)
-                        morph_act_area_sco_w_array = np.append(morph_act_area_sco_w_array, morph_act_area_sco_w)
-                                       
-                        act_width_mean_w_array = np.append(act_width_mean_w_array, act_width_mean_w)
-                        act_width_mean_dep_w_array = np.append(act_width_mean_dep_w_array, act_width_mean_dep_w)
-                        act_width_mean_sco_w_array = np.append(act_width_mean_sco_w_array, act_width_mean_sco_w)
-                        
-                        act_thickness_w_array = np.append(act_thickness_w_array, act_thickness_w)
-                        act_thickness_dep_w_array = np.append(act_thickness_dep_w_array, act_thickness_dep_w)
-                        act_thickness_sco_w_array = np.append(act_thickness_sco_w_array, act_thickness_sco_w)
-                
-                
-                # # Calculate the number of availabale increasing window iteration with overlapping
-                # c_array = []
-                # x_data = [] #TODO finish do build up xData for the plot
-                # W_cols = int(W/px_x*1e03)
-                # for i in range(1, round(dim_x/W_cols)):
-                #     c = math.floor(dim_x/(W_cols*i))
-                #     print(c)
-                #     print(c*W_cols*i<=dim_x)
-                #     if c*W_cols*i<=dim_x:
-                #         c_array = np.append(c_array, c)
-                #     else:
-                #         pass
-            
-                # # Define the components of the slicing operation (exclude the first one)
-                # f_cols_array = [0,0]
-                # for m in range(0,len(c_array)):
-                #     print()
-                #     for n in range(1,(math.floor(dim_x/(W_cols*(m+1)))+1)):
-                #         f_cols = [round(W_cols*(m+1)*(n-1), 1), round(W_cols*(m+1)*(n),1)]
-                #         f_cols_array = np.vstack((f_cols_array, f_cols))
-                #         print(f_cols)
-                #     print(len(f_cols))
                 
 
 
@@ -1124,12 +821,12 @@ for run in RUNS:
             ###################################################################
             # Initialize 3D array to stack DoDs
             if h==0 and k==0: # initialize the first array with the DEM shape
-                DoD_stack = np.zeros([len(files)-1, dim_y, dim_x])
+                DoD_stack1 = np.zeros([len(files)-1, dim_y, dim_x])
             else:
                 pass
             # Stack all the DoDs inside the 3D array
             if delta==1:
-                DoD_stack[h,:,:] = DoD_filt_nozero_rst[:,:]
+                DoD_stack1[h,:,:] = DoD_filt_nozero_rst[:,:]
 
             ###################################################################
             # SAVE DATA
@@ -1194,18 +891,18 @@ for run in RUNS:
     # 3D ARRAY ANALISYS
     ###################################################################
     # TODO go on with this section
-    DoD_stack_nan = np.where(DoD_stack == NaN, np.nan, DoD_stack)
+    DoD_stack_nan1 = np.where(DoD_stack1 == NaN, np.nan, DoD_stack1)
     
     # Save 3D array as binary file
-    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack_"+run+".npy"), DoD_stack_nan)
+    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack1_"+run+".npy"), DoD_stack_nan1)
     
     # Create 3D array where scours are -1, depositions are +1 and no changes are 0
     
-    DoD_stack_bool = np.where(DoD_stack>0, 1, DoD_stack_nan)
-    DoD_stack_bool = np.where(DoD_stack_nan<0, -1, DoD_stack_bool)
+    DoD_stack_bool1 = np.where(DoD_stack1>0, 1, DoD_stack_nan1)
+    DoD_stack_bool1 = np.where(DoD_stack_nan1<0, -1, DoD_stack_bool1)
     
     # Save 3D array as binary file
-    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack_bool_"+run+".npy"), DoD_stack_bool)
+    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack_bool1_"+run+".npy"), DoD_stack_bool1)
 
 
     # Fill DoD lenght array
