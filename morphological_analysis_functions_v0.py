@@ -1,43 +1,57 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon May 30 12:58:16 2022
+Created on Mon May 30 21:46:32 2022
 
 @author: erri
-
-Function to define lover and upper limits of the slicing windows of a moving
-average and stdev analysis with increasing domain
 """
 
 import numpy as np
+import os 
 import math
+DoD_path = '/home/erri/Documents/PhD/Research/5_research_repos/DoD_analysis/DoDs/DoD_q07_1/DoD_s1-s0_filt_nozero_rst.txt'
+DoD = np.loadtxt(DoD_path, delimiter='\t')
 
-DoD_path = '/home/erri/Documents/Research/5_research_repos/DoD_analysis/DoDs/DoD_q20_2/DoD_s9-s8_filt_nozero_rst.txt'
-DoD_filt_nozero = np.loadtxt(DoD_path, delimiter='\t')
-analysis_window = np.array([12, 24])
+DoD = np.where(DoD==-999, np.nan, DoD)
 
-
-'''
-input:
-    DoD matrix
-        Numpy array 1D 2D
-    Analisys window
-        Numpy array of int
-    overlapping_mode: int
-        0 = no overlapping
-        1 = overlapping
-
-output:
-    window_boundary
-        Numpy array of lower and upper limit for each possible windows
-    
-'''
-
-dim_x = DoD_filt_nozero.shape[1]
-boundary_windows = []
-for m in analysis_window: # m is the window dimension
+W = 12
 
 
-    if overlapping_mode == 0:
-        lower_lim = 
-    
+mean_array = []
+std_array= []
+x_data=[]
+mean_array_tot = []
+std_array_tot= []
+x_data_tot=[]
+
+
+# With overlapping
+for w in range(W, int(math.floor(DoD.shape[1]/W))):
+    for i in range(0, DoD.shape[1]):
+        if i+w <= DoD.shape[1]:
+            window = DoD[:, i:i+w]
+            mean = np.nanmean(window)
+            std = np.nanstd(window)
+            mean_array = np.append(mean_array, mean)
+            std_array = np.append(std_array, std)
+            x_data=np.append(x_data, w)
+            
+    mean_array_tot = np.append(mean_array_tot,)
+    std_array_tot= []
+    x_data_tot=[]
+
+
+# Without overlapping
+for n in range(1, int(math.floor(DoD.shape[1]/W))):
+    w = W*n # Windows analysis dimension
+    # print(w)
+    for i in range(0, DoD.shape[1]):
+        if w*(i+1) <= DoD.shape[1]:
+            print(i*w, (i+1)*w)
+            window = DoD[:, w*i:w*(i+1)]
+            mean = np.nanmean(window)
+            std = np.nanstd(window)
+            mean_array = np.append(mean_array, mean)
+            std_array = np.append(std_array, std)
+            x_data=np.append(x_data, w)
+        
