@@ -12,6 +12,7 @@ import os
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from windows_stat_func import windows_stat
 
 
 # SINGLE RUN NAME
@@ -59,7 +60,7 @@ c = (np.nansum(abs(stack_bool[dim_t -1,:,:])) - np.nansum(abs(np.multiply(stack_
 # Pixel attivi nè all'inizio nè alla fine
 d = dim_x*dim_y/pixel_tot - (a+b+c)
 
-# Active area
+# Active area for each DoD
 act_A = []
 for t in range(0,dim_t):
     DoD_act_A = np.nansum(abs(stack_bool[t,:,:]))
@@ -70,3 +71,6 @@ activated_pixels = []
 for t in range(0,dim_t-1):
     activated_pixel_count = np.nansum(abs(stack_bool[t+1,:,:])) - np.nansum(abs(np.multiply(stack_bool[t,:,:],stack_bool[t+1,:,:])))
     activated_pixels = np.append(activated_pixels, activated_pixel_count)
+
+# Activation time
+# Time needed for the first activation

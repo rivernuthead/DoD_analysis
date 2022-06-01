@@ -16,7 +16,8 @@ DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
 # Step between surveys
 DoD_delta = 1
 
-windows_mode = 2
+windows_mode = 3
+
 '''
 windows_mode:
     0 = fixed windows (all the channel)
@@ -557,7 +558,6 @@ for f in DoDs_name_array:
 
             
     if windows_mode == 3:
-        # Loop to define the windows to clusterize data
         # Loop to define the windows to clusterize data
         array = [0]
         num=0
