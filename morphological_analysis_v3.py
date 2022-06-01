@@ -11,12 +11,12 @@ import math
 import matplotlib.pyplot as plt
 
 # SINGLE RUN NAME
-run = 'q20_2'
+run = 'q15_2'
 DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
 # Step between surveys
 DoD_delta = 1
 
-windows_mode = 3
+windows_mode = 2
 '''
 windows_mode:
     0 = fixed windows (all the channel)
