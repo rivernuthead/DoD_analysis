@@ -6,6 +6,19 @@ Created on Mon May 30 22:36:45 2022
 @author: erri
 """
 
+import numpy as np
+import os
+run = 'q07_1'
+DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
+home_dir = os.getcwd()
+DoDs_dir = os.path.join(home_dir, 'DoDs')
+DoD_path = os.path.join(DoDs_dir, 'DoD_' + run, DoD_name)
+DoD = np.loadtxt(DoD_path, delimiter='\t')
+
+array = np.where(DoD==-999, np.nan, DoD)
+
+window_mode = 3
+windows_length_base = 12
 
 
 def windows_stat(array, window_mode, windows_length_base):
@@ -81,7 +94,7 @@ def windows_stat(array, window_mode, windows_length_base):
             window_boundary = window_boundary[1,:]
     
     if window_mode == 3:
-        # Without overlapping
+        # Increasing window dimension keeping still the upstream cross section
         mean_array = []
         std_array= []
         x_data=[]
@@ -101,3 +114,5 @@ def windows_stat(array, window_mode, windows_length_base):
         window_boundary = window_boundary[1,:]
 
     return mean_array_tot, std_array_tot, x_data_tot, window_boundary
+
+mean_array_tot, std_array_tot, x_data_tot, window_boundary = windows_stat(array, window_mode, windows_length_base)
