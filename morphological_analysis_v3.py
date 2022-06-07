@@ -11,12 +11,12 @@ import math
 import matplotlib.pyplot as plt
 
 # SINGLE RUN NAME
-run = 'q15_2'
+run = 'q07_1'
 DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
 # Step between surveys
 DoD_delta = 1
 
-windows_mode = 3
+windows_mode = 1
 
 '''
 windows_mode:
