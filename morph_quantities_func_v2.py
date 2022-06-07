@@ -6,6 +6,18 @@ Created on Wed Jun  1 15:45:38 2022
 @author: erri
 """
 
+import numpy as np
+import os
+run = 'q07_1'
+DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
+home_dir = os.getcwd()
+DoDs_dir = os.path.join(home_dir, 'DoDs')
+DoD_path = os.path.join(DoDs_dir, 'DoD_' + run, DoD_name)
+DoD = np.loadtxt(DoD_path, delimiter='\t')
+
+array = np.where(DoD==-999, np.nan, DoD)
+
+
 def morph_quantities(array):
     import numpy as np
     '''
@@ -37,14 +49,14 @@ def morph_quantities(array):
     sco_act_array = tot_act_array*(tot_act_array<0) # Where scour then 1
     
     # Calculate morphological quantities VERIFIED
-    morph_act_area = np.count_nonzero(tot_act_array) # Active area both in terms of scour and deposition in number of cells [-]
+    morph_act_area = np.count_nonzero(abs(tot_act_array)) # Active area both in terms of scour and deposition in number of cells [-]
     morph_act_area_dep = np.sum(dep_act_array) # Active deposition area in number of cells [-]
-    morph_act_area_sco = np.sum(sco_act_array) # Active scour area in number of cells [-]
+    morph_act_area_sco = np.sum(abs(sco_act_array)) # Active scour area in number of cells [-]
     
     # Create active width for each cross section
-    act_width_array = np.array([np.nansum(tot_act_array, axis=0)]) # Array of the crosswise morphological total active width in number of cells
+    act_width_array = np.array([np.nansum(abs(tot_act_array), axis=0)]) # Array of the crosswise morphological total active width in number of cells
     act_width_array_dep = np.array([np.nansum(dep_act_array, axis=0)]) # Array of the crosswise morphological deposition active width in number of cells
-    act_width_array_sco = np.array([np.nansum(sco_act_array, axis=0)]) # Array of the crosswise morphological scour active width in number of cells
+    act_width_array_sco = np.array([np.nansum(abs(sco_act_array), axis=0)]) # Array of the crosswise morphological scour active width in number of cells
     
     # Calculate the mean of each active width array: VERIFIED
     act_width_mean = np.nanmean(act_width_array) # Total mean active width in number of cells (could be a real number)
@@ -55,8 +67,10 @@ def morph_quantities(array):
     vol_array=np.where(vol_array==0, np.nan, vol_array)
     dep_array=np.where(dep_array==0, np.nan, dep_array)
     sco_array=np.where(sco_array==0, np.nan, sco_array)
-    act_thickness = np.nanmean(np.abs(vol_array)) # Active thickness as the average of scour and deposition active thickness
+    act_thickness = np.nanmean(np.abs(dep_array)) + np.nanmean(np.abs(sco_array)) # Active thickness as the average of scour and deposition active thickness
     act_thickness_dep = np.nanmean(np.abs(dep_array)) # Deposition active thickness (abs(V_sco) + V_dep)/act_area [mm]
     act_thickness_sco = np.nanmean(np.abs(sco_array)) # Scour active thickness (abs(V_sco) + V_dep)/act_area [mm]
     
     return tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco
+
+tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco = morph_quantities(array)
