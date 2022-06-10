@@ -34,10 +34,12 @@ def morph_quantities(array):
     dep_array = (vol_array>0)*vol_array # DoD of only deposition data
     sco_array = (vol_array<0)*vol_array # DoD of only scour data
     
-    tot_vol = np.sum(vol_array) # Total net volume [L³]
-    sum_vol = np.sum(np.abs(vol_array)) # Sum of scour and deposition volume as V [l³]
-    dep_vol = np.sum(dep_array) # Deposition volume  [L³]
-    sco_vol = np.sum(sco_array) # Scour volume [L³]
+    # Volume are calculated as the sum of the cell value. The measure unit is a length.
+    # To obtain a volume, the _vol value has to be multiply by the cell dimension.
+    tot_vol = np.sum(vol_array) # Total net volume as the algebric sum of all the cells [L]
+    sum_vol = np.sum(np.abs(vol_array)) # Sum of scour and deposition volume as algebric sum of the abs of each cell [l]
+    dep_vol = np.sum(dep_array) # Deposition volume as the sum of the value of deposition cell  [L]
+    sco_vol = np.sum(sco_array) # Scour volume as the sum of the value of scour cell [L]
     
     # Define nature array as -1=sco, 0=no_changes, and 1=dep
     nature_array = np.where(array>0, 1, array)
@@ -49,6 +51,7 @@ def morph_quantities(array):
     sco_act_array = tot_act_array*(tot_act_array<0) # Where scour then 1
     
     # Calculate morphological quantities VERIFIED
+    # Active area array is calculated as the number of active cell. To obtain a width the number of cell has to be multiply by the crosswise length of the generic cell
     morph_act_area = np.count_nonzero(abs(tot_act_array)) # Active area both in terms of scour and deposition in number of cells [-]
     morph_act_area_dep = np.sum(dep_act_array) # Active deposition area in number of cells [-]
     morph_act_area_sco = np.sum(abs(sco_act_array)) # Active scour area in number of cells [-]
@@ -71,6 +74,9 @@ def morph_quantities(array):
     act_thickness_dep = np.nanmean(np.abs(dep_array)) # Deposition active thickness (abs(V_sco) + V_dep)/act_area [mm]
     act_thickness_sco = np.nanmean(np.abs(sco_array)) # Scour active thickness (abs(V_sco) + V_dep)/act_area [mm]
     
-    return tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco
+    # Calculate the Bed Relief Index
+    bri = np.nanstd(array)
+    
+    return tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri
 
-tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco = morph_quantities(array)
+tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(array)
