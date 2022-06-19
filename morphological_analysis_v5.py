@@ -15,6 +15,8 @@ from morph_quantities_func_v2 import morph_quantities
 
 run = 'q07_1'
 
+split_mode = 1
+
 # DoD_list = ['DoD_s1-s0_filt_nozero_rst.txt'
 #             , 'DoD_s2-s1_filt_nozero_rst.txt'
 #             , 'DoD_s3-s2_filt_nozero_rst.txt'
@@ -58,10 +60,20 @@ for DoD_name in DoDs_list:
     DoD = np.loadtxt(DoD_path, delimiter='\t')
     array = np.where(DoD==-999, np.nan, DoD)
     
+# Slice array to perform statistics on half channel
+if split_mode == 1:
+    array = array[:,0:int(math.floor(array.shape[1]/2))]
+elif split_mode == 2:
+    array = array[:,int(math.ceil(array.shape[1]/2)):]
+elif split_mode == 0:
+    pass
+        
 
 # Create report matrix
 # report_matrix = np.zeros(( len(DoD_list), np.size(morph_quantities(array))+2, len(window_boundary[:,0]) ))
 report_matrix = np.zeros((len(DoDs_list), 16, 23))
+if split_mode == 1 or split_mode == 2:
+    report_matrix = np.zeros((len(DoDs_list), 16, 11))
 cross_bri_matrix = np.zeros((len(DoDs_list), array.shape[1])) # q07_1, q15_2: 278, q10_2, q20_2: 279
 
 for DoD_name in DoDs_list:
@@ -70,6 +82,16 @@ for DoD_name in DoDs_list:
     DoD_path = os.path.join(DoDs_dir, DoD_name)
     DoD = np.loadtxt(DoD_path, delimiter='\t')
     array = np.where(DoD==-999, np.nan, DoD)
+    
+    # Slice array to perform statistics on half channel
+    if split_mode == 1:
+        array = array[:,0:int(math.floor(array.shape[1]/2))]
+        print(array.shape)
+    elif split_mode == 2:
+        array = array[:,int(math.ceil(array.shape[1]/2)):]
+        print(array.shape)
+    elif split_mode == 0:
+        pass
     
     if window_mode == 1:
         # With overlapping
@@ -297,28 +319,32 @@ for i in range(2,len(report_matrix[0,:,0])):
 # plt.legend(loc='best', fontsize=8)
 # plt.show()
 
-fig1, axs = plt.subplots(1,1,dpi=400, sharex=True, tight_layout=True, figsize=(8,6))
-#Defines the size of the zoom window and the positioning
-axins = inset_axes(axs, 2, 4, loc = 1, bbox_to_anchor=(1.4, 1.1),
-                   bbox_transform = axs.figure.transFigure)
-for d, color in zip(n_data, colors):
-    axs.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
-    plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
-
-# axins.scatter(x, y)
-x1, x2 = 12, 14
-y1, y2 = 0, 10 #Setting the limit of x and y direction to define which portion to #zoom
-axins.set_xlim(x1, x2)
-axins.set_ylim(y1, y2)
-#Draw the lines from the portion to zoom and the zoom window
-mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec = "0.4")
-axs.set_title(run, fontsize=14)
-axs.set_xlabel('Longitudinal coordinate [m]', fontsize=12)
-axs.set_ylabel('BRI', fontsize=12)
-# plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-plt.legend(loc='best', fontsize=8)
-
-# ax_new = fig1.add_axes([0.2, 1.1, 0.4, 0.4])
-# plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color)
-
-plt.show()
+# BRI plot
+if split_mode == 0:
+    fig1, axs = plt.subplots(1,1,dpi=400, sharex=True, tight_layout=True, figsize=(8,6))
+    #Defines the size of the zoom window and the positioning
+    axins = inset_axes(axs, 2, 4, loc = 1, bbox_to_anchor=(1.4, 1.1),
+                       bbox_transform = axs.figure.transFigure)
+    for d, color in zip(n_data, colors):
+        axs.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
+        plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
+    
+    # axins.scatter(x, y)
+    x1, x2 = 12, 14
+    y1, y2 = 0, 10 #Setting the limit of x and y direction to define which portion to #zoom
+    axins.set_xlim(x1, x2)
+    axins.set_ylim(y1, y2)
+    #Draw the lines from the portion to zoom and the zoom window
+    mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec = "0.4")
+    axs.set_title(run, fontsize=14)
+    axs.set_xlabel('Longitudinal coordinate [m]', fontsize=12)
+    axs.set_ylabel('BRI', fontsize=12)
+    # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+    plt.legend(loc='best', fontsize=8)
+    
+    # ax_new = fig1.add_axes([0.2, 1.1, 0.4, 0.4])
+    # plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color)
+    
+    plt.show()
+else:
+    pass
