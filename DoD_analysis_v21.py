@@ -41,9 +41,9 @@ save mode:
     0 = save only reports
     1 = save all chart and figure
 '''
-run_mode = 2
+run_mode = 1
 DEM_analysis_mode = 0
-data_interpolation_mode = 0
+data_interpolation_mode = 1
 mask_mode = 1
 process_mode = 1
 save_plot_mode = 1
@@ -976,17 +976,24 @@ for run in RUNS:
 
 
         if save_plot_mode == 1:
+            font = {'family': 'serif',
+                    'color':  'black',
+                    'weight': 'regular',
+                    'size': 10
+                    }
             fig1, axs = plt.subplots(2,1,dpi=200, sharex=True, tight_layout=True)
             axs[0].plot(xData, yData_dep, 'o')
             axs[0].plot(xData, intCurve_dep, c='red')
             axs[0].set_title('Deposition volumes interpolation '+run)
             axs[0].set_xlabel('Time [min]')
             axs[0].set_ylabel('Volume V/(L*W) [mm]')
+            axs[0].text(np.max(xData)*0.7, np.min(yData_dep), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(par_dep[1], decimals=1)) + 'min \n' + 'A = ' + str(np.round(par_dep[0], decimals=1)), fontdict=font)
             axs[1].plot(xData, yData_sco, 'o')
             axs[1].plot(xData, intCurve_sco, c='red')
             axs[1].set_title('Scour volumes interpolation '+run)
             axs[1].set_xlabel('Time [min]')
             axs[1].set_ylabel('Volume V/(L*W) [mm]')
+            axs[1].text(np.max(xData)*0.7, np.min(yData_sco), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(par_sco[1], decimals=1)) + 'min \n' + 'A = ' + str(np.round(par_sco[0], decimals=1)), fontdict=font)
             plt.savefig(os.path.join(plot_dir, run +'_volume_interp.png'), dpi=200)
             plt.show()
     
@@ -996,6 +1003,7 @@ for run in RUNS:
             axs.set_title('Morphological active width (morphW/W) '+run)
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('morphW/W [-]')
+            plt.text(np.max(xData)*0.7, np.min(yData_morphW), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(par_sco[1], decimals=1)) + 'min \n' + 'A = ' + str(np.round(par_sco[0], decimals=1)), fontdict=font)
             plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
             plt.show()
     

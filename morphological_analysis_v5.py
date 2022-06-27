@@ -13,9 +13,14 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset, inset_axes
 from morph_quantities_func_v2 import morph_quantities
 
-run = 'q07_1'
-
-split_mode = 1
+run = 'q20_2'
+'''
+Parameters:
+    split_mode = 0: consider the entire array
+    split_mode = 1: consider the upstream half of the array
+    split_mode = 2: consider the downstream half of the array
+'''
+split_mode = 2
 
 # DoD_list = ['DoD_s1-s0_filt_nozero_rst.txt'
 #             , 'DoD_s2-s1_filt_nozero_rst.txt'
