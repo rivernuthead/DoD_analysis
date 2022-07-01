@@ -11,6 +11,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from DoD_analysis_functions import *
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset, inset_axes
 # from matplotlib.colors import ListedColormap, BoundaryNorm
 
 start = time.time() # Set initial time
@@ -41,8 +42,8 @@ save mode:
     0 = save only reports
     1 = save all chart and figure
 '''
-run_mode = 1
-DEM_analysis_mode = 0
+run_mode = 2
+DEM_analysis_mode = 1
 data_interpolation_mode = 1
 mask_mode = 1
 process_mode = 1
@@ -323,7 +324,12 @@ for run in RUNS:
             #        title=run+'\n'+'Residual slope:'+str(linear_model[0]))
 
             # BRI calculation
-            BRI=np.append(BRI,np.mean(np.nanstd(DEM, axis=0)))
+            BRI=np.append(BRI,np.mean(np.nanstd(DEM, axis=0))) # Overall BRI
+            
+            if f == files[0]:
+                BRI_array = np.nanstd(DEM, axis=0) # Array crosswise for each DEM
+            else:
+                BRI_array = np.vstack((BRI_array, np.nanstd(DEM, axis=0)))
 
             # Bed elevation STDEV
             SD = np.append(SD,np.nanstd(DEM))
@@ -400,6 +406,39 @@ for run in RUNS:
             water_dept_array=np.append(water_dept_array, D0) # Water dept array
             discharge_array=np.append(discharge_array, Q0) # Discarge
             Wwet_array = np.append(Wwet_array, b/W)
+
+        # BRI plot
+        #TODO
+        n_data = np.linspace(0,len(files)-1,len(files)) # Linspace of the number of available DoD
+        c_data = np.linspace(0,1,len(files)) # c_data needs to be within 0 and 1
+        colors = plt.cm.viridis(c_data)
+        fig1, axs = plt.subplots(1,1,dpi=400, sharex=True, tight_layout=True, figsize=(8,6))
+        #Defines the size of the zoom window and the positioning
+        axins = inset_axes(axs, 2, 5, loc = 1, bbox_to_anchor=(1.3, 0.9),
+                            bbox_transform = axs.figure.transFigure)
+        for d, color in zip(n_data, colors):
+            DoD_name = files[int(d)]
+            axs.plot(np.linspace(0,DEM.shape[1]-1, DEM.shape[1])*px_x/1000, BRI_array[int(d),:], '-', c=color, label=DoD_name[21:23])
+            plt.plot(np.linspace(0,DEM.shape[1]-1, DEM.shape[1])*px_x/1000, BRI_array[int(d),:], '-', c=color, label=DoD_name[21:23])
+        
+        # axins.scatter(x, y)
+        x1, x2 = 12, 14
+        y1, y2 = np.min(BRI_array[:,int(x1/px_x*1000):])*0.9, np.max(BRI_array[:,int(x1/px_x*1000):])*1.1 #Setting the limit of x and y direction to define which portion to #zoom
+        axins.set_xlim(x1, x2)
+        axins.set_ylim(y1, y2)
+        #Draw the lines from the portion to zoom and the zoom window
+        mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec = "0.4")
+        axs.set_title(run + ' - BRI', fontsize=14)
+        axs.set_xlabel('Longitudinal coordinate [m]', fontsize=12)
+        axs.set_ylabel('BRI', fontsize=12)
+        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+        plt.legend(loc='best', fontsize=8)
+        
+        # ax_new = fig1.add_axes([0.2, 1.1, 0.4, 0.4])
+        # plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color)
+        
+        plt.show()
+
 
         water_dept=np.mean(water_dept_array) # Average water dept
         discharge=np.mean(discharge_array) # Average discarge

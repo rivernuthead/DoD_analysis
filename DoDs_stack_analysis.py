@@ -17,6 +17,7 @@ from windows_stat_func import windows_stat
 
 # SINGLE RUN NAME
 run = 'q07_1'
+print('###############\n' + '#    ' + run + '    #' + '\n###############')
 # Step between surveys
 DoD_delta = 1
 
@@ -71,6 +72,26 @@ activated_pixels = []
 for t in range(0,dim_t-1):
     activated_pixel_count = np.nansum(abs(stack_bool[t+1,:,:])) - np.nansum(abs(np.multiply(stack_bool[t,:,:],stack_bool[t+1,:,:])))
     activated_pixels = np.append(activated_pixels, activated_pixel_count)
+
+
+# Two by two sum
+# where abs(sum2x2)=1, new pixel activation
+sum2x2 = stack_bool[:-1,:,:]+stack_bool[1:,:,:]
+new_act_stack = np.where(abs(sum2x2)==1, 1, 0)
+new_act_map = np.sum(new_act_stack, axis=0)
+
+# Two by two multilication
+# where mult2x2=-1, change in cell nature (scour->deposition or deposition->scour)
+mult2x2 = stack_bool[:-1,:,:]*stack_bool[1:,:,:]
+nature_change_stack = np.where(mult2x2==-1, 1, 0)
+nature_change_map = np.sum(nature_change_stack, axis=0)
+
+
+
+
+
+
+
 
 # Activation time
 # Time needed for the first activation
