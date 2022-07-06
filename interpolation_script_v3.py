@@ -845,4 +845,4 @@ for run in RUNS:
     
 end = time.time()
 print()
-    print('Execution time: ', (end-start), 's')
+print('Execution time: ', (end-start), 's')

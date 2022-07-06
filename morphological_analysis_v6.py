@@ -35,7 +35,7 @@ stab_len_mode = 3
 # Alpha is tha parameter to scale the stdev range 
 alpha1 = 0.5
 alpha2 = 0.05
-alpha3 = 1
+alpha3 = 0.25
 
 
 # DoD_list = ['DoD_s1-s0_filt_nozero_rst.txt'
@@ -53,7 +53,7 @@ px_y = 0.005 # [m]
 W_channel = 0.6/0.005 # Channel width in number of cell
 
 window_mode = 3
-windows_length_base = 12
+windows_length_base = 6
 
 W=windows_length_base
 
@@ -93,14 +93,23 @@ elif split_mode == 0:
 
 # Create report matrix
 # report_matrix = np.zeros(( len(DoD_list), np.size(morph_quantities(array))+2, len(window_boundary[:,0]) ))
-report_matrix = np.zeros((len(DoDs_list), 16, 23))
+report_matrix = np.zeros((len(DoDs_list), 16, math.floor(array.shape[1]/windows_length_base)))
 if split_mode == 1 or split_mode == 2:
     report_matrix = np.zeros((len(DoDs_list), 16, 11))
 cross_bri_matrix = np.zeros((len(DoDs_list), array.shape[1])) # q07_1, q15_2: 278, q10_2, q20_2: 279
+cross_actW_matrix = np.zeros((len(DoDs_list), array.shape[1]))
+
+
+actW_matrix = np.zeros((len(DoDs_list), math.floor(array.shape[1]/windows_length_base)))
+actT_matrix = np.zeros((len(DoDs_list), math.floor(array.shape[1]/windows_length_base)))
+DoD_bri_matrix = np.zeros((len(DoDs_list), math.floor(array.shape[1]/windows_length_base)))
+
+
+
 
 for DoD_name in DoDs_list:
     n+=1
-    print(DoD_name)
+    # print(DoD_name)
     DoD_path = os.path.join(DoDs_dir, DoD_name)
     DoD = np.loadtxt(DoD_path, delimiter='\t')
     array = np.where(DoD==-999, np.nan, DoD)
@@ -114,6 +123,35 @@ for DoD_name in DoDs_list:
         print(array.shape)
     elif split_mode == 0:
         pass
+    
+    
+    # TODO FINISH
+    actW_array = []
+    actT_array = []
+    DoD_bri_array = []
+    array_bool = np.where(np.isnan(array), 0, array)
+    array_bool = np.where(array_bool!=0, 1, array_bool)
+    for k in range(0,math.floor(array.shape[1]/windows_length_base)):
+        # print(windows_length_base*k, windows_length_base*(k+1))
+        array_slice = array[:,windows_length_base*k:windows_length_base*(k+1)]
+        array_slice_dep = (array_slice>0)*array_slice
+        array_slice_dep = np.where(array_slice_dep==0, np.nan, array_slice_dep)
+        array_slice_sco = (array_slice<0)*array_slice
+        array_slice_sco = np.where(array_slice_sco==0, np.nan, array_slice_sco)
+        array_slice_bool = array_bool[:,windows_length_base*k:windows_length_base*(k+1)]
+        actW = np.sum(array_slice_bool)/windows_length_base/array.shape[0] # Active width calculated as (actA/slice_length)/W [%]
+        actT = np.nanmean((array_slice_dep)) + np.abs(np.nanmean(array_slice_sco))
+        actW_array = np.append(actW_array, actW)
+        actT_array = np.append(actT_array, actT)
+        DoD_bri_array = np.append(DoD_bri_array, np.nanstd(array_slice))
+    
+    actW_matrix[n-1,:] = actW_array
+    actT_matrix[n-1,:] = actT_array
+    DoD_bri_matrix[n-1,:] = DoD_bri_array
+    #%%
+    
+    #%%
+    
     
     if window_mode == 1:
         # With overlapping
@@ -283,6 +321,9 @@ for DoD_name in DoDs_list:
     # Fill report matrix
     report_matrix[n-1,:,:] = matrix[:,:]
 
+
+
+
 # fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True)
 # axs.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[n-1,:], linestyle='--', marker='^', color='green')
 # axs.set_title(run)
@@ -304,19 +345,25 @@ lables = ['Total volume', 'Sum volume', 'Deposition volume', 'Scour volume', 'Mo
           'Total active thickness', 'Active deposition thickness', 'Active scour thickness', 'Bed Relief Index [mm]']
 for i in range(2,len(report_matrix[0,:,0])):
     label = lables[i-2]
-    # fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(8,6))
-    # for d, color in zip(n_data, colors):
-    #     DoD_name = DoDs_list[int(d)]
-    #     axs.plot(report_matrix[int(d),1,:]*px_x, report_matrix[int(d),i,:], '-o', c=color, label=DoD_name[:9])
-    # axs.set_title(run, fontsize=14)
-    # axs.set_xlabel('Window analysis length [m]', fontsize=12)
-    # axs.set_ylabel(label, fontsize=12)
-    # # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-    # plt.legend(loc='best', fontsize=8)
-    # plt.show()
+    fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(8,6))
+    for d, color in zip(n_data, colors):
+        DoD_name = DoDs_list[int(d)]
+        axs.plot(report_matrix[int(d),1,:]*px_x, report_matrix[int(d),i,:], '-o', c=color, label=DoD_name[:9])
+    axs.set_title(run, fontsize=14)
+    axs.set_xlabel('Window analysis length [m]', fontsize=12)
+    axs.set_ylabel(label, fontsize=12)
+    # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+    plt.legend(loc='best', fontsize=8)
+    plt.show()
     
     
     
+    # Scour volumes have negative values:
+    mean_matrix[5,:] = np.abs(mean_matrix[5,:]) 
+    # std_matrix[5,:] = np.abs(mean_matrix[5,:])
+    
+    
+    # print(mean_matrix[i,-1], std_matrix[i,-1])
     
     fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(8,6))
     axs.errorbar(mean_matrix[1,:]*px_x, mean_matrix[i,:], std_matrix[i,:], linestyle='--', marker='^', color='darkcyan')
@@ -329,6 +376,34 @@ for i in range(2,len(report_matrix[0,:,0])):
         plt.axhline(y=mean_matrix[i,-1]+alpha2*mean_matrix[i,-1], color='forestgreen', linestyle='--') # Draw horizontal line
         plt.axhline(y=mean_matrix[i,-1]-alpha2*mean_matrix[i,-1], color='forestgreen', linestyle='--') # Draw horizontal line
         plt.fill_between(np.array([-1, np.max(mean_matrix[1,:]*px_x)])+1, mean_matrix[i,-1]-alpha2*mean_matrix[i,-1], mean_matrix[i,-1]+alpha2*mean_matrix[i,-1], color='#9fdae3', alpha=0.75)
+        
+        # Linear interpolation:
+        test_positive = np.array(np.where(mean_matrix[i,:]>mean_matrix[i,-1] + alpha2*mean_matrix[i,-1]))
+        test_negative = np.array(np.where(mean_matrix[i,:]<mean_matrix[i,-1] - alpha2*mean_matrix[i,-1]))
+        if test_negative.shape == test_positive.shape and test_negative.shape[1] == 0:
+            L = 0
+        elif test_positive.shape[1]>=test_negative.shape[1]:
+            test = test_positive
+            x1, x2 = int(test[:,-1]), int(test[:,-1]+1)
+            if x2==mean_matrix.shape[1]: # No interpolation required if the last point correspond to the end of the channel
+                L = mean_matrix.shape[1]*windows_length_base*px_x
+            else:
+                fx1, fx2 = mean_matrix[i, x1], mean_matrix[i, x2]
+                f0=mean_matrix[i,-1] + alpha2*mean_matrix[i,-1]
+                x0 = x1 + (f0-fx1)/((fx2-fx1)/(x2-x1))
+                L = (x0+1)*px_x*windows_length_base
+        else:
+            test = test_negative
+            x1, x2 = int(test[:,-1]), int(test[:,-1]+1)
+            if x2==mean_matrix.shape[1]: # No interpolation required if the last point correspond to the end of the channel
+                L = mean_matrix.shape[1]*windows_length_base*px_x
+            else:
+                fx1, fx2 = mean_matrix[i, x1], mean_matrix[i, x2]
+                f0=mean_matrix[i,-1] - alpha2*mean_matrix[i,-1]
+                x0 = x1 + (f0-fx1)/((fx2-fx1)/(x2-x1))
+                L = (x0+1)*px_x*windows_length_base
+        print(label, ', stab Length test [m]: ,', L)
+        plt.axvline(x=L, color='dimgrey', linestyle='--') # Draw vertical line between the two sections where is grater and then lower than the target value   
     # Secondary axes:   
     ax2 = axs.twinx()
     ax2.plot(mean_matrix[1,:]*px_x, std_matrix[i,:], color='red',)
@@ -337,14 +412,14 @@ for i in range(2,len(report_matrix[0,:,0])):
         plt.axhline(y=std_matrix[i,-1]-alpha3*std_matrix[i,-1], color='forestgreen', linestyle='--') # Draw horizontal line
         plt.fill_between(np.array([-1, np.max(mean_matrix[1,:]*px_x)])+1, std_matrix[i,-1]-alpha3*std_matrix[i,-1], std_matrix[i,-1]+alpha3*std_matrix[i,-1], color='#9fdae3', alpha=0.75)
         
-        # Linear interpolation
+        # Linear interpolation:
         test = np.array(np.where(std_matrix[i,:]>std_matrix[i,-1] + alpha3*std_matrix[i,-1]))
         x1, x2 = int(test[:,-1]), int(test[:,-1]+1)
         fx1, fx2 = std_matrix[i, x1], std_matrix[i, x2]
         f0=std_matrix[i,-1] + alpha3*std_matrix[i,-1]
         x0 = x1 + (f0-fx1)/((fx2-fx1)/(x2-x1))
         L = (x0+1)*px_x*windows_length_base
-        print(label, ' - stab Length [m]: ', L)
+        # print(label, ', stab Length [m]: ,', L)
         plt.axvline(x=L, color='dimgrey', linestyle='--') # Draw vertical line between the two sections where is grater and then lower than the target value
         
     ax2.tick_params(axis='y', labelcolor='red',)
@@ -358,36 +433,101 @@ for i in range(2,len(report_matrix[0,:,0])):
     plt.show()
 
 
-# # BRI plot
-# if split_mode == 0:
-#     fig1, axs = plt.subplots(1,1,dpi=400, sharex=True, tight_layout=False, figsize=(8,6))
-#     #Defines the size of the zoom window and the positioning
-#     axins = inset_axes(axs, 2, 5, loc = 1, bbox_to_anchor=(1.3, 0.9),
-#                        bbox_transform = axs.figure.transFigure)
-#     for d, color in zip(n_data, colors):
-#         DoD_name = DoDs_list[int(d)]
-#         axs.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
-#         plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
+# BRI plot
+if split_mode == 0:
+    # Plot BRI
+    fig1, axs = plt.subplots(1,1,dpi=400, sharex=True, tight_layout=False, figsize=(8,6))
+    #Defines the size of the zoom window and the positioning
+    axins = inset_axes(axs, 2, 5, loc = 1, bbox_to_anchor=(1.3, 0.9),
+                        bbox_transform = axs.figure.transFigure)
+    for d, color in zip(n_data, colors):
+        DoD_name = DoDs_list[int(d)]
+        axs.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
+        plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
     
-#     # axins.scatter(x, y)
-#     x1, x2 = 12, 14
-#     y1, y2 = np.min(cross_bri_matrix[:,int(x1/px_x):])*0.9, np.max(cross_bri_matrix[:,int(x1/px_x):])*1.1 #Setting the limit of x and y direction to define which portion to #zoom
-#     axins.set_xlim(x1, x2)
-#     axins.set_ylim(y1, y2)
-#     #Draw the lines from the portion to zoom and the zoom window
-#     mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec = "0.4")
-#     axs.set_title(run + 'BRI - DoD', fontsize=14)
-#     axs.set_xlabel('Longitudinal coordinate [m]', fontsize=12)
-#     axs.set_ylabel(' BRI', fontsize=12)
-#     # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-#     plt.legend(loc='best', fontsize=8)
+    # axins.scatter(x, y)
+    x1, x2 = 12, 14
+    y1, y2 = np.min(cross_bri_matrix[:,int(x1/px_x):])*0.9, np.max(cross_bri_matrix[:,int(x1/px_x):])*1.1 #Setting the limit of x and y direction to define which portion to #zoom
+    axins.set_xlim(x1, x2)
+    axins.set_ylim(y1, y2)
+    #Draw the lines from the portion to zoom and the zoom window
+    mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec = "0.4")
+    axs.set_title(run + 'BRI - DoD', fontsize=14)
+    axs.set_xlabel('Longitudinal coordinate [m]', fontsize=12)
+    axs.set_ylabel(' BRI', fontsize=12)
+    # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+    plt.legend(loc='best', fontsize=8)
     
-#     # ax_new = fig1.add_axes([0.2, 1.1, 0.4, 0.4])
-#     # plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color)
+    # ax_new = fig1.add_axes([0.2, 1.1, 0.4, 0.4])
+    # plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color)
     
-#     plt.show()
-# else:
-#     pass
+    plt.show()
+    
+    #%%
+    # Plot W_Active
+    fig1, axs = plt.subplots(1,1,dpi=400, sharex=True, tight_layout=False, figsize=(8,6))
+    #Defines the size of the zoom window and the positioning
+    axins = inset_axes(axs, 2, 5, loc = 1, bbox_to_anchor=(1.3, 0.9),
+                        bbox_transform = axs.figure.transFigure)
+    for d, color in zip(n_data, colors):
+        DoD_name = DoDs_list[int(d)]
+        axs.plot(np.linspace(0,array.shape[1]-1, math.floor(array.shape[1]/windows_length_base) )*px_x, actT_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
+        plt.plot(np.linspace(0,array.shape[1]-1, math.floor(array.shape[1]/windows_length_base) )*px_x, actT_matrix[int(d),:], '-', c=color, label=DoD_name[:9])
+    
+    # axins.scatter(x, y)
+    x1, x2 = 12, 14
+    y1, y2 = np.nanmin(actT_matrix)*0.9, np.nanmax(actT_matrix)*1.1 #Setting the limit of x and y direction to define which portion to #zoom
+    axins.set_xlim(x1, x2)
+    axins.set_ylim(y1, y2)
+    #Draw the lines from the portion to zoom and the zoom window
+    mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec = "0.4")
+    axs.set_title(run + 'active thickness - DoD', fontsize=14)
+    axs.set_xlabel('Longitudinal coordinate [m]', fontsize=12)
+    axs.set_ylabel(' actT', fontsize=12)
+    # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+    plt.legend(loc='best', fontsize=8)
+    
+    # ax_new = fig1.add_axes([0.2, 1.1, 0.4, 0.4])
+    # plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color)
+    
+    plt.show()
+    #%%
+    
+    #Active Width errorbar plot
+    fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(8,6))
+    axs.errorbar(np.linspace(0,array.shape[1]-1, math.floor(array.shape[1]/windows_length_base) )*px_x, np.nanmean(actW_matrix, axis=0), np.std(actW_matrix, axis=0), linestyle='--', marker='^', color='darkcyan')
+    axs.tick_params(axis='y', labelcolor='darkcyan')
+    axs.set_title(run, fontsize=14)
+    axs.set_xlim(0, np.max(mean_matrix[1,:]*px_x)+1)
+    axs.set_xlabel('Window analysis length [m]', fontsize=12)
+    axs.set_ylabel('active width [%]', fontsize=12)
+    # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+    plt.show()
+    
+    #Active thickness errorbar plot
+    fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(8,6))
+    axs.errorbar(np.linspace(0,array.shape[1]-1, math.floor(array.shape[1]/windows_length_base) )*px_x, np.nanmean(actT_matrix, axis=0), np.std(actT_matrix, axis=0), linestyle='--', marker='^', color='darkcyan')
+    axs.tick_params(axis='y', labelcolor='darkcyan')
+    axs.set_title(run, fontsize=14)
+    axs.set_xlim(0, np.max(mean_matrix[1,:]*px_x)+1)
+    axs.set_xlabel('Window analysis length [m]', fontsize=12)
+    axs.set_ylabel('active thickness [mm]', fontsize=12)
+    # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+    plt.show()
+    
+    # DoD BRI errorbar plot
+    fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(8,6))
+    axs.errorbar(np.linspace(0,array.shape[1]-1, math.floor(array.shape[1]/windows_length_base) )*px_x, np.nanmean(DoD_bri_matrix , axis=0), np.std(DoD_bri_matrix, axis=0), linestyle='--', marker='^', color='darkcyan')
+    axs.tick_params(axis='y', labelcolor='darkcyan')
+    axs.set_title(run, fontsize=14)
+    axs.set_xlim(0, np.max(mean_matrix[1,:]*px_x)+1)
+    axs.set_xlabel('Window analysis length [m]', fontsize=12)
+    axs.set_ylabel('DoD BRI [mm]', fontsize=12)
+    # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+    plt.show()
+    #%%
+else:
+    pass
 
 
 # fig1, axs = plt.subplots(1,1,dpi=400, sharex=True, tight_layout=True, figsize=(8,6))

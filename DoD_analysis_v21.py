@@ -439,6 +439,17 @@ for run in RUNS:
         
         plt.show()
 
+        # BRI errorbar plot
+        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(8,6))
+        axs.errorbar(np.linspace(0,DEM.shape[1]-1, DEM.shape[1])*px_x/1000, np.nanmean(BRI_array, axis=0), np.std(BRI_array, axis=0), linestyle='--', marker='^', color='darkcyan')
+        axs.tick_params(axis='y', labelcolor='darkcyan')
+        axs.set_title(run, fontsize=14)
+        # axs.set_xlim(0, np.max(mean_matrix[1,:]*px_x)+1)
+        axs.set_xlabel('Window analysis length [m]', fontsize=12)
+        axs.set_ylabel('BRI [mm]', fontsize=12)
+        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
+        plt.show()
+
 
         water_dept=np.mean(water_dept_array) # Average water dept
         discharge=np.mean(discharge_array) # Average discarge
