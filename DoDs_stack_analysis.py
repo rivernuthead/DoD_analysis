@@ -11,8 +11,12 @@ Pixel age analysis over stack DoDs
 import os
 import numpy as np
 import math
+import time
 import matplotlib.pyplot as plt
 from windows_stat_func import windows_stat
+
+#%%
+start = time.time() # Set initial time
 
 
 # SINGLE RUN NAME
@@ -73,25 +77,73 @@ for t in range(0,dim_t-1):
     activated_pixel_count = np.nansum(abs(stack_bool[t+1,:,:])) - np.nansum(abs(np.multiply(stack_bool[t,:,:],stack_bool[t+1,:,:])))
     activated_pixels = np.append(activated_pixels, activated_pixel_count)
 
+#%%
+# Create the data structure to perform sum, diff and mult two by two along the time axis
 
-# Two by two sum
-# where abs(sum2x2)=1, new pixel activation
-sum2x2 = stack_bool[:-1,:,:]+stack_bool[1:,:,:]
-new_act_stack = np.where(abs(sum2x2)==1, 1, 0)
-new_act_map = np.sum(new_act_stack, axis=0)
+# Create SUM, DIFFERENCE and MULTIPLICATION matrix:
+# matrix = matrix[t,y,x]
+sum_matrix = stack_bool[1:,:,:] + stack_bool[:-1,:,:] # SUM matrix
+dif_matrix = stack_bool[1:,:,:] - stack_bool[:-1,:,:] # DIFFERENCE matrix
+mul_matrix = stack_bool[1:,:,:]*stack_bool[:-1,:,:] # MULTIPLICATION matrix
 
-# Two by two multilication
-# where mult2x2=-1, change in cell nature (scour->deposition or deposition->scour)
-mult2x2 = stack_bool[:-1,:,:]*stack_bool[1:,:,:]
-nature_change_stack = np.where(mult2x2==-1, 1, 0)
-nature_change_map = np.sum(nature_change_stack, axis=0)
+# Create P matrix
+# matrix = matrix[t,y,x,i]
+# i=0 sum_matrix, i=1 dif_matrix, i=2 mul_matrix
+dim = np.append(sum_matrix.shape, 3) # Matrix P dimension
+P = np.zeros(dim) # Initialize P
+P[:,:,:,0] = sum_matrix 
+P[:,:,:,1] = dif_matrix
+P[:,:,:,2] = mul_matrix
 
+#%%
 
+# Deposition pixel On matrix (1,1,0)
+dep_px_On = (P[:,:,:,0]==1)*(P[:,:,:,1]==1)*(P[:,:,:,2]==0)
+dep_px_On_count = np.sum(dep_px_On, axis=0)
 
+# fig, ax = plt.subplots()
+# ax.hist(dep_px_On_count.flatten())
 
+# Deposition pixel Off matrix (1,-1,0)
+dep_px_Off = (P[:,:,:,0]==1)*(P[:,:,:,1]==-1)*(P[:,:,:,2]==0)
+dep_px_Off_count = np.sum(dep_px_Off, axis=0)
 
+# Scour pixel On matrix (-1,-1,0)
+sco_px_On = (P[:,:,:,0]==-1)*(P[:,:,:,1]==-1)*(P[:,:,:,2]==0)
+sco_px_On_count = np.sum(sco_px_On, axis=0)
+
+# Scour pixel Off matrix (-1,1,0)
+sco_px_Off = (P[:,:,:,0]==-1)*(P[:,:,:,1]==1)*(P[:,:,:,2]==0)
+sco_px_Off_count = np.sum(sco_px_Off, axis=0)
+
+# Changes from Scour to Deposition (0,2,-1)
+sco2dep_px = (P[:,:,:,0]==0)*(P[:,:,:,1]==2)*(P[:,:,:,2]==-1)
+sco2dep_px_count = np.sum(sco2dep_px, axis=0)
+
+# Changes from Deposition to Scour (0,-2,-1)
+dep2sco_px = (P[:,:,:,0]==0)*(P[:,:,:,-2]==1)*(P[:,:,:,2]==-1)
+dep2sco_px_count = np.sum(dep2sco_px, axis=0)
+
+# Permanence of Deposition (2,0,1)
+dep_px = (P[:,:,:,0]==2)*(P[:,:,:,2]==0)*(P[:,:,:,2]==1)
+dep_px_count = np.sum(dep_px, axis=0)
+
+# Permanence of Scour (-2,0,1)
+sco_px = (P[:,:,:,0]==-2)*(P[:,:,:,2]==0)*(P[:,:,:,2]==1)
+sco_px_count = np.sum(sco_px, axis=0)
+
+# Permanece of NoChanges (0,0,0)
+still_px = (P[:,:,:,0]==0)*(P[:,:,:,2]==0)*(P[:,:,:,2]==0)
+still_px_count = np.sum(still_px, axis=0)
 
 
 
 # Activation time
 # Time needed for the first activation
+
+
+
+
+end = time.time()
+print()
+print('Execution time: ', (end-start), 's')
