@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from windows_stat_func import windows_stat
 from matplotlib import colors
 from matplotlib.ticker import PercentFormatter
+import seaborn as sns
 
 #%%
 start = time.time() # Set initial time
@@ -33,6 +34,21 @@ DoD_delta = 1
 home_dir = os.getcwd()
 # Source DoDs folder
 DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack')
+
+# IMPORT RUN PARAMETERS from file parameters.txt
+# variable run must be as 'q' + discharge + '_' repetition number
+# Parameters.txt structure:
+# discharge [l/s],repetition,run time [min],Texner discretization [-], Channel width [m], slope [m/m]
+# Load parameter matrix:
+parameters = np.loadtxt(os.path.join(home_dir, 'parameters.txt'),
+                        delimiter=',',
+                        skiprows=1)
+# Extract run parameter depending by run name
+run_param = parameters[np.intersect1d(np.argwhere(parameters[:,1]==float(run[-1:])),np.argwhere(parameters[:,0]==float(run[1:3])/10)),:]
+
+# Run time data
+dt = run_param[0,2] # dt between runs [min] (real time)
+dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner between runs)
 
 stack_name = 'DoD_stack' + str(DoD_delta) + '_' + run + '.npy' # Define stack name
 stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
@@ -246,23 +262,35 @@ for x in range(0,dim_x):
                 # Fill activation time stack
                 act_time_stack[:len(time_array),y,x]=time_array
 
-# Apply mask:
-for t in range(0,act_time_stack.shape[0]):
-    act_time_stack[t,:,:] = act_time_stack[t,:,:]*mask
+
+act_time_stack_diff = act_time_stack[1:,:,:]-act_time_stack[:-1,:,:] # Calculate interval between switch
+act_time_stack_diff = np.where(act_time_stack_diff>0, act_time_stack_diff, 0) # Keep only positive difference
+
+act_time_stack = np.vstack((np.resize(act_time_stack[0,:,:], (1,dim_y,dim_x)),act_time_stack_diff))
+
+
+# # Apply mask:
+# for t in range(0,act_time_stack.shape[0]):
+#     act_time_stack[t,:,:] = act_time_stack[t,:,:]*mask
+
+
 
 
 # Unroll arrays
 # act_tot_time_array=act_tot_time_array
 act_tot_time_array = act_time_stack.flatten() # Unroll all active time
-# act_tot_time_array = act_tot_time_array[act_tot_time_array !=0]
+act_tot_time_array = act_tot_time_array[act_tot_time_array !=0] # Trim zero values
+act_tot_time_array = act_tot_time_array[np.logical_not(np.isnan(act_tot_time_array))] # Trim nan values
 
 # act_first_time_array=act_first_time_array*mask
 act_first_time_array = act_time_stack[0,:,:].flatten() # Unroll all active time
-# act_first_time_array = act_first_time_array[act_first_time_array !=0]
+act_first_time_array = act_first_time_array[act_first_time_array !=0] # Trim zero values
+act_first_time_array = act_first_time_array[np.logical_not(np.isnan(act_first_time_array))] # Trim nan values
 
 # act_time_array=act_time_array*mask
 act_time_array = act_time_stack[1:,:,:].flatten() # Unroll all active time exluding the first
-# act_time_array = act_time_array[act_time_array !=0]
+act_time_array = act_time_array[act_time_array !=0] # Trim zero values
+act_time_array = act_time_array[np.logical_not(np.isnan(act_time_array))] # Trim nan values
 
         
 #%%
@@ -270,18 +298,21 @@ act_time_array = act_time_stack[1:,:,:].flatten() # Unroll all active time exlud
 # PLOTS
 ###########
 if plot_mode ==1:
-    
-    # ACTIVE PIXEL AT LEAST ONCE
-    fig1, ax = plt.subplots(tight_layout=True)
-    # e=e*mask
-    shw = ax.imshow(e)
-    # make bar
-    bar = plt.colorbar(shw) 
-    # show plot with labels
-    plt.xlabel('X coordinate')
-    plt.ylabel('Y coordinate')
-    bar.set_label('Number of active pixel')
-    plt.show()
+    for i in range(0,5):
+        # ACTIVE PIXEL AT LEAST ONCE
+        fig1, ax = plt.subplots(tight_layout=True)
+        # e=e*mask
+        e = np.where(e==0,np.nan,e)
+        e1 = np.where(e<=i,np.nan,e)
+        shw = ax.imshow(e1)
+        # # make bar
+        # bar = plt.colorbar(shw) 
+        # # show plot with labels
+        # plt.xlabel('X coordinate')
+        # plt.ylabel('Y coordinate')
+        # plt.title(run)
+        # bar.set_label('Number of active pixel')
+        plt.show()
     
     # NUMBER OF SWITCH
     fig2, ax = plt.subplots(tight_layout=True)
@@ -292,34 +323,59 @@ if plot_mode ==1:
     # show plot with labels
     plt.xlabel('X coordinate')
     plt.ylabel('Y coordinate')
+    plt.title(run)
     bar.set_label('Number of pixel switch')
     plt.show()
 
     # FIRST SWITCH ACTIVATION TIME HISTOGRAM
     # act_first_time_array
     fig3, ax = plt.subplots(tight_layout=True)
-    ax.hist(act_first_time_array, bins=8)
-    ax.set_title('First switch time')
-    plt.show()
-    
-    # SWITCH ACTIVATION TIME HISTOGRAM
-    fig4, ax = plt.subplots(tight_layout=True)
-    ax.hist(act_tot_time_array, bins=8)
-    ax.set_title('Switch time')
+    ax = sns.histplot(data=act_first_time_array, binwidth=0.4, discrete=True, shrink=0.8)
+    ax.set(xlabel='Time between switches',
+           ylabel='Count',
+           title='First switch time - '+run)
     plt.show()
     
     # SWITCH ACTIVATION TIME EXCLUDING THE FIRST SWITCH
     fig5, ax = plt.subplots(tight_layout=True)
-    ax.hist(act_time_array, bins=8)
-    ax.set_title('Switch time excluded the first one')
+    ax = sns.histplot(data=act_time_array, binwidth=0.4, discrete=True, shrink=0.8)
+    ax.set(xlabel='Time between switches',
+           ylabel='Count',
+           title='Switch time excluded the first one - '+run)
     plt.show()
+    
+    # SWITCH ACTIVATION TIME HISTOGRAM
+    fig4, ax = plt.subplots(tight_layout=True)
+    ax = sns.histplot(data=act_tot_time_array, binwidth=0.4, discrete=True, shrink=0.8)
+    ax.set(xlabel='Time between switches',
+           ylabel='Count',
+           title='Switch time - '+run)
+    plt.show()
+    
+    
+    
 
+
+
+#%%
+yy=36
+xx=6
+print(stack_bool[:,yy,xx])
+print(act_time_stack[:,yy,xx])
+print()
+print('First switch time activation')
+print('mean [min] = ', np.mean(act_first_time_array*dt))
+print('STD [min] = ', np.std(act_first_time_array*dt))
+print()
+print('Total switch time activation')
+print('mean [min] = ', np.mean(act_tot_time_array*dt))
+print('STD [min] = ', np.std(act_tot_time_array*dt))
+print()
+print('Switch time activation excluding the first one')
+print('mean [min] = ', np.mean(act_time_array*dt))
+print('STD [min] = ', np.std(act_time_array*dt))
+
+#%%
 end = time.time()
 print()
 print('Execution time: ', (end-start), 's')
-
-#%%
-yy=51
-xx=29
-print(stack_bool[:,yy,xx])
-print(act_time_stack[:,yy,xx])
