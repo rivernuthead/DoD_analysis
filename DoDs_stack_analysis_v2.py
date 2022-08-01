@@ -273,9 +273,6 @@ act_time_stack = np.vstack((np.resize(act_time_stack[0,:,:], (1,dim_y,dim_x)),ac
 # for t in range(0,act_time_stack.shape[0]):
 #     act_time_stack[t,:,:] = act_time_stack[t,:,:]*mask
 
-
-
-
 # Unroll arrays
 # act_tot_time_array=act_tot_time_array
 act_tot_time_array = act_time_stack.flatten() # Unroll all active time
@@ -302,8 +299,8 @@ if plot_mode ==1:
         # ACTIVE PIXEL AT LEAST ONCE
         fig1, ax = plt.subplots(tight_layout=True)
         # e=e*mask
-        e = np.where(e==0,np.nan,e)
-        e1 = np.where(e<=i,np.nan,e)
+        e = np.where(e==0,np.nan,e) # Make 0 value as np.nan (100% transparency)
+        e1 = np.where(e<=i,np.nan,e) # Mask pixel active less than i time
         shw = ax.imshow(e1)
         # # make bar
         # bar = plt.colorbar(shw) 
