@@ -37,7 +37,7 @@ def morph_quantities(array):
     # Volume are calculated as the sum of the cell value. The measure unit is a length.
     # To obtain a volume, the _vol value has to be multiply by the cell dimension.
     tot_vol = np.sum(vol_array) # Total net volume as the algebric sum of all the cells [L]
-    sum_vol = np.sum(np.abs(vol_array)) # Sum of scour and deposition volume as algebric sum of the abs of each cell [l]
+    sum_vol = np.sum(np.abs(vol_array)) # Sum of scour and deposition volume as algebric sum of the abs of each cell [L]
     dep_vol = np.sum(dep_array) # Deposition volume as the sum of the value of deposition cell  [L]
     sco_vol = np.sum(sco_array) # Scour volume as the sum of the value of scour cell [L]
     

@@ -42,7 +42,7 @@ save mode:
     0 = save only reports
     1 = save all chart and figure
 '''
-run_mode = 2
+run_mode = 1
 DEM_analysis_mode = 1
 data_interpolation_mode = 1
 mask_mode = 1
@@ -50,11 +50,11 @@ process_mode = 1
 save_plot_mode = 1
 
 # SINGLE RUN NAME
-run = 'q07_1'
+run = 'q10_3'
 
 # Set DEM single name to perform process to specific DEM
-DEM1_single_name = 'matrix_bed_norm_q07S5.txt' # DEM1 name
-DEM2_single_name = 'matrix_bed_norm_q07S6.txt' # DEM2 name
+DEM1_single_name = 'matrix_bed_norm_q07S0.txt' # DEM1 name
+DEM2_single_name = 'matrix_bed_norm_q07S1.txt' # DEM2 name
 
 # Filtering process thresholds values
 thrs_1 = 2.0  # [mm] # Lower threshold
@@ -288,7 +288,7 @@ for run in RUNS:
         BRI=[] # BRi array
         SD = [] # SD array
         engelund_model_array=[] # Engelund model array (Q, D, Wwet/w])
-        water_dept_array=[] # Water dept array [m]
+        water_depth_array=[] # Water dept array [m]
         discharge_array=[] # Discarge [m^3/s]
         Wwet_array = [] # Wwet array [Wwet/W]
         # morphWact_values = [] # All the morphological active width values for each runs
@@ -361,19 +361,20 @@ for run in RUNS:
             for i in range(0,DEM.shape[1]):
                 DEM_detrended[:,i] = DEM[:,i]-linear_model[0]*i*px_x
 
+#%%
             # Create equivalent cross section as sorted DEM vaues excluding NaN
-            DEM_values = sorted(DEM_detrended[np.logical_not(np.isnan(DEM_detrended))])
+            DEM_values = sorted(DEM_detrended[np.logical_not(np.isnan(DEM_detrended))]) # array with DEM values
             # cross_section_eq = DEM_values[::100] # Resize DEM value to be lighter (100 res resampling)
-            cross_section_eq = np.interp(np.arange(0,len(DEM_values),50), np.arange(0,len(DEM_values)), DEM_values)
+            cross_section_eq = np.interp(np.arange(0,len(DEM_values),len(DEM_values)/W/1000), np.arange(0,len(DEM_values)), DEM_values)
             # Add cross section banks as the double of the maximum DEM's value:
             z_coord = np.pad(cross_section_eq, (1,1), mode='constant', constant_values=int(cross_section_eq.max()*2))
             z_coord = z_coord/1000 # Convert z_coord in meters
-
+#%%
             # Create cross-wise coordination
             y_coord = np.arange(0,W*1000, W*1000/len(z_coord))
             y_coord = y_coord/1000 # Convert y_coord in meters
 
-            # Engenlund-Gauss implementation
+            # ENGENLUND-GAUSS IMPLEMENTATION
 
             Dmax = z_coord.max()-z_coord.min() # Maximum water dept
             Dmin = 0 # Minimum water level
@@ -403,7 +404,7 @@ for run in RUNS:
                         Dmin=D0 # Update Dmin
                     Qn=Q0
 
-            water_dept_array=np.append(water_dept_array, D0) # Water dept array
+            water_depth_array=np.append(water_depth_array, D0) # Water depth array
             discharge_array=np.append(discharge_array, Q0) # Discarge
             Wwet_array = np.append(Wwet_array, b/W)
 
@@ -451,7 +452,7 @@ for run in RUNS:
         plt.show()
 
 
-        water_dept=np.mean(water_dept_array) # Average water dept
+        water_dept=np.mean(water_depth_array) # Average water dept
         discharge=np.mean(discharge_array) # Average discarge
         Wwet = np.mean(Wwet_array)
         print('Engelund-Gauss model results:')

@@ -55,8 +55,8 @@ stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
 stack = np.load(stack_path) # Load DoDs stack
 
 # Initialize stack
-act_time_stack = np.zeros(stack.shape) # activation time stack
-switch_matrix = np.zeros(stack.shape[1:])
+act_time_stack = np.zeros(stack.shape) # activation time stack contains the time between switches. The first layer of this stack contains the first sctivation time that is a lower limit in time because we ignore how long the pixel has keept the same nature in the past.
+switch_matrix = np.zeros(stack.shape[1:]) # This is the 2D matrix that collect the number of switch over time
 
 
 # Create boolean stack # 1=dep, 0=no changes, -1=sco
@@ -174,59 +174,64 @@ still_px_count = np.sum(still_px, axis=0)
 # Time needed for the first activation
 for x in range(0,dim_x):
     for y in range(0,dim_y):
-        a = stack_bool[:,y,x]
-        # a = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]) # Test array
+        # a = stack_bool[:,y,x] # Slice the stack in a single pixel array where data is collected over time
+        a = np.array([0, 0, 0, 0, 0, -1, -1, 1, 0]) # Test array
+        
         if np.isnan(a).any(): # check if a has np.nan value, if so fill matrix with np.nan
             switch_matrix[y,x] = np.nan
             act_time_stack[:,y,x] = np.nan
             pass
-        elif a[0]!=0:
+        
+        elif a[0]!=0: # If the first entry of the sliced array is not equal to zero
             x1 = np.array(np.where(a*a[0]==-1)) # indices where pixel nature is opposite to that of the first element
             diff1 = x1[:,1:]-x1[:,:-1] # Distance between one element and the consecutive one
-            diff1_bool = np.where(diff1==1,0,1) # 1 where diff is grater than one, zero elswhere
+            diff1_bool = np.where(diff1==1,0,1) # array with value 1 where diff1 is grater than one, zero elswhere
             p1=np.append(np.array([1]),diff1_bool) # Insert 1 for the firs element
             time1_array = x1*p1 # Apply filter: time_array !=0 shows indices where changes in nature occours
+            time1_array = time1_array[time1_array!=0] # Trim zero values
             
             
             x2 = np.array(np.where(a[1:]*a[0]==1))+1 # Indices where pixel nature is the same to that of the first element
             diff2 = x2[:,1:]-x2[:,:-1] # Distance between one element and the consecutive one
-            diff2_bool = np.where(diff2==1,0,1) # 1 where diff is grater than one, zero elswhere
-            p2=np.append(np.array([1]),diff2_bool) # Insert 1 for the firs element
+            diff2_bool = np.where(diff2==1,0,1) # array with value 1 where diff2 is grater than one, zero elswhere
+            p2=np.append(np.array([0]),diff2_bool) # Insert 1 for the firs element #TODO check this
             time2_array = x2*p2 # Apply filter: time_array !=0 shows indices where changes in nature occours
+            time2_array = time2_array[time2_array!=0] # Trim zero values
+
+            time_array = np.sort(np.append(time1_array, time2_array)) # Append time2_array to time1_array and sort them
+            # time_array = time_array[time_array != 0] # Trim zero values
             
-            time_array = np.sort(np.append(time1_array, time2_array))
-            time_array = time_array[time_array != 0]
             if time_array.shape!=(0,) and a[time_array[0]]*a[0]==1:
-                # print('True')
-                time_array = time_array[1:]
+                # If time_array has dimension grater than 0 and
+                # if the value of the sliced array in the position corresponding
+                # to the first switch is opposite in sign to the first value of the slice array
+                time_array = time_array[1:] # Trim the first entry of the time array
             act_time_stack[:len(time_array),y,x]=time_array
-            
-            if len(time_array)==0:
-                # Fill switch matrix
-                switch_matrix[y,x] = np.nan
-                
-                # Fill activation time stack
-                for t in range(0,act_time_stack.shape[0]):
-                    act_time_stack[t,y,x]=np.nan
-            else:
-                # Fill switch matrix
-                switch_matrix[y,x] = len(time_array)
-                
-                # Fill activation time stack
-                act_time_stack[:len(time_array),y,x]=time_array
 
             
-        elif a[0]==0:
+            if len(time_array)==0: # If sliced array does not contain any switch
+                # Fill switch matrix with np.nan
+                switch_matrix[y,x] = np.nan
+                
+                # Fill activation time stack with np.nan
+                for t in range(0,act_time_stack.shape[0]):
+                    act_time_stack[t,y,x]=np.nan
+                    
+            else: # If at least one switch occours
+                # Fill switch matrix
+                switch_matrix[y,x] = len(time_array) # To provide the number of switch
+                
+                # Fill activation time stack
+                act_time_stack[:len(time_array),y,x]=time_array # To provide the time between each detected switch
+ 
+        elif a[0]==0:# If the first entry of the sliced array is 0, in this schema it's both scour and deposition nature. So the length and the nature of the first period depend by the nature of the first non-zero value.
             if not a.any(): # Check if the sliced array is full of zeros
-                time_array = np.array([np.nan])
+                time_array = np.array([np.nan]) # Fill the array with np.nan
             else:
-                count=1
-                for i in range(1,len(a)):
-                    if a[i]==0:
-                        count+=1
-                    else:
-                        break
-                a=a[count:]
+                n_zero=np.array(np.where(a!=0))[0,0] # Number of zero values before the first non-zero value
+                a=a[n_zero:] # Trim the zero values before the first non-zero value.
+                
+                # Then operate as above.
                 x1 = np.array(np.where(a*a[0]==-1)) # indices where pixel nature switch occours respectively to the first element
                 diff = x1[:,1:]-x1[:,:-1] # Distance between one element and the consecutive one: split groups
                 diff_bool = np.where(diff==1,0,1) # Eliminate consecutive element with the same nature
@@ -245,7 +250,7 @@ for x in range(0,dim_x):
                 if time_array.shape!=(0,) and a[time_array[0]]*a[0]==1:
                     # print('True')
                     time_array = time_array[1:]
-                time_array = time_array + count 
+                time_array = time_array + n_zero
                         
             if len(time_array)==0 or np.isnan(time_array).all():
                 
