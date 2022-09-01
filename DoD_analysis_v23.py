@@ -11,8 +11,14 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from DoD_analysis_functions import *
-from mpl_toolkits.axes_grid1.inset_locator import mark_inset, inset_axes
+from DoD_analysis_functions_2 import *
 # from matplotlib.colors import ListedColormap, BoundaryNorm
+
+###############################################################################
+# TODO
+###############################################################################
+# 1. Update the script with the q10_3 name run issues
+
 
 start = time.time() # Set initial time
 
@@ -20,19 +26,18 @@ start = time.time() # Set initial time
 # SETUP SCRIPT PARAMETERS and RUN MODE
 ###############################################################################
 
-# TODO For the q10_3 run the number of surveys is grater than 9 so I have to update che procedure
-# to calculate the DoD number
-
 '''
 run mode:
     1 = one run at time
     2 = bath process
-DEM analysis mode:
-    0 = do not perform DEM analysis
-    1 = perform DEM analysis
 data_interpolatuon_mode:
     0 = no interpolation
     1 = data interpolation
+windows_mode:
+    0 = fixed windows (all the channel)
+    1 = floating windows
+    2 = fixed windows (WxW, Wx2W, Wx3W, ...) without overlapping
+    3 = fixed windows (WxW, Wx2W, Wx3W, ...) with overlapping
 mask mode:
     1 = mask the flume edge
     2 = mask the upstream half flume
@@ -45,18 +50,18 @@ save mode:
     1 = save all chart and figure
 '''
 run_mode = 1
-DEM_analysis_mode = 1
-data_interpolation_mode = 1
+data_interpolation_mode = 0
+windows_mode = 3
 mask_mode = 1
 process_mode = 1
 save_plot_mode = 1
 
 # SINGLE RUN NAME
-run = 'q10_2'
+run = 'q10_3'
 
 # Set DEM single name to perform process to specific DEM
-DEM1_single_name = 'matrix_bed_norm_q07S0.txt' # DEM1 name
-DEM2_single_name = 'matrix_bed_norm_q07S1.txt' # DEM2 name
+DEM1_single_name = 'matrix_bed_norm_q07S5.txt' # DEM1 name
+DEM2_single_name = 'matrix_bed_norm_q07S6.txt' # DEM2 name
 
 # Filtering process thresholds values
 thrs_1 = 2.0  # [mm] # Lower threshold
@@ -70,14 +75,7 @@ px_y = 5 # [mm]
 # Not a number raster value (NaN)
 NaN = -999
 
-# Engelund-Gauss model parameters
-g = 9.806 # Gravity
-ds = 0.001  # Sediment grainsize [mm]
-teta_c = 0.02 # Schield parameter [-]
-NG=4 # Number of Gauss points
-max_iter = 100000 # Maximum numer of iterations
-toll = 0.00001 # Convergence tolerance
-
+#%%
 ###############################################################################
 # SETUP FOLDERS and RUNS
 ###############################################################################
@@ -104,6 +102,7 @@ if run_mode ==2: # batch run mode
 elif run_mode==1: # Single run mode
     RUNS=run.split() # RUNS as a single entry array, provided by run variable
 
+#%%
 ###############################################################################
 # INITIALIZE OVERALL REPORT ARRAYS
 ###############################################################################
@@ -126,6 +125,7 @@ morphWact_dim = [] # Array with the dimensions of morphWact_values array
 
 DoD_length_array=[] # DoD length array
 
+#%%
 ###############################################################################
 # MAIN LOOP OVER RUNS
 ###############################################################################
@@ -196,9 +196,10 @@ for run in RUNS:
             
     files = np.append(files1,files2) # Files has been overwritten with a list of file names sorted in the right way :) 
 
+
     # INITIALIZE ARRAYS
     comb = np.array([]) # combination of differences
-    DoD_count_array=[] # Active pixel
+    DoD_act_px_count_array=[] # Array where collect all the DoDs active pixel counting
     volumes_array=[] # Tot volume
     dep_array=[] # Deposition volume
     sco_array=[] # Scour volume
@@ -291,227 +292,49 @@ for run in RUNS:
         array_mask_rshp=np.where(array_mask_rshp==NaN, np.nan, array_mask_rshp)
 
     ###########################################################################
-    # DEM ANALYSIS
-    ###########################################################################
-    if DEM_analysis_mode==1:
-        # - Residual slope, for each DEM
-        # - Bed Relief Index (BRI) averaged, for each DEM
-        # - STDEV (SD) of the bed elevation, for each DEM
-        # Initialize arrays
-        slope_res = [] # Rsidual slope array
-        BRI=[] # BRi array
-        SD = [] # SD array
-        engelund_model_array=[] # Engelund model array (Q, D, Wwet/w])
-        water_depth_array=[] # Water dept array [m]
-        discharge_array=[] # Discarge [m^3/s]
-        Wwet_array = [] # Wwet array [Wwet/W]
-        # morphWact_values = [] # All the morphological active width values for each runs
-
-        for f in files:
-            DEM_path = os.path.join(input_dir, f) # Set DEM path
-            DEM = np.loadtxt(DEM_path,          # Load DEM data
-                             #delimiter=',',
-                             skiprows=8)
-            DEM = np.where(np.isclose(DEM, NaN), np.nan, DEM)
-
-            # DEM reshaping according to arr_shape...
-            DEM=DEM[0:arr_shape[0], 0:arr_shape[1]]
-
-            # DEM masking...
-            DEM = DEM*array_mask_rshp_nan
-
-            # Residual slope
-            # NB: this operation will be performed to detrended DEMs
-            # Averaged crosswise bed elevation array:
-            bed_profile = np.nanmean(DEM, axis=0) # Bed profile
-            # Linear regression of bed profile:
-            # Performing linear regression
-            x_coord = np.linspace(0, px_x*len(bed_profile), len(bed_profile)) # Longitudinal coordinate
-            linear_model = np.polyfit(x_coord, bed_profile,1) # linear_model[0]=m, linear_model[1]=q y=m*x+q
-            slope_res = np.append(slope_res, linear_model[0]) # Append residual slope values
-
-            # PLOT cross section mean values and trendline
-            # fig, ax1 = plt.subplots(dpi=200)
-            # ax1.plot(x_coord, bed_profile)
-            # ax1.plot(x_coord, x_coord*linear_model[0]+linear_model[1], color='red')
-            # ax1.set(xlabel='longitudinal coordinate (mm)', ylabel='Z (mm)',
-            #        title=run+'\n'+'Residual slope:'+str(linear_model[0]))
-
-            # BRI calculation
-            BRI=np.append(BRI,np.mean(np.nanstd(DEM, axis=0))) # Overall BRI
-            
-            if f == files[0]:
-                BRI_array = np.nanstd(DEM, axis=0) # Array crosswise for each DEM
-            else:
-                BRI_array = np.vstack((BRI_array, np.nanstd(DEM, axis=0)))
-
-            # Bed elevation STDEV
-            SD = np.append(SD,np.nanstd(DEM))
-
-            # Create report matrix:
-            # Structure: DEM name, residual slope [m/m], BRI [mm], SD [mm]
-            matrix_DEM_analysis = np.transpose(np.stack((slope_res, BRI, SD)))
-
-            # Build report
-            report_DEM_header = 'DEM name, residual slope [m/m], BRI [mm], SD [mm]'
-            report_DEM_name = run+'_DEM_report.txt'
-            with open(os.path.join(report_dir, report_DEM_name), 'w') as fp:
-                fp.write(report_DEM_header)
-                fp.writelines(['\n'])
-                for i in range(0,len(matrix_DEM_analysis[:,0])):
-                    for j in range(0, len(matrix_DEM_analysis[0,:])+1):
-                        if j == 0:
-                            fp.writelines([files[i]+', '])
-                        elif j==1:
-                            # fp.writelines(["%.6f, " % float(matrix_DEM_analysis[i,j-1])])
-                            fp.writelines(["{:e},".format(matrix_DEM_analysis[i,j-1])])
-                        else:
-                            fp.writelines(["%.3f, " % float(matrix_DEM_analysis[i,j-1])])
-                    fp.writelines(['\n'])
-            fp.close()
-
-            # DEM detrending (DEM detrended both with slope and residual slope)
-            DEM_detrended = DEM
-            for i in range(0,DEM.shape[1]):
-                DEM_detrended[:,i] = DEM[:,i]-linear_model[0]*i*px_x
-
-#%%
-            # Create equivalent cross section as sorted DEM vaues excluding NaN
-            DEM_values = sorted(DEM_detrended[np.logical_not(np.isnan(DEM_detrended))]) # array with DEM values
-            # cross_section_eq = DEM_values[::100] # Resize DEM value to be lighter (100 res resampling)
-            cross_section_eq = np.interp(np.arange(0,len(DEM_values),len(DEM_values)/W/1000), np.arange(0,len(DEM_values)), DEM_values)
-            # Add cross section banks as the double of the maximum DEM's value:
-            z_coord = np.pad(cross_section_eq, (1,1), mode='constant', constant_values=int(cross_section_eq.max()*2))
-            z_coord = z_coord/1000 # Convert z_coord in meters
-#%%
-            # Create cross-wise coordination
-            y_coord = np.arange(0,W*1000, W*1000/len(z_coord))
-            y_coord = y_coord/1000 # Convert y_coord in meters
-
-            # ENGENLUND-GAUSS IMPLEMENTATION
-
-            Dmax = z_coord.max()-z_coord.min() # Maximum water dept
-            Dmin = 0 # Minimum water level
-            i=0 # Initialize iteration counter
-
-            # Guess values:
-            D0 = (Dmax-Dmin)/2 # Water dept
-            Qn, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, D0, NG, teta_c, ds) # Discharge
-            # Discharge extreme values
-            Qmax, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, Dmax, NG, teta_c, ds)
-            Qmin, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, Dmin, NG, teta_c, ds)
-            Q_target = Q/1000 # Target discharge [m^3/s]
-            if np.sign(Qmax-Q_target)==np.sign(Qmin-Q_target):
-                print(' Soluntion out of boundaries')
-            else:
-                # Check if h<h_min:
-                while abs(Qn - Q_target)>toll:
-                    if i>max_iter:
-                        print('ERROR: max iterations reached!')
-                        break
-                    i+=1
-                    D0 = (Dmax+Dmin)/2
-                    Q0, Omega, b, B, alpha, beta, Qs, count_active = MotoUniforme(S, y_coord, z_coord, D0, NG, teta_c, ds)
-                    if Q0>Q_target:
-                        Dmax=D0 # Update Dmax
-                    elif Q0<Q_target:
-                        Dmin=D0 # Update Dmin
-                    Qn=Q0
-
-            water_depth_array=np.append(water_depth_array, D0) # Water depth array
-            discharge_array=np.append(discharge_array, Q0) # Discarge
-            Wwet_array = np.append(Wwet_array, b/W)
-
-        # BRI plot
-        #TODO
-        n_data = np.linspace(0,len(files)-1,len(files)) # Linspace of the number of available DoD
-        c_data = np.linspace(0,1,len(files)) # c_data needs to be within 0 and 1
-        colors = plt.cm.viridis(c_data)
-        fig1, axs = plt.subplots(1,1,dpi=400, sharex=True, tight_layout=True, figsize=(8,6))
-        #Defines the size of the zoom window and the positioning
-        axins = inset_axes(axs, 2, 5, loc = 1, bbox_to_anchor=(1.3, 0.9),
-                            bbox_transform = axs.figure.transFigure)
-        for d, color in zip(n_data, colors):
-            DoD_name = files[int(d)]
-            axs.plot(np.linspace(0,DEM.shape[1]-1, DEM.shape[1])*px_x/1000, BRI_array[int(d),:], '-', c=color, label=DoD_name[21:23])
-            plt.plot(np.linspace(0,DEM.shape[1]-1, DEM.shape[1])*px_x/1000, BRI_array[int(d),:], '-', c=color, label=DoD_name[21:23])
-        
-        # axins.scatter(x, y)
-        x1, x2 = 12, 14
-        y1, y2 = np.min(BRI_array[:,int(x1/px_x*1000):])*0.9, np.max(BRI_array[:,int(x1/px_x*1000):])*1.1 #Setting the limit of x and y direction to define which portion to #zoom
-        axins.set_xlim(x1, x2)
-        axins.set_ylim(y1, y2)
-        #Draw the lines from the portion to zoom and the zoom window
-        mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec = "0.4")
-        axs.set_title(run + ' - BRI', fontsize=14)
-        axs.set_xlabel('Longitudinal coordinate [m]', fontsize=12)
-        axs.set_ylabel('BRI', fontsize=12)
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.legend(loc='best', fontsize=8)
-        
-        # ax_new = fig1.add_axes([0.2, 1.1, 0.4, 0.4])
-        # plt.plot(np.linspace(0,array.shape[1]-1, array.shape[1])*px_x, cross_bri_matrix[int(d),:], '-', c=color)
-        
-        plt.show()
-
-        # BRI errorbar plot
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(8,6))
-        axs.errorbar(np.linspace(0,DEM.shape[1]-1, DEM.shape[1])*px_x/1000, np.nanmean(BRI_array, axis=0), np.std(BRI_array, axis=0), linestyle='--', marker='^', color='darkcyan')
-        axs.tick_params(axis='y', labelcolor='darkcyan')
-        axs.set_title(run, fontsize=14)
-        # axs.set_xlim(0, np.max(mean_matrix[1,:]*px_x)+1)
-        axs.set_xlabel('Window analysis length [m]', fontsize=12)
-        axs.set_ylabel('BRI [mm]', fontsize=12)
-        # plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
-        plt.show()
-
-
-        water_dept=np.mean(water_depth_array) # Average water dept
-        discharge=np.mean(discharge_array) # Average discarge
-        Wwet = np.mean(Wwet_array)
-        print('Engelund-Gauss model results:')
-        print('Reached discharge: ', discharge, ' m^3/s')
-        print('Water dept: ', water_dept, ' m')
-        print('Wwet/W: ', Wwet)
-
-        # Append values as: run name, D [m], Q [m^3/s], Wwet/W [-]
-        engelund_model_array = np.append(engelund_model_array,(water_dept, discharge, Wwet))
-        if run_mode ==2:
-            engelund_model_report[int(np.where(RUNS==run)[0]),:]=engelund_model_array
-
-        # Print averaged residual slope:
-        print()
-        print('Averaged DEMs residual slope: ', np.average(slope_res))
-
-    delta_array = [] 
-    ###########################################################################
     # LOOP OVER ALL DEMs COMBINATIONS
     ###########################################################################
-    # Perform difference over all combination of DEMs in the working directory
+    # Perform difference between DEMs over all the possible combination of surveys in the survey directory
     for h in range (0, len(files)-1):
         for k in range (0, len(files)-1-h):
-            DEM1_name=files[h]
-            DEM2_name=files[h+1+k]
-            comb = np.append(comb, DEM2_name + '-' + DEM1_name)
+            DEM1_name=files[h] # Extract the DEM1 name...
+            DEM2_name=files[h+1+k] #...and the DEM2 name
+            comb = np.append(comb, DEM2_name + '-' + DEM1_name) # Create a list with all the available combinations of DEMs
 
-            # write DEM1 and DEM2 names below to avoid batch differences processing
+            # Overwrite DEM1 and DEM2 names in case of single DoD analysis
             if process_mode==1:
                 pass
             elif process_mode==2:
                 DEM1_name = DEM1_single_name
                 DEM2_name = DEM2_single_name
 
-            # Specify DEMs path...
+            # Create DEMs paths...
             path_DEM1 = os.path.join(input_dir, DEM1_name)
             path_DEM2 = os.path.join(input_dir, DEM2_name)
-            # ...and DOD name.
-            DoD_name = 'DoD_' + DEM2_name[-6:-4] + '-' + DEM1_name[-6:-4] + '_'
-            print(DoD_name)
-            # Setup output folder
-            output_name = 'script_outputs_' + DEM2_name[-6:-4] + '-' + DEM1_name[-6:-4] # Set outputs name
+            
+            # ...and DOD name. The DoD name extraction depends by the length of
+            # the DoD name sice for runs with more than 10 surveys the DEM's name is larger  
+            if len(DEM1_name)==int(len(files[0])):
+                DEM1_num = DEM1_name[-5:-4]
+            elif len(DEM1_name)==int(len(files[0])+1):
+                DEM1_num = DEM1_name[-6:-4]
+                
+            if len(DEM2_name)==int(len(files[0])):
+                DEM2_num = DEM2_name[-5:-4]
+            elif len(DEM2_name)==int(len(files[0])+1):
+                DEM2_num = DEM2_name[-6:-4]
+                
+            DoD_name = 'DoD_' + DEM2_num + '-' + DEM1_num + '_'
+            
+            print('=========')
+            print(DoD_name[:-1])
+            print('=========')
+            
+            # # Setup output folder
+            # output_name = 'script_outputs_' + DEM2_DoD_name + '-' + DEM1_DoD_name # Set outputs name
 
-
-            path_out = os.path.join(home_dir, 'DoDs', 'DoD_'+run) # Set DoD outputs directory
+            # Set DoD outputs directory where to save DoD as ASCII grid and numpy matrix
+            path_out = os.path.join(home_dir, 'DoDs', 'DoD_'+run)
             if not(os.path.exists(path_out)):
                 os.mkdir(path_out)
 
@@ -519,7 +342,7 @@ for run in RUNS:
             ###################################################################
             # DATA READING...
             ###################################################################
-            # Header initialization and extraction
+            # Lines array and header array initialization and extraction:
             lines = []
             header = []
 
@@ -529,6 +352,7 @@ for run in RUNS:
                 # Header extraction...
                 for i in range(0, 7):
                     header.append(lines[i])
+                    
             # Header printing in a file txt called header.txt
             with open(path_out + '/' + DoD_name + 'header.txt', 'w') as head:
                 head.writelines(header)
@@ -558,17 +382,18 @@ for run in RUNS:
             print(DEM2_name, '-', DEM1_name)
             # Raster dimension
             dim_y, dim_x = DEM1.shape
-            # dim_x, dim_x = DEM1.shape
             
+            # Calculate the DoD length in meters:
             DoD_length = DEM1.shape[1]*px_x/1000 # DoD length [m]
             
-            # DoD_length_array = np.append(DoD_length_array, DoD_length)
-
-            # Creating DoD array with np.nan
+            # DoD CREATION:
+            # Creating DoD array with np.nan instead of NaN
             DoD_raw = np.zeros(DEM1.shape)
             DoD_raw = np.where(np.logical_or(DEM1 == NaN, DEM2 == NaN), np.nan, DEM2 - DEM1)
+            
             # Masking with array mask
             DoD_raw = DoD_raw*array_mask_rshp_nan
+            
             # Creating GIS readable DoD array (np.nan as -999)
             DoD_raw_rst = np.zeros(DoD_raw.shape)
             DoD_raw_rst = np.where(np.isnan(DoD_raw), NaN, DoD_raw)
@@ -577,7 +402,9 @@ for run in RUNS:
             # Count the number of pixels in the channel area
             DoD_count = np.count_nonzero(np.where(np.isnan(DoD_raw), 0, 1))
             print('Number of channel pixel pixels:', DoD_count)
-            DoD_count_array = np.append(DoD_count_array, DoD_count)
+            
+            # Append for each DoD the number of active pixels to the DoD_act_px_count_array
+            DoD_act_px_count_array = np.append(DoD_act_px_count_array, DoD_count)
 
             # DoD statistics
             # print('The minimum DoD value is:\n', np.nanmin(DoD_raw))
@@ -612,6 +439,9 @@ for run in RUNS:
 
             # Threshold and Neighbourhood analysis process
             DoD_filt = np.copy(DoD_mean) # Initialize filtered DoD array as a copy of the averaged one
+            
+            
+            
             DoD_filt_domain = np.pad(DoD_filt, 1, mode='edge') # Create neighbourhood analysis domain
 
             for i in range(0,dim_y):
@@ -692,7 +522,6 @@ for run in RUNS:
             ###################################################################
             # TOTAL VOLUMES, DEPOSITION VOLUMES AND SCOUR VOLUMES
             ###################################################################
-            # TODO implement morph_quantities_func_v2.py
             # DoD filtered name: DoD_filt
             # Create new raster where apply volume calculation
             # DoD>0 --> Deposition, DoD<0 --> Scour
@@ -760,7 +589,6 @@ for run in RUNS:
             print('Morphological active area: ', "{:.1f}".format(morph_act_area), '[mm²]')
             print('Morphological active width (mean):', "{:.3f}".format(act_width_mean), '%')
             print()
-            print()
             
                 
 
@@ -779,45 +607,22 @@ for run in RUNS:
             #           SD(A) SD(A) SD(A) SD(A) SD(A) SD(A) SD(A) SD(A) SD(A)
             #             B     B     B     B     B     B     B     B     B
             #           SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B) SD(B)
-            
-            # for g,h in DEM1_name[-5:], DEM2_name[-5:]:
-            #     n,m=0
-            #     if g.isdigit():
-            #         n+=1
-            #         if n==1:
-            #             DEM1_str = str(g)
-            #         else:
-            #             DEM1_str += str(g)
-            #     elif h.isdigit():
-            #         m+=1
-            #         if m==1:
-            #             DEM2_str = str(h)
-            #         else:
-            #             DEM1_str += str(h)
-                        
-            # DEM1_num = int(DEM1_str)
-            # DEM2_name = int(DEM2_str)
-            # DEM1_num=DEM1_name[-5:-4] # DEM1 number
-            # DEM2_num=DEM2_name[-5:-40] # DEM2 number
-            if len(DEM1_name)==len(files[0]):
-                DEM1_num = DEM1_name[-5:-4]
-            elif len(DEM1_name)==len(files[0])+1:
-                DEM1_num = DEM1_name[-6:-4]
-            
-            if len(DEM2_name)==len(files[0]):
-                DEM2_num = DEM2_name[-5:-4]
-            elif len(DEM2_name)==len(files[0])+1:
-                DEM2_num = DEM2_name[-6:-4]
-               
-            delta=int(DEM2_name[-5:-4])-int(DEM1_name[-5:-4]) # Calculate delta between DEM
-            delta_array = np.append(delta_array, delta)
 
+            # TODO UPDATE
+            delta=int(DEM2_num)-int(DEM1_num) # Calculate delta between DEM
+            
+            print('__________')
+            print('delta = ', delta)
+            print('__________')
+            
             # Build up morphWact/W array for the current run boxplot
             # This array contain all the morphWact/W values for all the run repetition in the same line
             # This array contain only adjacent DEMs DoD
             if delta==1:
                 morphWact_values = np.append(morphWact_values, act_width_array)
-            elif delta != 0: # Fill Scour, Deposition and morphWact/w matrix:
+
+            # Fill Scour, Deposition and morphWact/w matrix:
+            if delta != 0:
                 # Fill matrix with values
                 matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*d50*1e09) # Total volumes as the algebric sum of scour and deposition volumes V/(W*L) [mm]
                 matrix_sum_volumes[delta-1,h]=np.sum(np.abs(DoD_vol))*px_x*px_y/(W*DoD_length*d50*1e09) # Total volumes as the sum of scour and deposition volumes V/(W*L) [mm]
@@ -1067,24 +872,17 @@ for run in RUNS:
 
 
         if save_plot_mode == 1:
-            font = {'family': 'serif',
-                    'color':  'black',
-                    'weight': 'regular',
-                    'size': 10
-                    }
             fig1, axs = plt.subplots(2,1,dpi=200, sharex=True, tight_layout=True)
             axs[0].plot(xData, yData_dep, 'o')
             axs[0].plot(xData, intCurve_dep, c='red')
             axs[0].set_title('Deposition volumes interpolation '+run)
             axs[0].set_xlabel('Time [min]')
             axs[0].set_ylabel('Volume V/(L*W) [mm]')
-            axs[0].text(np.max(xData)*0.7, np.min(yData_dep), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(par_dep[1], decimals=1)) + 'min \n' + 'A = ' + str(np.round(par_dep[0], decimals=1)), fontdict=font)
             axs[1].plot(xData, yData_sco, 'o')
             axs[1].plot(xData, intCurve_sco, c='red')
             axs[1].set_title('Scour volumes interpolation '+run)
             axs[1].set_xlabel('Time [min]')
             axs[1].set_ylabel('Volume V/(L*W) [mm]')
-            axs[1].text(np.max(xData)*0.7, np.min(yData_sco), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(par_sco[1], decimals=1)) + 'min \n' + 'A = ' + str(np.round(par_sco[0], decimals=1)), fontdict=font)
             plt.savefig(os.path.join(plot_dir, run +'_volume_interp.png'), dpi=200)
             plt.show()
     
@@ -1094,7 +892,6 @@ for run in RUNS:
             axs.set_title('Morphological active width (morphW/W) '+run)
             axs.set_xlabel('Time [min]')
             axs.set_ylabel('morphW/W [-]')
-            plt.text(np.max(xData)*0.7, np.min(yData_morphW), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(par_sco[1], decimals=1)) + 'min \n' + 'A = ' + str(np.round(par_sco[0], decimals=1)), fontdict=font)
             plt.savefig(os.path.join(plot_dir, run +'_morphW_interp.png'), dpi=200)
             plt.show()
     
@@ -1134,7 +931,7 @@ for run in RUNS:
     # SAVE DATA MATRIX
     ###############################################################################
     # Create report matrix
-    report_matrix = np.array(np.transpose(np.stack((comb, DoD_count_array, volumes_array, dep_array, sco_array, morph_act_area_array, act_width_mean_array))))
+    report_matrix = np.array(np.transpose(np.stack((comb, DoD_act_px_count_array, volumes_array, dep_array, sco_array, morph_act_area_array, act_width_mean_array))))
     report_header = 'DoD_combination, Active pixels, Total volume [mm^3], Deposition volume [mm^3], Scour volume [mm^3], Active area [mm^2], Active width mean [%]'
 
     report_name = run + '_report.txt'
@@ -1154,46 +951,46 @@ for run in RUNS:
     # Create total sum volumes matrix report
     # TODO
     report_sum_vol_name = os.path.join(report_dir, run +'_sum_vol_report.txt')
-    np.savetxt(report_sum_vol_name, matrix_sum_volumes, fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_sum_vol_name, matrix_sum_volumes, fmt='%.3f', delimiter=',', newline='\n')
     
     # Create deposition matrix report
     report_dep_name = os.path.join(report_dir, run +'_dep_report.txt')
-    np.savetxt(report_dep_name, matrix_dep, fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_dep_name, matrix_dep, fmt='%.3f', delimiter=',', newline='\n')
 
     # Create scour matrix report
     report_sco_name = os.path.join(report_dir, run +'_sco_report.txt')
-    np.savetxt(report_sco_name, matrix_sco, fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_sco_name, matrix_sco, fmt='%.3f', delimiter=',', newline='\n')
     
     # Create total active thickness matrix report (calculated from volume matrix)
     report_act_thickness_name = os.path.join(report_dir, run +'_act_thickness_report.txt')
-    np.savetxt(report_act_thickness_name, matrix_act_thickness , fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_act_thickness_name, matrix_act_thickness , fmt='%.3f', delimiter=',', newline='\n')
     
     # Create deposition active thickness matrix report (calculated from deposition volume matrix)
     report_act_thickness_name_dep = os.path.join(report_dir, run +'_act_thickness_report_dep.txt')
-    np.savetxt(report_act_thickness_name_dep, matrix_act_thickness_dep , fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_act_thickness_name_dep, matrix_act_thickness_dep , fmt='%.3f', delimiter=',', newline='\n')
     
     # Create scour active thickness matrix report (calculated from scour volume matrix)
     report_act_thickness_name_sco = os.path.join(report_dir, run +'_act_thickness_report_sco.txt')
-    np.savetxt(report_act_thickness_name_sco, matrix_act_thickness_sco , fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_act_thickness_name_sco, matrix_act_thickness_sco , fmt='%.3f', delimiter=',', newline='\n')
     
     # Create total active area matrix report (calculated from volume matrix)
     report_act_area_name = os.path.join(report_dir, run + '_act_area_report.txt')
-    np.savetxt(report_act_area_name, matrix_morph_act_area, fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_act_area_name, matrix_morph_act_area, fmt='%.3f', delimiter=',', newline='\n')
     
     # Create deposition active area matrix report (calculated from volume matrix)
     report_act_area_name_dep = os.path.join(report_dir, run + '_act_area_report_dep.txt')
-    np.savetxt(report_act_area_name_dep, matrix_morph_act_area_dep, fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_act_area_name_dep, matrix_morph_act_area_dep, fmt='%.3f', delimiter=',', newline='\n')
     
     # Create scour active area matrix report (calculated from volume matrix)
     report_act_area_name_sco = os.path.join(report_dir, run + '_act_area_report_sco.txt')
-    np.savetxt(report_act_area_name_sco, matrix_morph_act_area_sco, fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_act_area_name_sco, matrix_morph_act_area_sco, fmt='%.3f', delimiter=',', newline='\n')
 
     # Create Wact report matrix
     matrix_Wact=matrix_Wact[:len(files)-1,:] # Fill matrix_Wact with morphological  active width values
     matrix_Wact[:,len(files)-1]=matrix_Wact_Iquantile[:,len(files)-1] # Fill matrix_Wact report with minimum values
     matrix_Wact[:,len(files)]=matrix_Wact_IIIquantile[:,len(files)] # Fill matrix_Wact report with maximum values
     report_Wact_name = os.path.join(report_dir, run +'_morphWact_report.txt')
-    np.savetxt(report_Wact_name, matrix_Wact, fmt='%.5f', delimiter=',', newline='\n')
+    np.savetxt(report_Wact_name, matrix_Wact, fmt='%.3f', delimiter=',', newline='\n')
 
     # For each runs collect the dimension of the morphWact_array:
     if delta==1:
@@ -1210,9 +1007,9 @@ for run in RUNS:
         # fp.writelines(['\n'])
         for i in range(0, len(morphWact_values)):
             if i == len(morphWact_values)-1:
-                fp.writelines(["%.5f" % float(morphWact_values[i])])
+                fp.writelines(["%.3f" % float(morphWact_values[i])])
             else:
-                fp.writelines(["%.5f," % float(morphWact_values[i])])
+                fp.writelines(["%.3f," % float(morphWact_values[i])])
         fp.writelines(['\n'])
     fp.close()
 
@@ -1222,7 +1019,7 @@ for run in RUNS:
     # PLOTS
     ###########################################################################
     # Define arrays for scour and volume data over time
-    xData=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
+    xData1=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
     yData_sco=np.absolute(matrix_sco[:len(files)-1,0])
     yError_sco=matrix_sco[:len(files)-1,-1]
     yData_dep=np.absolute(matrix_dep[:len(files)-1,0])
@@ -1233,12 +1030,12 @@ for run in RUNS:
     if save_plot_mode==1:
         fig3, axs = plt.subplots(2,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
         fig3.suptitle(run + ' - Volume')
-        axs[0].errorbar(xData,yData_sco, yError_sco, linestyle='--', marker='^', color='red')
+        axs[0].errorbar(xData1,yData_sco, yError_sco, linestyle='--', marker='^', color='red')
         axs[0].set_ylim(bottom=0)
         axs[0].set_title('Scour')
         # axs[0].set_xlabel()
         axs[0].set_ylabel('Scour volume V/(L*W*d50) [-]')
-        axs[1].errorbar(xData,yData_dep, yError_dep, linestyle='--', marker='^', color='blue')
+        axs[1].errorbar(xData1,yData_dep, yError_dep, linestyle='--', marker='^', color='blue')
         axs[1].set_ylim(bottom=0)
         axs[1].set_title('Deposition')
         axs[1].set_xlabel('Exner time')
@@ -1248,7 +1045,7 @@ for run in RUNS:
         
         
         fig4, axs = plt.subplots(1,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
-        axs.errorbar(xData,yData_act_thickness, yError_act_thickness, linestyle='--', marker='^', color='purple')
+        axs.errorbar(xData1,yData_act_thickness, yError_act_thickness, linestyle='--', marker='^', color='purple')
         axs.set_ylim(bottom=0)
         axs.set_title(run + '- Active thickness')
         axs.set_xlabel('Exner time')
@@ -1265,9 +1062,9 @@ for run in RUNS:
     # V_dep
     # V_sco
 
-    xData=np.arange(1, len(files), 1)*dt
+    xData2=np.arange(1, len(files), 1)*dt
     volume_over_time_matrix = []
-    volume_over_time_matrix = np.stack((xData, yData_dep, -yData_sco))
+    volume_over_time_matrix = np.stack((xData2, yData_dep, -yData_sco))
 
     # Append rows to the current file
     with open(os.path.join(report_dir, 'volume_over_time.txt'), 'a') as fp:
@@ -1275,7 +1072,7 @@ for run in RUNS:
         fp.writelines(['\n'])
         for i in range(0,volume_over_time_matrix.shape[0]):
             for j in range(0,volume_over_time_matrix.shape[1]):
-                fp.writelines(["%.5f, " % float(volume_over_time_matrix[i,j])])
+                fp.writelines(["%.3f, " % float(volume_over_time_matrix[i,j])])
             fp.writelines(['\n'])
         fp.writelines(['\n'])
     fp.close()
@@ -1335,7 +1132,7 @@ if run_mode==2:
                 if j == 0:
                     fp.writelines([RUNS[i]+', '])
                 else:
-                    fp.writelines(["%.5f, " % float(volume_temp_scale_report[i,j-1])])
+                    fp.writelines(["%.3f, " % float(volume_temp_scale_report[i,j-1])])
             fp.writelines(['\n'])
     fp.close()
 
@@ -1351,7 +1148,7 @@ if run_mode==2:
                 if j == 0:
                     fp.writelines([RUNS[i]+', '])
                 else:
-                    fp.writelines(["%.5f, " % float(morphW_temp_scale_report[i,j-1])])
+                    fp.writelines(["%.3f, " % float(morphW_temp_scale_report[i,j-1])])
             fp.writelines(['\n'])
     fp.close()
 
@@ -1369,7 +1166,7 @@ if run_mode==2:
                     elif j==2:
                         fp.writelines(["%.5f, " % float(engelund_model_report[i,j-1])])
                     else:
-                        fp.writelines(["%.5f, " % float(engelund_model_report[i,j-1])])
+                        fp.writelines(["%.3f, " % float(engelund_model_report[i,j-1])])
                 fp.writelines(['\n'])
         fp.close()
 
@@ -1385,7 +1182,7 @@ for i in range(0,len(RUNS)):
 # Set zero as np.nan
 morphWact_matrix = np.where(morphWact_matrix==0, np.nan, morphWact_matrix)
 
-# Filter np.nan
+# Multiple boxplot
 fig, ax = plt.subplots(dpi=80, figsize=(10,6))
 fig.suptitle('Dimensionless morphological active width', fontsize = 18)
 for i in range(0, len(RUNS)):

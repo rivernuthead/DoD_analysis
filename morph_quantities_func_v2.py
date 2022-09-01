@@ -15,22 +15,56 @@ DoDs_dir = os.path.join(home_dir, 'DoDs')
 DoD_path = os.path.join(DoDs_dir, 'DoD_' + run, DoD_name)
 DoD = np.loadtxt(DoD_path, delimiter='\t')
 
-array = np.where(DoD==-999, np.nan, DoD)
+matrix = np.where(DoD==-999, np.nan, DoD)
 
 
-def morph_quantities(array):
+def morph_quantities(matrix):
     import numpy as np
     '''
-    This function ...
     
-    Input:
-        array: 2D numpy array
-            2D array with np.nans insted of -999.
+    Parameters
+    ----------
+    matrix : 2D numpy matrix
+        DESCRIPTION.
+
+    Returns
+    -------
+    tot_vol : real
+        DESCRIPTION
+    sum_vol :
+        DESCRIPTION
+    dep_vol :
+        DESCRIPTION
+    sco_vol :
+        DESCRIPTION
+    morph_act_area :
+        DESCRIPTION
+    morph_act_area_dep :
+        DESCRIPTION
+    morph_act_area_sco :
+        DESCRIPTION
+    act_width_mean :
+        DESCRIPTION
+    act_width_mean_dep :
+        DESCRIPTION
+    act_width_mean_sco :
+        DESCRIPTION
+    act_thickness :
+        DESCRIPTION
+    act_thickness_dep :
+        DESCRIPTION
+    act_thickness_sco :
+        DESCRIPTION
+    bri :
+        DESCRIPTION
+
+    
+    This function ...
 
     '''
     
     # Define total volume matrix, Deposition matrix and Scour matrix
-    vol_array = np.where(np.isnan(array), 0, array) # Total volume matrix
+    vol_array = np.where(np.isnan(matrix), 0, matrix) # Total volume matrix
     dep_array = (vol_array>0)*vol_array # DoD of only deposition data
     sco_array = (vol_array<0)*vol_array # DoD of only scour data
     
@@ -41,8 +75,8 @@ def morph_quantities(array):
     dep_vol = np.sum(dep_array) # Deposition volume as the sum of the value of deposition cell  [L]
     sco_vol = np.sum(sco_array) # Scour volume as the sum of the value of scour cell [L]
     
-    # Define nature array as -1=sco, 0=no_changes, and 1=dep
-    nature_array = np.where(array>0, 1, array)
+    # Define nature matrix as -1=sco, 0=no_changes, and 1=dep
+    nature_array = np.where(matrix>0, 1, matrix)
     nature_array = np.where(nature_array<0, -1, nature_array)
     
     # Define activity array: VERIFIED
@@ -75,8 +109,8 @@ def morph_quantities(array):
     act_thickness_sco = np.nanmean(np.abs(sco_array)) # Scour active thickness (abs(V_sco) + V_dep)/act_area [mm]
     
     # Calculate the Bed Relief Index
-    bri = np.nanstd(array)
+    bri = np.nanstd(matrix)
     
     return tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri
 
-tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(array)
+tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(matrix)

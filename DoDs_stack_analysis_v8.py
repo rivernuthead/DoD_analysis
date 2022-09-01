@@ -83,6 +83,11 @@ pixel_tot = dim_x*dim_y - np.sum(np.isnan(matrix0)) # Pixel domain without consi
 
 
 
+# Pixel attivi in generale
+e = np.nansum(abs(stack_bool), axis=0)
+
+# TODO these counts should be adimensionalise with the amount of total active pixel e
+
 # Pixel attivi sia all'inizio che alla fine
 a = np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:])))/pixel_tot
 
@@ -95,8 +100,7 @@ c = (np.nansum(abs(stack_bool[dim_t -1,:,:])) - np.nansum(abs(np.multiply(stack_
 # Pixel attivi nè all'inizio nè alla fine
 d = dim_x*dim_y/pixel_tot - (a+b+c)
 
-# Pixel attivi in generale
-e = np.nansum(abs(stack_bool), axis=0)
+
 
 # Active area for each DoD
 act_A = []
@@ -129,6 +133,7 @@ P[:,:,:,1] = dif_matrix
 P[:,:,:,2] = mul_matrix
 
 #%%
+
 
 # Deposition pixel switching On matrix (1,1,0)
 dep_px_On = (P[:,:,:,0]==1)*(P[:,:,:,1]==1)*(P[:,:,:,2]==0)
@@ -228,8 +233,9 @@ for x in range(0,dim_x):
         time_array = np.append(time_array, (len(slice_array)-np.sum(np.abs(time_array)))*target_sign) # By now the last period is not calculated (actually because, as the first one, it is only a lower boundary of time because it doesn't appear within two switches) so this operation appeds this value manually
         time_array[0] = time_array[0] + np.sign(time_array[0])*n_zero # Ths operation append, if present, the number of zeroes before the first non-zero value calculated on the very first sliced array (n_zero variable)
         
-        
-        act_time_stack[:len(time_array),y,x]=time_array # This operation fills the stack with time_array     
+        ind = np.max(np.where(time_array!=0)) # This number correspond to the index of the last period in the time_array that is not reliable (as the first one)
+        # So in the filling process I want to exclude the last period:
+        act_time_stack[:ind,y,x]=time_array[:ind] # This operation fills the stack with time_array     
 
 
         if len(time_array)==0 or len(time_array)==1: # If sliced array does not contain any switch (so if the length of the time array is 0 in the case we do not consider the last period - see above - or if the length is 1 so only one period is considered - the last one - this operation fills the output matrix with np.nan)
@@ -248,8 +254,9 @@ for x in range(0,dim_x):
             
             # Fill activation time stack
             # act_time_stack[:len(time_array),y,x]=time_array # To provide the time between each detected switch
-            ind = np.max(np.where(time_array!=0))
-            act_time_stack[:len(time_array)-1,y,x]=time_array[:-1,] # To provide the time between each detected switch
+            ind = np.max(np.where(time_array!=0)) # This number correspond to the index of the last period in the time_array that is not reliable (as the first one)
+            # So in the filling process I want to exclude the last period:
+            act_time_stack[:ind,y,x]=time_array[:ind] # To provide the time between each detected switch
 
 
 '''
@@ -396,6 +403,7 @@ print()
 print('Switch time activation excluding the first one')
 print('mean [min] = ', np.mean(np.abs(act_time_array)*dt))
 print('STD [min] = ', np.std(act_time_array*dt))
+print()
 
 #%%
 '''
@@ -530,7 +538,7 @@ plt.show()
 
 # Boxplot:
 fig, ax = plt.subplots(dpi=80, figsize=(10,6))
-fig.suptitle('Correlation between period lenght and volumes', fontsize = 18)  
+fig.suptitle('Correlation between period lenght and volumes - '+run, fontsize = 18)  
 for m in range(int(periods_array.min()),int(periods_array.max())+1):
     period_volume_matrix = np.vstack((periods_array, volumes_array))
     for i in range(0,len(periods_array)):
@@ -542,6 +550,7 @@ for m in range(int(periods_array.min()),int(periods_array.max())+1):
     
     bplot=ax.boxplot(period_volume_matrix[1,:], positions=[m], widths=0.5) # Data were filtered by np.nan values
 ax.yaxis.grid(True)
+ax.set_yscale('log')
 ax.set_xlabel('Time periods', fontsize=12)
 ax.set_ylabel('Time period volume', fontsize=12)
 plt.xticks(np.arange(int(periods_array.min()),int(periods_array.max())+1, 1))
