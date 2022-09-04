@@ -13,13 +13,12 @@ import matplotlib.pyplot as plt
 from DoD_analysis_functions import *
 from DoD_analysis_functions_2 import *
 from morph_quantities_func_v2 import morph_quantities
-# from matplotlib.colors import ListedColormap, BoundaryNorm
+from matplotlib.colors import ListedColormap, BoundaryNorm
 
 ###############################################################################
 # TODO
 ###############################################################################
-# 1. Update the script with the q10_3 name run issues
-
+# 1. 
 
 start = time.time() # Set initial time
 
@@ -54,15 +53,15 @@ run_mode = 1
 data_interpolation_mode = 0
 windows_mode = 3
 mask_mode = 1
-process_mode = 1
+process_mode = 2
 save_plot_mode = 1
 
 # SINGLE RUN NAME
 run = 'q10_1'
 
 # Set DEM single name to perform process to specific DEM
-DEM1_single_name = 'matrix_bed_norm_q07S5.txt' # DEM1 name
-DEM2_single_name = 'matrix_bed_norm_q07S6.txt' # DEM2 name
+DEM1_single_name = 'matrix_bed_norm_' + run +'s'+'0'+'.txt' # DEM1 name
+DEM2_single_name = 'matrix_bed_norm_' + run +'s'+'1'+'.txt' # DEM2 name
 
 # Filtering process thresholds values
 thrs_zeros = 7 # [-] isolated_killer function threshold
@@ -199,6 +198,11 @@ for run in RUNS:
             
     files = np.append(files1,files2) # Files has been overwritten with a list of file names sorted in the right way :) 
 
+    if process_mode==1:
+        pass
+    elif process_mode == 2:
+        files=[]
+        files=np.append(files,(DEM1_single_name, DEM2_single_name))
 
     # INITIALIZE ARRAYS
     comb = np.array([]) # combination of differences
@@ -345,20 +349,20 @@ for run in RUNS:
             ###################################################################
             # DATA READING...
             ###################################################################
-            # Lines array and header array initialization and extraction:
-            lines = []
-            header = []
+            # # Lines array and header array initialization and extraction:
+            # lines = []
+            # header = []
 
-            with open(path_DEM1, 'r') as file:
-                for line in file:
-                    lines.append(line)  # lines is a list. Each item is a row of the input file
-                # Header extraction...
-                for i in range(0, 7):
-                    header.append(lines[i])
+            # with open(path_DEM1, 'r') as file:
+            #     for line in file:
+            #         lines.append(line)  # lines is a list. Each item is a row of the input file
+            #     # Header extraction...
+            #     for i in range(0, 7):
+            #         header.append(lines[i])
                     
-            # Header printing in a file txt called header.txt
-            with open(path_out + '/' + DoD_name + 'header.txt', 'w') as head:
-                head.writelines(header)
+            # # Header printing in a file txt called header.txt
+            # with open(path_out + '/' + DoD_name + 'header.txt', 'w') as head:
+            #     head.writelines(header)
 
             ###################################################################
             # DATA LOADING...
@@ -376,16 +380,39 @@ for run in RUNS:
             # DEMs reshaping according to arr_shape...
             DEM1=DEM1[0:arr_shape[0], 0:arr_shape[1]]
             DEM2=DEM2[0:arr_shape[0], 0:arr_shape[1]]
+            
+            # Raster dimension
+            dim_y, dim_x = DEM1.shape
+            print('dim_x: ', dim_x, '    dim_y: ', dim_y)
+            
+            ###################################################################
+            # HEADER
+            ###################################################################
+            # Lines array and header array initialization and extraction:
+            lines = []
+            header = []
 
+            with open(path_DEM1, 'r') as file:
+                for line in file:
+                    lines.append(line)  # lines is a list. Each item is a row of the input file
+                # Header extraction...
+                for i in range(0, 7):
+                    header.append(lines[i])
+            
+            # Update header columns and row number:
+            header[4] = header[4].replace(header[4][22:25], str(dim_y))
+            header[5] = header[5].replace(header[5][22:25], str(dim_x))
+            
+            # Header printing in a file txt called header.txt
+            with open(path_out + '/' + DoD_name + 'header.txt', 'w') as head:
+                head.writelines(header)
             
             ###################################################################
             # PERFORM DEM OF DIFFERENCE - DEM2-DEM1
             ###################################################################
             # Print DoD name
             print(DEM2_name, '-', DEM1_name)
-            # Raster dimension
-            dim_y, dim_x = DEM1.shape
-            
+
             # Calculate the DoD length in meters:
             DoD_length = DEM1.shape[1]*px_x/1000 # DoD length [m]
             
@@ -439,8 +466,12 @@ for run in RUNS:
                     function was applied 
                 DoD_filt_fill_gis: the same for DoD_filt_fill but np.nan=NaN
                 
-                DoD_filt_ult: DoD_filt_fill where another round of isolated_killer
+                DoD_filt_isol2: DoD_filt_fill where another round of isolated_killer
                     function was applied
+                DoD_filt_isol2_gis: the same for DoD_filt_ult but with np.nan=NaN
+                
+                DoD_filt_ult: DoD_filt_isol2 where island_destryer function
+                    was applied
                 DoD_filt_ult_gis: the same for DoD_filt_ult but with np.nan=NaN
             '''
             
@@ -448,10 +479,13 @@ for run in RUNS:
             # -------------------------------------
             DoD_filt_mean, DoD_filt_mean_gis = spatial_weighted_average(DoD_raw, 1, NaN)
             
+            # PERFORM UNDER THRESHOLD ZEROING:
+            DoD_filt_mean = np.where(np.abs(DoD_filt_mean)<=thrs_1, 0, DoD_filt_mean)
+            
             # PERFORM AVOIDING ZERO-SURROUNDED PIXEL PROCEDURE:
             #--------------------------------------------------
             # After trimming al np.nan values, counter represent the number of
-            # pixel not equal to zero o fthe DoD_filt_mean matrix
+            # pixel not equal to zero in the DoD_filt_mean matrix
             counter0 = np.count_nonzero(DoD_filt_mean[np.logical_not(np.isnan(DoD_filt_mean))])
             
             # Perform the very first isolated_killer procedure
@@ -463,7 +497,9 @@ for run in RUNS:
             # Perform the isolated_killer procedure until the number of active
             # pixel will not change anymore 
             while counter0-counter1!=0:
+                # Filtering...
                 DoD_filt_isol, DoD_filt_isol_gis = isolated_killer(DoD_filt_isol, thrs_zeros, 1, NaN)
+                # Update counters:
                 counter0 = counter1
                 counter1 = np.count_nonzero(DoD_filt_isol[np.logical_not(np.isnan(DoD_filt_isol))])
                 
@@ -473,7 +509,19 @@ for run in RUNS:
             
             # PERFORM PITTS FILLING PIXEL PROCEDURE:
             #---------------------------------------
+            # Initialize the counter from the previous step of the filtering process
+            counter0 = np.count_nonzero(DoD_filt_nature[np.logical_not(np.isnan(DoD_filt_nature))])
+            # Perform the first step of the filling procedure
             DoD_filt_fill, DoD_filt_fill_gis = isolated_filler(DoD_filt_nature, thrs_fill, 1, NaN)
+            # Calculate the current counter
+            counter1 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])
+            # Perform the loop of the filtering process
+            while counter0-counter1!=0:
+                # Filtering...
+                DoD_filt_fill, DoD_filt_fill_gis = isolated_filler(DoD_filt_fill, thrs_fill, 1, NaN)
+                # Update counters:
+                counter0=counter1
+                counter1 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])
             
             # RE-PERFORM AVOIDING ZERO-SURROUNDED PIXEL PROCEDURE:
             #-----------------------------------------------------
@@ -482,48 +530,81 @@ for run in RUNS:
             counter0 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])
             
             # Perform the very first isolated_killer procedure
-            DoD_filt_ult, DoD_filt_ult_gis = isolated_killer(DoD_filt_fill, thrs_zeros, 1, NaN)
+            DoD_filt_isol2, DoD_filt_isol2_gis = isolated_killer(DoD_filt_fill, thrs_zeros, 1, NaN)
             
             # After trimming al np.nan values, counter represent the number of
-            # pixel not equal to zero of the DoD_filt_ult matrix
-            counter1 = np.count_nonzero(DoD_filt_ult[np.logical_not(np.isnan(DoD_filt_ult))])
+            # pixel not equal to zero of the DoD_filt_isol2 matrix
+            counter1 = np.count_nonzero(DoD_filt_isol2[np.logical_not(np.isnan(DoD_filt_isol2))])
             # Perform the isolated_killer procedure until the number of active
             # pixel will not change anymore
 
             while counter0-counter1!=0:
-                DoD_filt_ult, DoD_filt_ult_gis = isolated_killer(DoD_filt_ult, thrs_zeros, 1, NaN)
+                # Filtering...
+                DoD_filt_isol2, DoD_filt_isol2_gis = isolated_killer(DoD_filt_isol2, thrs_zeros, 1, NaN)
+                # Update counters:
                 counter0 = counter1
-                counter1 = np.count_nonzero(DoD_filt_ult[np.logical_not(np.isnan(DoD_filt_ult))])
+                counter1 = np.count_nonzero(DoD_filt_isol2[np.logical_not(np.isnan(DoD_filt_isol2))])
             
-    
+            # PERFORM ISLAND DESTROYER PIXEL PROCEDURE:
+            #------------------------------------------
+            DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_isol2, 8, 1, NaN) # First step of filtering process
             
-
+            for w in range(2,9): # Repeat the filtering process with windows from dimension 2 to 9 
+                DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_ult, w, 1, NaN)
+            
             ###################################################################
             # PLOT RAW DOD, MEAN DOD AND FILTERED DOD
             ###################################################################
-            # # Plot data using nicer colors
-            # colors = ['linen', 'lightgreen', 'darkgreen', 'maroon']
-            # class_bins = [-10.5, -1.5, 0, 1.5, 10.5]
-            # cmap = ListedColormap(colors)
-            # norm = BoundaryNorm(class_bins,
-            #                     len(colors))
+            # Print the last DoD outcome
+            if save_plot_mode == 1:
+                fig, ax = plt.subplots(dpi=200, tight_layout=True)
+                # im = ax.imshow(np.where(DoD_filt_isol2_gis==NaN, np.nan, DoD_filt_ult_gis), cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
+                im = ax.imshow(DoD_filt_ult, cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
+                # plt.colorbar(im)
+                plt.title(DoD_name[:-1], fontweight='bold')
+                plt.savefig(os.path.join(plot_dir, run +'_DoD.png'), dpi=1600)
+                plt.show()
+            else:
+                pass
+            
+            
+            # PLOT OF ALL THE DIFFERENT FILTERING STAGE
+            fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7,1, tight_layout=True, figsize=(10,6))
+            fig.suptitle('Filtering process - ' + run)
+            # Convert all zero value in np.nan to make it transparent on plots:
+            DoD_raw_plot = np.where(DoD_raw==0, np.nan, DoD_raw)
+            DoD_filt_mean_plot = np.array(np.where(DoD_filt_mean==0, np.nan, DoD_filt_mean))
+            DoD_filt_isol_plot = np.array(np.where(DoD_filt_isol==0, np.nan, DoD_filt_isol))
+            DoD_filt_nature_plot = np.array(np.where(DoD_filt_nature==0, np.nan, DoD_filt_nature))
+            DoD_filt_fill_plot = np.array(np.where(DoD_filt_fill==0, np.nan, DoD_filt_fill))
+            DoD_filt_isol2_plot = np.array(np.where(DoD_filt_isol2==0, np.nan, DoD_filt_isol2))
+            DoD_filt_ult_plot = np.array(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult))
+            
+            raw = ax1.imshow(DoD_raw_plot, cmap='RdBu', aspect='0.1')
+            ax1.set_title('raw DoD')
 
-            # fig, (ax1, ax2, ax3) = plt.subplots(3,1)
+            filt_mean = ax2.imshow(DoD_filt_mean_plot, cmap='RdBu', aspect='0.1')
+            ax2.set_title('filt_mean')
 
-            # raw= ax1.imshow(DoD_raw, cmap=cmap, norm=norm)
-            # ax1.set_title('raw DoD')
-
-            # mean = ax2.imshow(DoD_mean_th1, cmap=cmap, norm=norm)
-            # ax2.set_title('mean DoD')
-
-            # filt = ax3.imshow(DoD_out, cmap=cmap, norm=norm)
-            # ax3.set_title('Filtered DoD')
-
-            # #fig.colorbar()
-            # fig.tight_layout()
-            # plt.show()
-            # plt.savefig(path_out + '/raster.pdf') # raster (png, jpg, rgb, tif), vector (pdf, eps), latex (pgf)
-            # #plt.imshow(DoD_out, cmap='RdYlGn')
+            filt_isol = ax3.imshow(DoD_filt_isol_plot, cmap='RdBu', aspect='0.1')
+            ax3.set_title('filt_isol')
+            
+            filt_nature = ax4.imshow(DoD_filt_nature_plot, cmap='RdBu', aspect='0.1')
+            ax4.set_title('filt_nature')
+            
+            filt_fill = ax5.imshow(DoD_filt_fill_plot, cmap='RdBu', aspect='0.1')
+            ax5.set_title('filt_fill')
+            
+            filt_isol2 = ax6.imshow(DoD_filt_isol2_plot, cmap='RdBu', aspect='0.1')
+            ax6.set_title('filt_isol2')
+            
+            filt_ult = ax7.imshow(DoD_filt_ult_plot, cmap='RdBu', aspect='0.1')
+            ax7.set_title('filt_ult')
+            
+            # fig.colorbar(DoD_filt_isol2_plot)
+            plt.savefig(os.path.join(plot_dir, run +'_'+DoD_name[:-1]+'_filtmap.tif'), dpi=1000) # raster (png, jpg, rgb, tif), vector (pdf, eps), latex (pgf)
+            plt.show()
+            
 
             ###################################################################
             # TOTAL VOLUMES, DEPOSITION VOLUMES AND SCOUR VOLUMES
@@ -539,19 +620,18 @@ for run in RUNS:
             sco_DoD = (DoD_vol<0)*DoD_vol # Scour only matrix
             
             # ...as boolean active pixel matrix:
-            act_px_matrix = np.where(DoD_vol!=0, 1, 0) # Active pixel matrix, both scour and deposition
-            act_px_matrix_dep = np.where(dep_DoD != 0, 1, 0) # Active deposition matrix 
-            act_px_matrix_sco = np.where(sco_DoD != 0, 1, 0) # Active scour matrix
+            act_px_matrix = np.where(DoD_filt_ult!=0, 1, 0)*np.where(np.isnan(DoD_filt_ult), np.nan, 1) # Active pixel matrix, both scour and deposition
+            act_px_matrix_dep = np.where(DoD_filt_ult>0, 1, 0)*np.where(np.isnan(DoD_filt_ult), np.nan, 1) # Active deposition matrix 
+            act_px_matrix_sco = np.where(DoD_filt_ult<0, 1, 0)*np.where(np.isnan(DoD_filt_ult), np.nan, 1) # Active scour matrix
+            
+            # GIS readable matrix where np.nan is NaN
+            act_px_matrix_gis = np.where(np.isnan(act_px_matrix), NaN, act_px_matrix) # Active pixel matrix, both scour and deposition
+            act_px_matrix_dep_gis = np.where(np.isnan(act_px_matrix_dep), NaN, act_px_matrix_dep) # Active deposition matrix 
+            act_px_matrix_sco_gis = np.where(np.isnan(act_px_matrix_sco), NaN, act_px_matrix_sco) # Active scour matrix
             
             # MORPHOLOGICAL QUANTITIES:
             tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_ult)
-            
-            
-            # tot_vol = np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*d50*1e09) # Total volume as V/(L*W*d50) [-] considering negative sign for scour
-            # sum_vol = np.sum(np.abs(DoD_vol))*px_x*px_y/(W*DoD_length*d50*1e09) # Sum of scour and deposition volume as V/(L*W*d50) [-]
-            # dep_vol = np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*d50*1e09) # Deposition volume as V/(L*W*d50) [-]
-            # sco_vol = np.sum(sco_DoD)*px_x*px_y/(W*DoD_length*d50*1e09) # Scour volume as V/(L*W*d50) [-]
-            
+
             
             #Print results:
             print('Total volume:', "{:.1f}".format(tot_vol))
@@ -569,45 +649,24 @@ for run in RUNS:
             
             ###################################################################
             # Active_pixel analysis
-            ###################################################################
-            
-            # act_px_matrix = np.where(DoD_vol!=0, 1, 0) # Active pixel matrix, both scour and deposition
-            # act_px_matrix_dep = np.where(dep_DoD != 0, 1, 0) # Active deposition matrix 
-            # act_px_matrix_sco = np.where(sco_DoD != 0, 1, 0) # Active scour matrix
-            
-            # morph_act_area = np.count_nonzero(act_px_matrix)*px_x*px_y # Active area both in terms of scour and deposition [mm²]
-            # morph_act_area_dep = np.count_nonzero(act_px_matrix_dep)*px_x*px_y # Active deposition area [mm²]
-            # morph_act_area_sco = np.count_nonzero(act_px_matrix_sco)*px_x*px_y # Active scour area [mm²]
-            
+            ###################################################################            
             morph_act_area_array = np.append(morph_act_area_array, morph_act_area) # For each DoD, append total active area data
             morph_act_area_array_dep = np.append(morph_act_area_array_dep, morph_act_area_dep) # For each DoD, append deposition active area data
             morph_act_area_array_sco = np.append(morph_act_area_array_sco, morph_act_area_sco) # For each DoD, append scour active area data
-            
-            # act_width_mean = (morph_act_area/(DoD_length*1000))/(W*1000) # Total mean active width [%] - Wact/W
-            # act_width_mean_dep = (morph_act_area_dep/(DoD_length*1000))/(W*1000) # Deposition mean active width [%] - Wact/W
-            # act_width_mean_sco = (morph_act_area_sco/(DoD_length*1000))/(W*1000) # Scour mean active width [%] - Wact/W
             
             act_width_mean_array = np.append(act_width_mean_array, act_width_mean) # For each DoD append total active width values
             act_width_mean_array_dep = np.append(act_width_mean_array_dep, act_width_mean_dep) # For each DoD append deposition active width values
             act_width_mean_array_sco = np.append(act_width_mean_array_sco, act_width_mean_sco) # For each DoD append scour active width values
             
-            act_width_array = np.array([np.nansum(act_px_matrix, axis=0)])*px_y/1000/W # Array of the crosswise morphological total active width [Wact/W]
-            act_width_array_dep = np.array([np.nansum(act_px_matrix_dep, axis=0)])*px_y/1000/W # Array of the crosswise morphological deposition active width [Wact/W]
-            act_width_array_sco = np.array([np.nansum(act_px_matrix_sco, axis=0)])*px_y/1000/W # Array of the crosswise morphological scour active width [Wact/W]
-            
-            # # Calculate active thickness for total volumes. deposition volumes and scour volumes
-            # act_thickness = (np.sum(np.abs(DoD_vol))*px_x*px_y)/morph_act_area # Total active thickness (abs(V_sco) + V_dep)/act_area [mm]
-            # act_thickness_dep = (np.sum(np.abs(dep_DoD))*px_x*px_y)/morph_act_area_dep # Deposition active thickness (abs(V_sco) + V_dep)/act_area [mm]
-            # act_thickness_sco = (np.sum(np.abs(sco_DoD))*px_x*px_y)/morph_act_area_sco # Scour active thickness (abs(V_sco) + V_dep)/act_area [mm]
+            act_width_array = np.array([np.nansum(act_px_matrix, axis=0)]) # Array of the crosswise morphological total active width in number of active cells [-]
+            act_width_array_dep = np.array([np.nansum(act_px_matrix_dep, axis=0)]) # Array of the crosswise morphological deposition active width in number of active cells [-]
+            act_width_array_sco = np.array([np.nansum(act_px_matrix_sco, axis=0)]) # Array of the crosswise morphological scour active width in number of active cells [-]
             
             print('Active thickness [mm]:', act_thickness)
-            print('Morphological active area: ', "{:.1f}".format(morph_act_area), '[mm²]')
-            print('Morphological active width (mean):', "{:.3f}".format(act_width_mean), '%')
+            print('Morphological active area (number of active cells): ', "{:.1f}".format(morph_act_area), '[-]')
+            print('Morphological active width (mean):', "{:.3f}".format(act_width_mean/(dim_y)), '%')
             print()
             
-                
-
-
             # Create output matrix as below:
             # DoD step0  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  average STDEV
             # DoD step1  2-0   3-1   4-2   5-3   6-4   7-5   8-6   9-7        average STDEV
@@ -626,9 +685,10 @@ for run in RUNS:
             # TODO UPDATE
             delta=int(DEM2_num)-int(DEM1_num) # Calculate delta between DEM
             
-            print('----------')
             print('delta = ', delta)
             print('----------')
+            print()
+            print()
             
             # Build up morphWact/W array for the current run boxplot
             # This array contain all the morphWact/W values for all the run repetition in the same line
@@ -638,16 +698,20 @@ for run in RUNS:
 
             # Fill Scour, Deposition and morphWact/w matrix:
             if delta != 0:
-                # Fill matrix with values
-                matrix_volumes[delta-1,h]=np.sum(DoD_vol)*px_x*px_y/(W*DoD_length*d50*1e09) # Total volumes as the algebric sum of scour and deposition volumes V/(W*L) [mm]
-                matrix_sum_volumes[delta-1,h]=np.sum(np.abs(DoD_vol))*px_x*px_y/(W*DoD_length*d50*1e09) # Total volumes as the sum of scour and deposition volumes V/(W*L) [mm]
-                matrix_dep[delta-1,h]=np.sum(dep_DoD)*px_x*px_y/(W*DoD_length*d50*1e09) # Deposition volumes as V/(W*L) [mm]
-                matrix_sco[delta-1,h]=np.sum(sco_DoD)*px_x*px_y/(W*DoD_length*d50*1e09) # Scour volumes as V/(W*L) [mm]
-                matrix_morph_act_area[delta-1,h]=morph_act_area # Total morphological active area
-                matrix_morph_act_area_dep[delta-1,h]=morph_act_area_dep # Deposition morphological active area
-                matrix_morph_act_area_sco[delta-1,h]=morph_act_area_sco # Scour morphological active area
-
-                # Fill last two columns with AVERAGE and STDEV
+                # Fill matrix with data
+                matrix_volumes[delta-1,h]=tot_vol # Total volumes as the algebric sum of scour and deposition volumes [L]
+                matrix_sum_volumes[delta-1,h]=sum_vol # Total volumes as the sum of scour and deposition volumes [L]
+                matrix_dep[delta-1,h]=dep_vol # Deposition volume [L]
+                matrix_sco[delta-1,h]=sco_vol # Scour volume [L]
+                matrix_morph_act_area[delta-1,h]=morph_act_area # Total morphological active area in number of cells [-]
+                matrix_morph_act_area_dep[delta-1,h]=morph_act_area_dep # Deposition morphological active area in number of cells [-]
+                matrix_morph_act_area_sco[delta-1,h]=morph_act_area_sco # Scour morphological active area in number of cells [-]
+                matrix_act_thickness[delta-1,h]=act_thickness # Active thickness data calculated from total volume matrix [L]
+                matrix_act_thickness_dep[delta-1,h]=act_thickness_dep # Active thickness data calculated from deposition volume matrix [L]
+                matrix_act_thickness_sco[delta-1,h]=act_thickness_sco # Active thickness data calculated from scour volume matrix [L]
+                matrix_Wact[delta-1,h]=act_width_mean
+                
+                # Fill last two columns with AVERAGE of the corresponding row
                 matrix_volumes[delta-1,-2]=np.average(matrix_volumes[delta-1,:len(files)-delta]) #Total volumes
                 matrix_sum_volumes[delta-1,-2]=np.average(matrix_sum_volumes[delta-1,:len(files)-delta]) #Total sum volumes
                 matrix_dep[delta-1,-2]=np.average(matrix_dep[delta-1,:len(files)-delta]) # Deposition volumes
@@ -655,7 +719,12 @@ for run in RUNS:
                 matrix_morph_act_area[delta-1,-2]=np.average(matrix_morph_act_area[delta-1,:len(files)-delta]) # Morphological total active area
                 matrix_morph_act_area_dep[delta-1,-2]=np.average(matrix_morph_act_area_dep[delta-1,:len(files)-delta]) # Morphological deposition active area
                 matrix_morph_act_area_sco[delta-1,-2]=np.average(matrix_morph_act_area_sco[delta-1,:len(files)-delta]) # Morphological scour active area
+                matrix_act_thickness[delta-1,-2]=np.average(matrix_act_thickness[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from total volume matrix
+                matrix_act_thickness_dep[delta-1,-2]=np.average(matrix_act_thickness_dep[delta-1,:len(files)-delta]) # Active thickness average calculated from deposition volume matrix
+                matrix_act_thickness_sco[delta-1,-2]=np.average(matrix_act_thickness_sco[delta-1,:len(files)-delta]) # Active thickness average calculated from scour volume matrix
+                matrix_Wact[delta-1,-2]=np.average(matrix_Wact[delta-1,:len(files)-delta])
                 
+                # Fill last two columns with STDEV of the corresponding row
                 matrix_volumes[delta-1,-1]=np.std(matrix_volumes[delta-1,:len(files)-delta])
                 matrix_sum_volumes[delta-1,-1]=np.std(matrix_sum_volumes[delta-1,:len(files)-delta])
                 matrix_dep[delta-1,-1]=np.std(matrix_dep[delta-1,:len(files)-delta])
@@ -663,20 +732,23 @@ for run in RUNS:
                 matrix_morph_act_area[delta-1,-1]=np.std(matrix_morph_act_area[delta-1,:len(files)-delta])
                 matrix_morph_act_area_dep[delta-1,-1]=np.std(matrix_morph_act_area_dep[delta-1,:len(files)-delta])
                 matrix_morph_act_area_sco[delta-1,-1]=np.std(matrix_morph_act_area_sco[delta-1,:len(files)-delta])
-
-                # Fill active thickness matrix:
-                matrix_act_thickness[delta-1,h]=act_thickness #Fill matrix with active thickness data calculated from total volume matrix
-                matrix_act_thickness_dep[delta-1,h]=act_thickness_dep #Fill matrix with active thickness data calculated from deposition volume matrix
-                matrix_act_thickness_sco[delta-1,h]=act_thickness_sco #Fill matrix with active thickness data calculated from scour volume matrix
-                
-                matrix_act_thickness[delta-1,-2]=np.average(matrix_act_thickness[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from total volume matrix
-                matrix_act_thickness_dep[delta-1,-2]=np.average(matrix_act_thickness_dep[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from deposition volume matrix
-                matrix_act_thickness_sco[delta-1,-2]=np.average(matrix_act_thickness_sco[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from scour volume matrix
-                
                 matrix_act_thickness[delta-1,-1]=np.std(matrix_act_thickness[delta-1,:len(files)-delta]) # Fill matrix with active thickness standard deviation calculated from total volume matrix
-                matrix_act_thickness_dep[delta-1,-1]=np.std(matrix_act_thickness_dep[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from deposition volume matrix
-                matrix_act_thickness_sco[delta-1,-1]=np.std(matrix_act_thickness_sco[delta-1,:len(files)-delta]) # Fill matrix with active thickness average calculated from scour volume matrix
+                matrix_act_thickness_dep[delta-1,-1]=np.std(matrix_act_thickness_dep[delta-1,:len(files)-delta]) # Active thickness average calculated from deposition volume matrix
+                matrix_act_thickness_sco[delta-1,-1]=np.std(matrix_act_thickness_sco[delta-1,:len(files)-delta]) # Active thickness average calculated from scour volume matrix
+                matrix_Wact[delta-1,-1]=np.std(matrix_Wact[delta-1,:len(files)-delta])
+                
+                # Fill III quantile Wact/W matrix:
+                matrix_Wact_IIIquantile[delta-1,h]=np.quantile(act_width_array, .75)
+                matrix_Wact_IIIquantile[delta-1,-2]=np.min(matrix_Wact_IIIquantile[delta-1,:len(files)-delta])
+                matrix_Wact_IIIquantile[delta-1,-1]=np.max(matrix_Wact_IIIquantile[delta-1,:len(files)-delta])
 
+                # Fill I quantile Wact/W matrix:
+                matrix_Wact_Iquantile[delta-1,h]=np.quantile(act_width_array, .25)
+                matrix_Wact_Iquantile[delta-1,-2]=np.min(matrix_Wact_Iquantile[delta-1,:len(files)-delta])
+                matrix_Wact_Iquantile[delta-1,-1]=np.max(matrix_Wact_Iquantile[delta-1,:len(files)-delta])   
+                
+
+                # DATA STRUCTURE
                 # Fill Wact/W MEAN matrix as below:
                 # DoD step0  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  Iquantile IIIquantile average STDEV
                 # DoD step1  2-0   3-1   4-2   5-3   6-4   7-5   8-6   9-7        Iquantile IIIquantile average STDEV
@@ -687,11 +759,6 @@ for run in RUNS:
                 # DoD step6  7-0   8-1   9-2                                      Iquantile IIIquantile average STDEV
                 # DoD step7  8-0   9-1                                            Iquantile IIIquantile average STDEV
                 # DoD step8  9-0                                                  Iquantile IIIquantile average STDEV
-
-                matrix_Wact[delta-1,h]=act_width_mean
-                matrix_Wact[delta-1,-2]=np.average(matrix_Wact[delta-1,:len(files)-delta])
-                matrix_Wact[delta-1,-1]=np.std(matrix_Wact[delta-1,:len(files)-delta])
-
 
                 # Fill Wact/W MAX (MIN) matrix as below:
                 # NB: MIN and MAX columns are to be intended as the maximum and the minimum value
@@ -706,16 +773,6 @@ for run in RUNS:
                 # DoD step6  7-0   8-1   9-2                                      min(Iquantile) max(Iquantile)
                 # DoD step7  8-0   9-1                                            min(Iquantile) max(Iquantile)
                 # DoD step8  9-0                                                  min(Iquantile) max(Iquantile)
-
-                # Fill III quantile Wact/W matrix:
-                matrix_Wact_IIIquantile[delta-1,h]=np.quantile(act_width_array, .75)
-                matrix_Wact_IIIquantile[delta-1,-2]=np.min(matrix_Wact_IIIquantile[delta-1,:len(files)-delta])
-                matrix_Wact_IIIquantile[delta-1,-1]=np.max(matrix_Wact_IIIquantile[delta-1,:len(files)-delta])
-
-                # Fill I quantile Wact/W matrix:
-                matrix_Wact_Iquantile[delta-1,h]=np.quantile(act_width_array, .25)
-                matrix_Wact_Iquantile[delta-1,-2]=np.min(matrix_Wact_Iquantile[delta-1,:len(files)-delta])
-                matrix_Wact_Iquantile[delta-1,-1]=np.max(matrix_Wact_Iquantile[delta-1,:len(files)-delta])                
                 
                 
             else:
@@ -738,82 +795,126 @@ for run in RUNS:
             # DoDs SAVING...
             ###################################################################
 
+            os.path.join(path_out, DoD_name, )
+            
             # RAW DoD
             # Print raw DoD in txt file (NaN as np.nan)
-            np.savetxt(path_out + '/' + DoD_name + 'raw.txt', DoD_raw, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'raw.txt'), DoD_raw, fmt='%0.1f', delimiter='\t')
             # Printing raw DoD in txt file (NaN as -999)
-            np.savetxt(path_out + '/' + DoD_name + 'raw_gis.txt', DoD_raw_rst, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'raw_gis.txt'), DoD_raw_rst, fmt='%0.1f', delimiter='\t')
 
             # WEIGHTED AVERAGED DoD
             # Print DoD mean in txt file (NaN as np.nan)
-            np.savetxt(path_out + '/' + DoD_name + '_filt_mean.txt', DoD_filt_mean , fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_mean.txt'), DoD_filt_mean , fmt='%0.1f', delimiter='\t')
             # Print filtered DoD (with NaN as -999)
-            np.savetxt(path_out + '/' + DoD_name + '_filt_mean_rst.txt', DoD_filt_mean_gis , fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_mean_gis.txt'), DoD_filt_mean_gis , fmt='%0.1f', delimiter='\t')
 
             # ISOLATE KILLER FUNCTION APPLIED DoD
             # Print filtered DoD (with np.nan)...
-            np.savetxt(path_out + '/' + DoD_name + '_filt_isol_.txt', DoD_filt_isol, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_isol.txt'), DoD_filt_isol, fmt='%0.1f', delimiter='\t')
             # Print filtered DoD (with NaN as -999)
-            np.savetxt(path_out + '/' + DoD_name + '_filt_isol_gis.txt', DoD_filt_isol_gis, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_isol_gis.txt'), DoD_filt_isol_gis, fmt='%0.1f', delimiter='\t')
             
             # NATURE CHECKER FUNCTION APPLIED DoD
             # Print filtered DoD (with np.nan)...
-            np.savetxt(path_out + '/' + DoD_name + '_filt_nature_.txt', DoD_filt_nature, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature.txt'), DoD_filt_nature, fmt='%0.1f', delimiter='\t')
             # Print filtered DoD (with NaN as -999)
-            np.savetxt(path_out + '/' + DoD_name + '_filt_nature_gis.txt', DoD_filt_nature_gis, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), DoD_filt_nature_gis, fmt='%0.1f', delimiter='\t')
             
             # ISOLATE FILLER FUNCTION APPLIED DoD
             # Print filtered DoD (with np.nan)...
-            np.savetxt(path_out + '/' + DoD_name + '_filt_fill_.txt', DoD_filt_fill, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_fill.txt'), DoD_filt_fill, fmt='%0.1f', delimiter='\t')
             # Print filtered DoD (with NaN as -999)
-            np.savetxt(path_out + '/' + DoD_name + '_filt_fill_gis.txt', DoD_filt_fill_gis, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_fill_gis.txt'), DoD_filt_fill_gis, fmt='%0.1f', delimiter='\t')
 
-            # # SECOND ROUND OF ISOLATE KILLER FUNCTION APPLIED DoD (This is the ultimate DoD)
+            # SECOND ROUND OF ISOLATE KILLER FUNCTION APPLIED DoD (This is the ultimate DoD)
             # Print filtered DoD (with np.nan)...
-            np.savetxt(path_out + '/' + DoD_name + '_filt_ult.txt', DoD_filt_ult, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_isol2.txt'), DoD_filt_isol2, fmt='%0.1f', delimiter='\t')
             # Print filtered DoD (with NaN as -999)
-            np.savetxt(path_out + '/' + DoD_name + 'filt_ult_gis.txt', DoD_filt_ult_gis, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_isol2_gis.txt'), DoD_filt_isol2_gis, fmt='%0.1f', delimiter='\t')
+            
+            # ISLAND KILLER FUNCTION APPLIED DoD (...)
+            # Print filtered DoD (with np.nan)...
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_ult.txt'), DoD_filt_ult, fmt='%0.1f', delimiter='\t')
+            # Print filtered DoD (with NaN as -999)
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_ult_gis.txt'), DoD_filt_ult_gis, fmt='%0.1f', delimiter='\t')
 
             # ACTIVE PIXEL DoD
             # Print boolean map of active pixel: 1=active, 0=not active
-            np.savetxt(path_out + '/' + DoD_name + 'active.txt', act_px_matrix, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'activity_map.txt'), act_px_matrix, fmt='%0.1f', delimiter='\t')
+            # Print boolean GIS readable map of active pixel as above (np.nan is NaN)
+            np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_gis.txt'), act_px_matrix_gis , fmt='%0.1f', delimiter='\t')
             
             # ACTIVE DEPOSITION PIXEL DoD
             # Print boolean map of active pixel: 1=deposition, 0=not active or scour
-            np.savetxt(path_out + '/' + DoD_name + 'active_dep.txt', act_px_matrix_dep, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_dep.txt'), act_px_matrix_dep, fmt='%0.1f', delimiter='\t')
+            # Print boolean GIS readable map of active pixel as above (np.nan is NaN)
+            np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_dep_gis.txt'), act_px_matrix_dep_gis , fmt='%0.1f', delimiter='\t')
             
             # ACTIVE SCOUR PIXEL DoD
             # Print boolean map of active pixel: 1=scour, 0=not active or deposition
-            np.savetxt(path_out + '/' + DoD_name + 'active_sco.txt', act_px_matrix_sco, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_sco.txt'), act_px_matrix_sco, fmt='%0.1f', delimiter='\t')
+            # Print boolean GIS readable map of active pixel as above (np.nan is NaN)
+            np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_sco_gis.txt'), act_px_matrix_sco_gis, fmt='%0.1f', delimiter='\t')
 
 
             # TODO Could this part be implemented as a function?
             # Print DoD and filtered DoD (with NaN as -999) in a GIS readable format (ASCII grid):
-            with open(path_out + '/' + DoD_name + 'header.txt') as f_head:
+            with open(os.path.join(path_out, DoD_name + 'header.txt')) as f_head:
                 w_header = f_head.read()    # Header
-            with open(path_out + '/' + DoD_name + 'raw_rst.txt') as f_DoD:
-                w_DoD_raw= f_DoD.read()   # Raw DoD
-            with open(path_out + '/' + DoD_name + 'mean_rst.txt') as f_DoD_mean:
-                w_DoD_mean = f_DoD_mean.read()    # Mean DoD
-            with open(path_out + '/' + DoD_name + 'filt_rst.txt') as f_DoD_filt:
-                w_DoD_filt = f_DoD_filt.read()    # Filtered DoD
-            with open(path_out + '/' + DoD_name + 'filt_nozero_rst.txt') as f_DoD_filt_nozero:
-                w_DoD_filt_nozero = f_DoD_filt_nozero.read()    # Avoided zero surrounded pixel DoD
+            with open(os.path.join(path_out, DoD_name + 'raw_gis.txt')) as f_DoD:
+                w_DoD_raw= f_DoD.read()
+            with open(os.path.join(path_out, DoD_name + 'filt_mean_gis.txt')) as f_DoD_mean:
+                w_DoD_mean = f_DoD_mean.read()
+            with open(os.path.join(path_out, DoD_name + 'filt_isol_gis.txt')) as f_DoD_isol:
+                w_DoD_isol = f_DoD_isol.read()
+            with open(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt')) as f_DoD_nature:
+                w_DoD_nature = f_DoD_nature.read()
+            with open(os.path.join(path_out, DoD_name + 'filt_fill_gis.txt')) as f_DoD_fill:
+                w_DoD_fill = f_DoD_fill.read()
+            with open(os.path.join(path_out, DoD_name + 'filt_isol2_gis.txt')) as f_DoD_isol2:
+                w_DoD_isol2 = f_DoD_isol2.read()
+            with open(os.path.join(path_out, DoD_name + 'filt_ult_gis.txt')) as f_DoD_ult:
+                w_DoD_ult = f_DoD_ult.read()
+            with open(os.path.join(path_out, DoD_name + 'activity_map_gis.txt')) as f_DoD_act_map:
+                w_DoD_act_map = f_DoD_act_map.read()
+            with open(os.path.join(path_out, DoD_name + 'activity_map_dep_gis.txt')) as f_DoD_act_map_dep:
+                w_DoD_act_map_dep = f_DoD_act_map_dep.read()
+            with open(os.path.join(path_out, DoD_name + 'activity_map_sco_gis.txt')) as f_DoD_act_map_sco:
+                w_DoD_act_map_sco = f_DoD_act_map_sco.read()
 
-                # Print GIS readable raster [raw DoD, mean DoD, filtered DoD]
+                # Print GIS readable raster
                 DoD_raw_gis = w_header + w_DoD_raw
                 DoD_mean_gis = w_header + w_DoD_mean
-                DoD_filt_gis = w_header + w_DoD_filt
-                DoD_filt_nozero_gis = w_header + w_DoD_filt_nozero
+                DoD_isol_gis = w_header + w_DoD_isol
+                DoD_nature_gis = w_header + w_DoD_nature
+                DoD_fill_gis = w_header + w_DoD_fill
+                DoD_isol2_gis = w_header + w_DoD_isol2
+                DoD_ult_gis = w_header + w_DoD_ult
+                DoD_act_map_gis = w_header + w_DoD_act_map
+                DoD_act_map_dep_gis = w_header + w_DoD_act_map_dep
+                DoD_act_map_sco_gis = w_header + w_DoD_act_map_sco
 
-            with open(path_out + '/' +'gis-'+ DoD_name + 'raw.txt', 'w') as fp:
+            with open(os.path.join(path_out, DoD_name + 'raw_gis.txt'), 'w') as fp:
                 fp.write(DoD_raw_gis)
-            with open(path_out + '/' +'gis-'+ DoD_name + 'mean.txt', 'w') as fp:
+            with open(os.path.join(path_out, DoD_name + 'filt_mean_gis.txt'), 'w') as fp:
                 fp.write(DoD_mean_gis)
-            with open(path_out + '/' + 'gis-' + DoD_name + 'filt.txt', 'w') as fp:
-                fp.write(DoD_filt_gis)
-            with open(path_out + '/' + 'gis-' + DoD_name + 'filt_nozero_rst.txt', 'w') as fp:
-                fp.write(DoD_filt_nozero_gis)
+            with open(os.path.join(path_out, DoD_name + 'filt_isol_gis.txt'), 'w') as fp:
+                fp.write(DoD_isol_gis)
+            with open(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), 'w') as fp:
+                fp.write(DoD_nature_gis)
+            with open(os.path.join(path_out, DoD_name + 'filt_fill_gis.txt'), 'w') as fp:
+                fp.write(DoD_fill_gis)
+            with open(os.path.join(path_out, DoD_name + 'filt_isol2_gis.txt'), 'w') as fp:
+                fp.write(DoD_isol2_gis)
+            with open(os.path.join(path_out, DoD_name + 'filt_ult_gis.txt'), 'w') as fp:
+                fp.write(DoD_ult_gis)
+            with open(os.path.join(path_out, DoD_name + 'activity_map_gis.txt'), 'w') as fp:
+                fp.write(DoD_act_map_gis)
+            with open(os.path.join(path_out, DoD_name + 'activity_map_dep_gis.txt'), 'w') as fp:
+                fp.write(DoD_act_map_dep_gis)
+            with open(os.path.join(path_out, DoD_name + 'activity_map_sco_gis.txt'), 'w') as fp:
+                fp.write(DoD_act_map_sco_gis)
     
     ###################################################################
     # DoDs STACK SAVING...
@@ -836,13 +937,16 @@ for run in RUNS:
     # Fill DoD lenght array
     DoD_length_array = np.append(DoD_length_array, DoD_length)
 
-    # Print the last DoD outcome
+
+
+    # PRINT THE LAST DOD OUTCOME
     if save_plot_mode == 1:
         fig, ax = plt.subplots(dpi=200, tight_layout=True)
-        im = ax.imshow(np.where(DoD_filt_ult_gis==NaN, np.nan, DoD_filt_ult_gis), cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
-        plt.colorbar(im)
+        # im = ax.imshow(np.where(DoD_filt_ult_gis==NaN, np.nan, DoD_filt_ult_gis), cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
+        im = ax.imshow(DoD_filt_ult, cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
+        # plt.colorbar(im)
         plt.title(DoD_name[:-1], fontweight='bold')
-        # plt.savefig(os.path.join(plot_dir, run +'_DoD.png'), dpi=200)
+        plt.savefig(os.path.join(plot_dir, run +'_DoD.png'), dpi=1600)
         plt.show()
     else:
         pass
@@ -936,9 +1040,6 @@ for run in RUNS:
             pass
     else:
         pass
-
-
-
 
 
     # # Fill scour and deposition report matrix with interpolation parameters
@@ -1223,7 +1324,7 @@ morphWact_matrix = np.where(morphWact_matrix==0, np.nan, morphWact_matrix)
 fig, ax = plt.subplots(dpi=80, figsize=(10,6))
 fig.suptitle('Dimensionless morphological active width', fontsize = 18)
 for i in range(0, len(RUNS)):
-    bplot=ax.boxplot(morphWact_matrix[i,:][~np.isnan(morphWact_matrix[i,:])], positions=[i], widths=0.5) # Data were filtered by np.nan values
+    bplot=ax.boxplot(morphWact_matrix[i,:][~np.isnan(morphWact_matrix[i,:])]/dim_y, positions=[i], widths=0.5) # Data were filtered by np.nan values
 ax.yaxis.grid(True)
 ax.set_xlabel('Runs', fontsize=12)
 ax.set_ylabel('morphWact/W [-]', fontsize=12)

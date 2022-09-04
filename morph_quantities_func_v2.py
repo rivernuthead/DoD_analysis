@@ -8,13 +8,19 @@ Created on Wed Jun  1 15:45:38 2022
 
 import numpy as np
 import os
-run = 'q07_1'
-DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt'
+
+###########
+# TEST PART
+###########
+run = 'q07_1' # Run name
+DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt' # DoD name
+# Set DoD path:
 home_dir = os.getcwd()
 DoDs_dir = os.path.join(home_dir, 'DoDs')
 DoD_path = os.path.join(DoDs_dir, 'DoD_' + run, DoD_name)
+# Load file:
 DoD = np.loadtxt(DoD_path, delimiter='\t')
-
+# Convert NaN to np.nan
 matrix = np.where(DoD==-999, np.nan, DoD)
 
 
@@ -29,34 +35,44 @@ def morph_quantities(matrix):
 
     Returns
     -------
+    Volumes are calculated as different sum of the cells values so they appear
+    as a length. To obtain the "real" volume, the length values must be multiply
+    by the cell dimension as: V=tot_vol*dim_x*dim_y
     tot_vol : real
-        DESCRIPTION
-    sum_vol :
-        DESCRIPTION
-    dep_vol :
-        DESCRIPTION
-    sco_vol :
-        DESCRIPTION
-    morph_act_area :
-        DESCRIPTION
-    morph_act_area_dep :
-        DESCRIPTION
-    morph_act_area_sco :
-        DESCRIPTION
-    act_width_mean :
-        DESCRIPTION
-    act_width_mean_dep :
-        DESCRIPTION
-    act_width_mean_sco :
-        DESCRIPTION
+        Total net volume as the algebric sum of all the cells [L]
+    sum_vol : real
+        Sum of scour and deposition volume as algebric sum of the abs of each cell [L]
+    dep_vol : real
+        Deposition volume as the sum of the value of deposition cell  [L]
+    sco_vol : real
+        Scour volume as the sum of the value of scour cell [L]
+        
+    Active area array is calculated as the number of DoD active cell.
+    morph_act_area : integer
+        Active area both in terms of scour and deposition in number of cells [-]
+    morph_act_area_dep : integer
+        Active deposition area in number of cells [-]
+    morph_act_area_sco : integer
+        Active scour area in number of cells [-]
+        
+    The active width is calculated as the active area divided by the DoD length
+    in terms of number of cells. So the active width is given in number of cell
+    and to obtain the width dimension the data need to be multiply by dim_y
+    act_width_mean : real
+        Total mean active width in number of cells [-]
+    act_width_mean_dep : real
+        Deposition mean active width in number of cells [-]
+    act_width_mean_sco : real
+        Scour mean active width in number of cells [-]
+        
     act_thickness :
-        DESCRIPTION
+        Active thickness as the average of scour and deposition active thickness [L]
     act_thickness_dep :
-        DESCRIPTION
+        Deposition active thickness (abs(V_sco) + V_dep)/act_area [L]
     act_thickness_sco :
-        DESCRIPTION
+        Scour active thickness (abs(V_sco) + V_dep)/act_area [L]
     bri :
-        DESCRIPTION
+        Bed Relief Index calculated as the standard deviation of the DoD values [L]
 
     
     This function ...
