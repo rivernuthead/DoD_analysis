@@ -271,14 +271,12 @@ def island_destroyer(matrix, window_dim, round_value, NaN):
     
     # Create the analysis domain, converting np.nan to zero:
     matrix_dom = np.where(np.isnan(matrix), 0, matrix)
-    pad_width = 2
-    matrix_dom = np.pad(matrix_dom, pad_width, mode='constant', constant_values=0)
     
     # Cycle over all the matrix cells
     for i in range (0, dim_y-window_dim+1):
         for j in range (0, dim_x-window_dim+1):
             # Create kernel
-            ker = matrix_dom[i+pad_width:i+pad_width+window_dim,j+pad_width:j+pad_width+window_dim] # Define the moving kernel with a window_dim x window_dim dimension
+            ker = matrix_dom[i:i+window_dim,j:j+window_dim] # Define the moving kernel with a window_dim x window_dim dimension
             ker_edge = np.hstack((ker[0,:], ker[window_dim-1,:], ker[1:-1,0], ker[1:-1,window_dim-1]))
             zero_edge_count = np.count_nonzero(ker_edge==0)
             if zero_edge_count == 4*(window_dim-1):

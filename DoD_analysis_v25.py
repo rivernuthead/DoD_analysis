@@ -11,7 +11,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from DoD_analysis_functions import *
-from DoD_analysis_functions_2 import *
+from DoD_analysis_functions_3 import *
 from morph_quantities_func_v2 import morph_quantities
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
@@ -48,13 +48,21 @@ process mode: (NB: set DEMs name)
 save mode:
     0 = save only reports
     1 = save all chart and figure
+DoD_plot_save_mode:
+    0 = do not save DoD plots
+    1 = save plot
+DoD_plot_show_mode:
+    0 = do not show DoD plots
+    1 = show DoD plots
 '''
-run_mode = 1
+run_mode = 2
 data_interpolation_mode = 0
 windows_mode = 3
 mask_mode = 1
-process_mode = 2
-save_plot_mode = 1
+process_mode = 1
+save_plot_mode = 0
+DoD_plot_save_mode = 0
+DoD_plot_show_mode = 0
 
 # SINGLE RUN NAME
 run = 'q10_1'
@@ -481,6 +489,7 @@ for run in RUNS:
             
             # PERFORM UNDER THRESHOLD ZEROING:
             DoD_filt_mean = np.where(np.abs(DoD_filt_mean)<=thrs_1, 0, DoD_filt_mean)
+            DoD_filt_mean_gis = np.where(np.isnan(DoD_filt_mean), NaN, DoD_filt_mean)
             
             # PERFORM AVOIDING ZERO-SURROUNDED PIXEL PROCEDURE:
             #--------------------------------------------------
@@ -545,12 +554,14 @@ for run in RUNS:
                 counter0 = counter1
                 counter1 = np.count_nonzero(DoD_filt_isol2[np.logical_not(np.isnan(DoD_filt_isol2))])
             
-            # PERFORM ISLAND DESTROYER PIXEL PROCEDURE:
-            #------------------------------------------
-            DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_isol2, 8, 1, NaN) # First step of filtering process
+            DoD_filt_ult, DoD_filt_ult_gis = DoD_filt_isol2, DoD_filt_isol2_gis
             
-            for w in range(3,13): # Repeat the filtering process with windows from dimension 2 to 12
-                DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_ult, w, 1, NaN)
+            # # PERFORM ISLAND DESTROYER PIXEL PROCEDURE:
+            # #------------------------------------------
+            # DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_isol2, 8, 1, NaN) # First step of filtering process
+            
+            # for w in range(3,15): # Repeat the filtering process with windows from dimension 2 to 14
+            #     DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_ult, w, 1, NaN)
 
             
             ###################################################################
@@ -570,41 +581,47 @@ for run in RUNS:
             
             
             # PLOT OF ALL THE DIFFERENT FILTERING STAGE
-            fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7,1, tight_layout=True, figsize=(10,6))
-            fig.suptitle('Filtering process - ' + run)
-            # Convert all zero value in np.nan to make it transparent on plots:
-            DoD_raw_plot = np.where(DoD_raw==0, np.nan, DoD_raw)
-            DoD_filt_mean_plot = np.array(np.where(DoD_filt_mean==0, np.nan, DoD_filt_mean))
-            DoD_filt_isol_plot = np.array(np.where(DoD_filt_isol==0, np.nan, DoD_filt_isol))
-            DoD_filt_nature_plot = np.array(np.where(DoD_filt_nature==0, np.nan, DoD_filt_nature))
-            DoD_filt_fill_plot = np.array(np.where(DoD_filt_fill==0, np.nan, DoD_filt_fill))
-            DoD_filt_isol2_plot = np.array(np.where(DoD_filt_isol2==0, np.nan, DoD_filt_isol2))
-            DoD_filt_ult_plot = np.array(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult))
-            
-            raw = ax1.imshow(DoD_raw_plot, cmap='RdBu', aspect='0.1')
-            ax1.set_title('raw DoD')
-
-            filt_mean = ax2.imshow(DoD_filt_mean_plot, cmap='RdBu', aspect='0.1')
-            ax2.set_title('filt_mean')
-
-            filt_isol = ax3.imshow(DoD_filt_isol_plot, cmap='RdBu', aspect='0.1')
-            ax3.set_title('filt_isol')
-            
-            filt_nature = ax4.imshow(DoD_filt_nature_plot, cmap='RdBu', aspect='0.1')
-            ax4.set_title('filt_nature')
-            
-            filt_fill = ax5.imshow(DoD_filt_fill_plot, cmap='RdBu', aspect='0.1')
-            ax5.set_title('filt_fill')
-            
-            filt_isol2 = ax6.imshow(DoD_filt_isol2_plot, cmap='RdBu', aspect='0.1')
-            ax6.set_title('filt_isol2')
-            
-            filt_ult = ax7.imshow(DoD_filt_ult_plot, cmap='RdBu', aspect='0.1')
-            ax7.set_title('filt_ult')
-            
-            # fig.colorbar(DoD_filt_isol2_plot)
-            plt.savefig(os.path.join(plot_dir, run +'_'+DoD_name[:-1]+'_filtmap.tif'), dpi=1000) # raster (png, jpg, rgb, tif), vector (pdf, eps), latex (pgf)
-            plt.show()
+            if DoD_plot_show_mode == 1:
+                fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7,1, tight_layout=True, figsize=(10,6))
+                fig.suptitle('Filtering process - ' + run)
+                # Convert all zero value in np.nan to make it transparent on plots:
+                DoD_raw_plot = np.where(DoD_raw==0, np.nan, DoD_raw)
+                DoD_filt_mean_plot = np.array(np.where(DoD_filt_mean==0, np.nan, DoD_filt_mean))
+                DoD_filt_isol_plot = np.array(np.where(DoD_filt_isol==0, np.nan, DoD_filt_isol))
+                DoD_filt_nature_plot = np.array(np.where(DoD_filt_nature==0, np.nan, DoD_filt_nature))
+                DoD_filt_fill_plot = np.array(np.where(DoD_filt_fill==0, np.nan, DoD_filt_fill))
+                DoD_filt_isol2_plot = np.array(np.where(DoD_filt_isol2==0, np.nan, DoD_filt_isol2))
+                DoD_filt_ult_plot = np.array(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult))
+                
+                raw = ax1.imshow(DoD_raw_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+                ax1.set_title('raw DoD')
+        
+                filt_mean = ax2.imshow(DoD_filt_mean_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+                ax2.set_title('filt_mean')
+        
+                filt_isol = ax3.imshow(DoD_filt_isol_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+                ax3.set_title('filt_isol')
+                
+                filt_nature = ax4.imshow(DoD_filt_nature_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+                ax4.set_title('filt_nature')
+                
+                filt_fill = ax5.imshow(DoD_filt_fill_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+                ax5.set_title('filt_fill')
+                
+                filt_isol2 = ax6.imshow(DoD_filt_isol2_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+                ax6.set_title('filt_isol2')
+                
+                filt_ult = ax7.imshow(DoD_filt_ult_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+                ax7.set_title('filt_ult')
+                
+                # fig.colorbar(DoD_filt_isol2_plot)
+                if DoD_plot_save_mode ==1:
+                    plt.savefig(os.path.join(plot_dir, run +'_'+DoD_name[:-1]+'_filtmap.tif'), dpi=1000) # raster (png, jpg, rgb, tif), vector (pdf, eps), latex (pgf)
+                else:
+                    pss
+                plt.show()
+            else:
+                pass
             
 
             ###################################################################
@@ -790,7 +807,7 @@ for run in RUNS:
                 pass
             # Stack all the DoDs inside the 3D array
             if delta==1:
-                DoD_stack1[h,:,:] = DoD_filt_ult_gis[:,:]
+                DoD_stack1[h,:,:] = DoD_filt_ult[:,:]
 
             ###################################################################
             # DoDs SAVING...
@@ -920,19 +937,26 @@ for run in RUNS:
     ###################################################################
     # DoDs STACK SAVING...
     ###################################################################
-    # TODO go on with this section
-    DoD_stack_nan1 = np.where(DoD_stack1 == NaN, np.nan, DoD_stack1)
-    
+    '''
+    INPUTS:
+        DoD_stack1 : 3D numpy array stack
+            Stack on which each 1-step DoD has been saved (with extra domain cell as np.nan)
+    OUTPUTS SAVED FILES:
+        DoD_stack1 : 3D numpy array stack
+            Stack on which DoDs are stored as they are, with np.nan
+        DoD_stack1_bool : 3D numpy array stack
+            Stack on which DoDs are stored as -1, 0, +1 data, also with np.nan
+    '''
+
     # Save 3D array as binary file
-    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack1_"+run+".npy"), DoD_stack_nan1)
+    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack1_"+run+".npy"), DoD_stack1)
     
-    # Create 3D array where scours are -1, depositions are +1 and no changes are 0
+    # Create 3D array where 1=dep, -1=sco and 0=no_changes
+    DoD_stack1_bool = np.where(DoD_stack1>0, 1, DoD_stack1)
+    DoD_stack1_bool = np.where(DoD_stack1_bool<0, -1, DoD_stack1_bool)
     
-    DoD_stack_bool1 = np.where(DoD_stack1>0, 1, DoD_stack_nan1)
-    DoD_stack_bool1 = np.where(DoD_stack_nan1<0, -1, DoD_stack_bool1)
-    
-    # Save 3D array as binary file
-    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack_bool1_"+run+".npy"), DoD_stack_bool1)
+    # Save 3D "boolean" array as binary file
+    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack1_bool_"+run+".npy"), DoD_stack1_bool)
 
 
     # Fill DoD lenght array
@@ -941,13 +965,16 @@ for run in RUNS:
 
 
     # PRINT THE LAST DOD OUTCOME
-    if save_plot_mode == 1:
+    if DoD_plot_show_mode == 1:
         fig, ax = plt.subplots(dpi=200, tight_layout=True)
         # im = ax.imshow(np.where(DoD_filt_ult_gis==NaN, np.nan, DoD_filt_ult_gis), cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
         im = ax.imshow(DoD_filt_ult, cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
         # plt.colorbar(im)
         plt.title(DoD_name[:-1], fontweight='bold')
-        plt.savefig(os.path.join(plot_dir, run +'_DoD.png'), dpi=1600)
+        if DoD_plot_save_mode == 1:
+            plt.savefig(os.path.join(plot_dir, run +'_DoD.png'), dpi=1600)
+        else:
+            pass
         plt.show()
     else:
         pass
@@ -1291,23 +1318,23 @@ if run_mode==2:
             fp.writelines(['\n'])
     fp.close()
 
-    if DEM_analysis_mode==1:
-        engelund_model_report_header = 'run name, D [m], Q [m^3/s], Wwet/W [-]'
-        # Write temporl scale report as:
-        # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
-        with open(os.path.join(report_dir, 'engelund_model_report.txt'), 'w') as fp:
-            fp.write(engelund_model_report_header)
-            fp.writelines(['\n'])
-            for i in range(0,len(RUNS)):
-                for j in range(0, engelund_model_report.shape[1]+1):
-                    if j == 0:
-                        fp.writelines([RUNS[i]+', '])
-                    elif j==2:
-                        fp.writelines(["%.5f, " % float(engelund_model_report[i,j-1])])
-                    else:
-                        fp.writelines(["%.3f, " % float(engelund_model_report[i,j-1])])
-                fp.writelines(['\n'])
-        fp.close()
+    # if DEM_analysis_mode==1:
+    #     engelund_model_report_header = 'run name, D [m], Q [m^3/s], Wwet/W [-]'
+    #     # Write temporl scale report as:
+    #     # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
+    #     with open(os.path.join(report_dir, 'engelund_model_report.txt'), 'w') as fp:
+    #         fp.write(engelund_model_report_header)
+    #         fp.writelines(['\n'])
+    #         for i in range(0,len(RUNS)):
+    #             for j in range(0, engelund_model_report.shape[1]+1):
+    #                 if j == 0:
+    #                     fp.writelines([RUNS[i]+', '])
+    #                 elif j==2:
+    #                     fp.writelines(["%.5f, " % float(engelund_model_report[i,j-1])])
+    #                 else:
+    #                     fp.writelines(["%.3f, " % float(engelund_model_report[i,j-1])])
+    #             fp.writelines(['\n'])
+    #     fp.close()
 
 
 

@@ -6,6 +6,15 @@ Created on Mon May 30 14:11:51 2022
 @author: erri
 
 Pixel age analysis over stack DoDs
+
+INPUT (as .npy binary files):
+    DoD_stack1 : 3D numpy array stack
+        Stack on which DoDs are stored as they are, with np.nan
+    DoD_stack1_bool : 3D numpy array stack
+        Stack on which DoDs are stored as -1, 0, +1 data, also with np.nan
+OUTPUTS:
+    
+    
 """
 
 import os
@@ -52,53 +61,51 @@ dt = run_param[0,2] # dt between runs [min] (real time)
 dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner between runs)
 
 stack_name = 'DoD_stack' + str(DoD_delta) + '_' + run + '.npy' # Define stack name
+stack_bool_name = 'DoD_stack' + str(DoD_delta) + '_bool_' + run + '.npy' # Define stack bool name
 stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
+stack_bool_path = os.path.join(DoDs_folder,stack_bool_name) # Define stack bool path
 stack = np.load(stack_path) # Load DoDs stack
+stack_bool = np.load(stack_bool_path) # Load DoDs boolean stack
 
 # Initialize stack
 act_time_stack = np.zeros(stack.shape) # activation time stack contains the time between switches. The first layer of this stack contains the first sctivation time that is a lower limit in time because we ignore how long the pixel has keept the same nature in the past.
 switch_matrix = np.zeros(stack.shape[1:]) # This is the 2D matrix that collect the number of switch over time
 
-
-# Create boolean stack # 1=dep, 0=no changes, -1=sco
-stack_bool = np.where(stack>0, 1, stack)
-stack_bool = np.where(stack<0, -1, stack_bool)
-
+# Define stack dimension
 dim_t, dim_y, dim_x = stack.shape # Define time dimension, crosswise dimension and longitudinal dimension
 
 # Mask
 mask = np.sum(abs(stack_bool), axis=0)
 mask = np.where(np.isnan(mask), mask,1)
 
-
+# Count the number of active pixels over time
+active_pixel_count_array = []
 for t in range(0,dim_t):
-    if t == 0:
-        matrix0 = stack_bool[0,:,:]
-    else:
-        pass
-    matrix = np.multiply(matrix0, stack_bool[t,:,:])
-    matrix0 = matrix
-    
-pixel_tot = dim_x*dim_y - np.sum(np.isnan(matrix0)) # Pixel domain without considering NaN value
+    # TODO check this!!
+    count = stack_bool[t,:,:][np.logical_not(np.isnan(stack_bool[t,:,:]))] # Trim np.nan values
+    count = np.count_nonzero(count!=0)
+    # count=np.nansum(np.where(stack_bool[t,:,:]!=0,1,0))
+    active_pixel_count_array = np.append(active_pixel_count_array, count)
 
+# Calculate the domain dimension (the number of not(np.isnan()) values)
+domain_pixel = dim_x*dim_y - np.sum(np.isnan(stack_bool[0,:,:]))
 
+# Matrix of the number of times a cell has been activated
+active_pixel_count_matrix = np.nansum(abs(stack_bool), axis=0)
 
-# Pixel attivi in generale
-e = np.nansum(abs(stack_bool), axis=0)
-
-# TODO these counts should be adimensionalise with the amount of total active pixel e
 
 # Pixel attivi sia all'inizio che alla fine
-a = np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:])))/pixel_tot
+active_pixel_start_end = np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:])))/domain_pixel
 
 # Pixel attivi all'inizio ma non alla fine
-b = (np.nansum(abs(stack_bool[0,:,:])) - np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:]))))/pixel_tot
+active_pixel_start_only = (np.nansum(abs(stack_bool[0,:,:])) - np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:]))))/domain_pixel
 
 # Pixel attivi alla fine ma non all'inizio
-c = (np.nansum(abs(stack_bool[dim_t -1,:,:])) - np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:]))))/pixel_tot
+active_pixel_end_only = (np.nansum(abs(stack_bool[dim_t -1,:,:])) - np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:]))))/domain_pixel
 
 # Pixel attivi nè all'inizio nè alla fine
-d = dim_x*dim_y/pixel_tot - (a+b+c)
+active_pixel_never = np.nansum(np.abs(stack_bool), axis=0)
+active_pixel_never = np.nansum(active_pixel_never==0)/domain_pixel
 
 
 
@@ -205,7 +212,7 @@ for x in range(0,dim_x):
         # This part checks if there are zero values before the first non-zero value in he sliced array. If there are at least one, the value of n-zero variable will be update with the numbero of zeros       
         if slice_array[0]==0:# If the first entry of the sliced array is 0, in this schema it could have both scour and deposition nature.
         # So the length and the nature of the first period depend by the nature of the first non-zero value.
-            if not slice_array.any(): # Check if the sliced array is full of zeros
+            if np.sum(slice_array==0) == len(slice_array): # Check if the sliced array is full of zeros
                 time_array = np.array([np.nan]) # Fill the array with np.nan to keep them transparent
             else:
                 n_zero=np.array(np.where(slice_array!=0))[0,0] # Number of zero values before the first non-zero value
@@ -217,9 +224,7 @@ for x in range(0,dim_x):
             count=1 # Initialize the count variable. This variable will count the number of activation instants
             target_sign = np.sign(slice_array[0]) # This variable collects the sign of the first element of each same-nature period
             for i in range(0,len(slice_array)-1): # Loop over the sliced array
-                
                 a1, a2 = slice_array[i], slice_array[i+1] # a1 and a2 are the two adjacent element in the sliced array
-                
                 if np.sign(a1)==np.sign(a2): # If two consecutive elements have the same naure
                     count += 1 # If two consecutive elements have the same nature the count increases
                 elif np.sign(a1)*np.sign(a2)==0 and (np.sign(a2)==target_sign or np.sign(a1)==target_sign):
@@ -229,9 +234,9 @@ for x in range(0,dim_x):
                     target_sign=-1*target_sign # Update the target sign
                     count=1 # Update the count variable that will starts again from zero
                     pass
-                
-        time_array = np.append(time_array, (len(slice_array)-np.sum(np.abs(time_array)))*target_sign) # By now the last period is not calculated (actually because, as the first one, it is only a lower boundary of time because it doesn't appear within two switches) so this operation appeds this value manually
-        time_array[0] = time_array[0] + np.sign(time_array[0])*n_zero # Ths operation append, if present, the number of zeroes before the first non-zero value calculated on the very first sliced array (n_zero variable)
+                    
+            time_array = np.append(time_array, (len(slice_array)-np.sum(np.abs(time_array)))*target_sign) # By now the last period is not calculated (actually because, as the first one, it is only a lower boundary of time because it doesn't appear within two switches) so this operation appeds this value manually
+            time_array[0] = time_array[0] + np.sign(time_array[0])*n_zero # Ths operation append, if present, the number of zeroes before the first non-zero value calculated on the very first sliced array (n_zero variable)
         
         ind = np.max(np.where(time_array!=0)) # This number correspond to the index of the last period in the time_array that is not reliable (as the first one)
         # So in the filling process I want to exclude the last period:
@@ -309,11 +314,11 @@ if plot_mode ==1:
         # ACTIVE PIXEL AT LEAST ONCE
         fig1, ax = plt.subplots(tight_layout=True)
         # e=e*mask
-        e = np.where(e==0,np.nan,e) # Make 0 value as np.nan (100% transparency)
-        e1 = np.where(e<=i,np.nan,e) # Mask pixel active less than i time
-        shw = ax.imshow(e1)
+        active_pixel_count_matrix = np.where(active_pixel_count_matrix==0,np.nan,active_pixel_count_matrix) # Make 0 value as np.nan (100% transparency)
+        active_pixel_count_matrix1 = np.where(active_pixel_count_matrix<=i,np.nan,active_pixel_count_matrix) # Mask pixel active less than i time
+        shw = ax.imshow(active_pixel_count_matrix1)
         # # make bar
-        # bar = plt.colorbar(shw) 
+        bar = plt.colorbar(shw) 
         # # show plot with labels
         plt.xlabel('X coordinate')
         plt.ylabel('Y coordinate')
@@ -490,20 +495,47 @@ for i in range(0,len(indices[0,:])): # Loop all over the availabe indices
     periods_stack[:len(period_slice_trim),y,x] = period_slice_trim
     weighted_period_stack[:len(period_weighted),y,x] = period_weighted
     volumes_stack[:len(weight),y,x] = weight
-    
-# weighted_period_stack = np.where(weighted_period_stack==0, np.nan, weighted_period_stack)
-# volumes_stack = np.where(volumes_stack==0, np.nan, period_volumes_stack)
-    
-np.sum(np.logical_not(np.isnan(volumes_stack)))
 
-np.sum(np.logical_not(np.isnan(periods_stack)))
+period2_stack = periods_stack[1,:,:] # Consider the second period only
+period2_array = period2_stack[period2_stack!=0] # Trim zero values
+period2_array = period2_array[np.logical_not(np.isnan(period2_array))] # Trim np.nan values
 
-# print(stack[:,y,x])
 
-# print(period_slice_trim)
 
-# print(weight)
-# print(period_weighted)
+weighted_period2_stack = weighted_period_stack[1,:,:] # Consider only the second period (the firs complete one)
+
+weighted_period_array = weighted_period2_stack[weighted_period2_stack!=0] # Trim zero values
+weighted_period_array = weighted_period_array[np.logical_not(np.isnan(weighted_period_array))] # Trim np.nan values
+# TODO This need to be checked:
+# weighted_period_array = weighted_period_array[weighted_period_array>1] # Trim weighted array values lower than 1 
+
+print()
+print('First complete active weighted period')
+print('mean [min] = ', np.mean(np.abs(weighted_period_array)*dt))
+print('STD [min] = ', np.std(weighted_period_array*dt))
+print()
+
+###########
+# PLOTS
+###########
+
+# SWITCH ACTIVATION TIME EXCLUDING THE FIRST SWITCH
+fig6, ax = plt.subplots(tight_layout=True)
+ax = sns.histplot(data=np.abs(period2_array), binwidth=0.4, discrete=True, shrink=0.8)
+ax.set(xlabel='Time between switches',
+       ylabel='Count',
+       title='First complete period - '+run)
+plt.show()
+
+
+# SWITCH ACTIVATION WEIGHTED TIME
+fig7, ax = plt.subplots(tight_layout=True)
+ax = sns.histplot(data=np.abs(weighted_period_array), binwidth=0.4, discrete=True, shrink=0.8)
+ax.set(xlabel='Weighted time between switches',
+       ylabel='Count',
+       title='First complete weighted period - '+run)
+plt.show()
+
 #%%
 '''
 Do the most tiny scour and deposition volumes are referred to the smallest periods?
@@ -548,14 +580,19 @@ for m in range(int(periods_array.min()),int(periods_array.max())+1):
     period_volume_matrix=period_volume_matrix[period_volume_matrix!=0] # Trim zero values
     period_volume_matrix = np.vstack((period_volume_matrix[:int(len(period_volume_matrix)*0.5)], period_volume_matrix[int(len(period_volume_matrix)*0.5):])) # Here I rebuilt the 2D Matrix
     
-    bplot=ax.boxplot(period_volume_matrix[1,:], positions=[m], widths=0.5) # Data were filtered by np.nan values
+    # bplot=ax.boxplot(period_volume_matrix[1,:], positions=[m], widths=0.5) # Data were filtered by np.nan values
+    bplot=ax.boxplot(np.log(period_volume_matrix[1,:]), positions=[m], widths=0.5) # Data were filtered by np.nan values
 ax.yaxis.grid(True)
-ax.set_yscale('log')
+# ax.set_yscale('log')
 ax.set_xlabel('Time periods', fontsize=12)
-ax.set_ylabel('Time period volume', fontsize=12)
+ax.set_ylabel('ln Time period volume', fontsize=12)
 plt.xticks(np.arange(int(periods_array.min()),int(periods_array.max())+1, 1))
 # plt.savefig(os.path.join(plot_dir, 'morphWact_boxplot.png'), dpi=200)
 plt.show()
+#%%
+# Inviluppo: numero di pixel che sono stati attivi almeno una volta
+sum_matrix = np.sum(np.abs(stack_bool), axis=0)
+sum_matrix = np.sum(np.where(sum_matrix!=0,1,sum_matrix))
 
 
 

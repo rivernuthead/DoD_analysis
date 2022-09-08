@@ -12,20 +12,20 @@ import os
 ###########
 # TEST PART
 ###########
-run = 'q07_1' # Run name
-DoD_name = 'DoD_s1-s0_filt_nozero_rst.txt' # DoD name
-# Set DoD path:
-home_dir = os.getcwd()
-DoDs_dir = os.path.join(home_dir, 'DoDs')
-DoD_path = os.path.join(DoDs_dir, 'DoD_' + run, DoD_name)
-# Load file:
-DoD = np.loadtxt(DoD_path, delimiter='\t')
-# Convert NaN to np.nan
-matrix = np.where(DoD==-999, np.nan, DoD)
+# run = 'q07_1' # Run name
+# DoD_name = 'DoD_s1-s0_filt_ult_gis.txt' # DoD name
+# # Set DoD path:
+# home_dir = os.getcwd()
+# DoDs_dir = os.path.join(home_dir, 'DoDs')
+# DoD_path = os.path.join(DoDs_dir, 'DoD_' + run, DoD_name)
+# # Load file:
+# DoD = np.loadtxt(DoD_path, delimiter='\t')
+# # Convert NaN to np.nan
+# matrix = np.where(DoD==-999, np.nan, DoD)
 
 
 def morph_quantities(matrix):
-    import numpy as np
+    # import numpy as np
     '''
     
     Parameters
@@ -129,4 +129,4 @@ def morph_quantities(matrix):
     
     return tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri
 
-tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(matrix)
+# tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(matrix)

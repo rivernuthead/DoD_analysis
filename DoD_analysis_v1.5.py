@@ -271,7 +271,7 @@ def MotoUniforme( S, y_coord, z_coord, D, NG, teta_c, ds):
 ###############################################################################
 
 # SINGLE RUN NAME
-run = 'q07_1'
+run = 'q10_1'
 
 '''
 Run mode:
@@ -292,7 +292,7 @@ Save mode:
     1 = save all chart and figure
 
 '''
-run_mode = 2
+run_mode = 1
 DEM_analysis_mode = 1
 mask_mode = 1
 process_mode = 1
@@ -470,6 +470,7 @@ for run in RUNS:
     shp_target_x, shp_target_y = int(min(array_dim_x)), int(min(array_dim_y))
 
     arr_shape = np.array([shp_target_x, shp_target_y]) # Define target shape
+    print('Array_shape: ', arr_shape)
 
 
     ###########################################################################
