@@ -55,17 +55,17 @@ DoD_plot_show_mode:
     0 = do not show DoD plots
     1 = show DoD plots
 '''
-run_mode = 2
+run_mode = 1
 data_interpolation_mode = 0
 windows_mode = 3
 mask_mode = 1
 process_mode = 1
 save_plot_mode = 0
-DoD_plot_save_mode = 0
+DoD_plot_save_mode = 1
 DoD_plot_show_mode = 0
 
 # SINGLE RUN NAME
-run = 'q10_1'
+run = 'q10_4'
 
 # Set DEM single name to perform process to specific DEM
 DEM1_single_name = 'matrix_bed_norm_' + run +'s'+'0'+'.txt' # DEM1 name
@@ -92,16 +92,10 @@ NaN = -999
 # setup working directory and DEM's name
 home_dir = os.getcwd()
 DoDs_dir = os.path.join(home_dir, 'DoDs')
-report_dir = os.path.join(home_dir, 'output')
-plot_dir = os.path.join(home_dir, 'plot')
+
 run_dir = os.path.join(home_dir, 'surveys')
 
-# Save a report with xData as real time in minutes and the value of scour and deposition volumes for each runs
-# Check if the file already exists
-if os.path.exists(os.path.join(report_dir, 'volume_over_time.txt')):
-    os.remove(os.path.join(report_dir, 'volume_over_time.txt'))
-else:
-    pass
+
 
 # Create the run name list
 RUNS=[]
@@ -150,6 +144,15 @@ for run in RUNS:
     print()
     # setup working directory and DEM's name
     input_dir = os.path.join(home_dir, 'surveys', run)
+    report_dir = os.path.join(home_dir, 'output', run)
+    plot_dir = os.path.join(home_dir, 'plot', run)
+    
+    # Save a report with xData as real time in minutes and the value of scour and deposition volumes for each runs
+    # Check if the file already exists
+    if os.path.exists(os.path.join(report_dir, 'volume_over_time.txt')):
+        os.remove(os.path.join(report_dir, 'volume_over_time.txt'))
+    else:
+        pass
 
     # CREATE FOLDERS
     if not(os.path.exists(report_dir)):

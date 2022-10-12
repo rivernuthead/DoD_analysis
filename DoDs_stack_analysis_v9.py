@@ -35,7 +35,7 @@ start = time.time() # Set initial time
 plot_mode = 1
 
 # SINGLE RUN NAME
-run = 'q20_2'
+run = 'q07_1'
 print('###############\n' + '#    ' + run + '    #' + '\n###############')
 # Step between surveys
 DoD_delta = 1
@@ -328,9 +328,10 @@ if plot_mode ==1:
         plt.show()
     
     # NUMBER OF PERIODS
-    fig2, ax = plt.subplots(tight_layout=True)
+    fig2, ax = plt.subplots(tight_layout=True, dpi=900, figsize=(30,3))
     # e=e*mask
     shw = ax.imshow(periods_matrix)
+    ax.axes.set_aspect(aspect=0.1)
     # make bar
     bar = plt.colorbar(shw)
     # show plot with labels
@@ -338,6 +339,7 @@ if plot_mode ==1:
     plt.ylabel('Y coordinate')
     plt.title(run)
     bar.set_label('Number of active pixel periods')
+    
     plt.show()
     
     # NUMBER OF SWITCHES
