@@ -65,7 +65,7 @@ DoD_plot_save_mode = 1
 DoD_plot_show_mode = 0
 
 # SINGLE RUN NAME
-run = 'q20_1'
+run = 'q10_4'
 
 # Set DEM single name to perform process to specific DEM
 DEM1_single_name = 'matrix_bed_norm_' + run +'s'+'0'+'.txt' # DEM1 name
@@ -1299,7 +1299,7 @@ for run in RUNS:
         axs[1].set_title('Deposition')
         axs[1].set_xlabel('Exner time')
         axs[1].set_ylabel('Scour volume [unit]')
-        plt.savefig(os.path.join(plot_dir, run +'dep_scour.png'), dpi=200)
+        plt.savefig(os.path.join(plot_dir, run +'_dep_scour.png'), dpi=200)
         plt.show()
         
         
@@ -1462,18 +1462,19 @@ for i in range(0,len(RUNS)):
 morphWact_matrix = np.where(morphWact_matrix==0, np.nan, morphWact_matrix)
 
 # Multiple boxplot
-fig, ax = plt.subplots(dpi=80, figsize=(10,6))
-fig.suptitle('Dimensionless morphological active width', fontsize = 18)
-for i in range(0, len(RUNS)):
-    bplot=ax.boxplot(morphWact_matrix[i,:][~np.isnan(morphWact_matrix[i,:])]/dim_y, positions=[i], widths=0.5) # Data were filtered by np.nan values
-ax.yaxis.grid(True)
-ax.set_xlabel('Runs', fontsize=12)
-ax.set_ylabel('morphWact/W [-]', fontsize=12)
-plt.xticks(np.arange(0,len(RUNS), 1), RUNS)
-plt.savefig(os.path.join(plot_out_dir, 'morphWact_boxplot.png'), dpi=800)
-plt.show()
-
-
+if run_mode==2:
+    fig, ax = plt.subplots(dpi=80, figsize=(10,6))
+    fig.suptitle('Dimensionless morphological active width', fontsize = 18)
+    for i in range(0, len(RUNS)):
+        bplot=ax.boxplot(morphWact_matrix[i,:][~np.isnan(morphWact_matrix[i,:])]/dim_y, positions=[i], widths=0.5) # Data were filtered by np.nan values
+    ax.yaxis.grid(True)
+    ax.set_xlabel('Runs', fontsize=12)
+    ax.set_ylabel('morphWact/W [-]', fontsize=12)
+    plt.xticks(np.arange(0,len(RUNS), 1), RUNS)
+    plt.savefig(os.path.join(plot_out_dir, 'morphWact_boxplot.png'), dpi=800)
+    plt.show()
+else:
+    pass
 
 end = time.time()
 print()
