@@ -35,7 +35,9 @@ start = time.time() # Set initial time
 plot_mode = 1
 
 # SINGLE RUN NAME
-run = 'q07_1'
+
+run = 'q20_2'
+
 print('###############\n' + '#    ' + run + '    #' + '\n###############')
 # Step between surveys
 DoD_delta = 1
@@ -323,7 +325,8 @@ if plot_mode ==1:
         # # show plot with labels
         plt.xlabel('X coordinate')
         plt.ylabel('Y coordinate')
-        plt.title(run+' - Active pixel threshold set at: '+str(i))
+        plt.title(run+'Number of active pixel - Threshold set at: '+str(i))
+        plt.savefig(os.path.join(home_dir, 'number_active_px_map', run + '_'+str(i)+'_number_active_pixel.pdf'))
         # bar.set_label('Number of active pixel')
         plt.show()
     
@@ -353,8 +356,19 @@ if plot_mode ==1:
     plt.ylabel('Y coordinate')
     plt.title(run)
     bar.set_label('Number of pixel switches')
+    plt.savefig(os.path.join(home_dir, 'number_active_px_map', run +'_number_switch_pixel.pdf'))
     plt.show()
     
+    active_pixel_count_matrix = np.where(active_pixel_count_matrix==0,np.nan,active_pixel_count_matrix)
+    number_active_pixel = np.nansum(active_pixel_count_matrix)
+    number_compensated_pixel_matrix = np.where(switches_matrix>0, 1, 0)
+    number_compensated_pixel = np.nansum(number_compensated_pixel_matrix)
+    print()
+    print('Number of switches:', np.nansum(switches_matrix))
+    print('Number of switches / number of total active pixel:', np.nansum(switches_matrix)/number_active_pixel)
+    print()
+    print('Number of pixels that experienced compensation processes: ', number_compensated_pixel)
+    print()
     # SWITCH ACTIVATION TIME HISTOGRAM
     fig4, ax = plt.subplots(tight_layout=True)
     ax = sns.histplot(data=np.abs(act_tot_time_array), binwidth=0.4, discrete=True, shrink=0.8)
@@ -362,15 +376,31 @@ if plot_mode ==1:
            ylabel='Count',
            title='Total switch time - '+run)
     plt.show()
-    
+    #%%
     # FIRST SWITCH ACTIVATION TIME HISTOGRAM
     # act_first_time_array
     fig3, ax = plt.subplots(tight_layout=True)
-    ax = sns.histplot(data=np.abs(act_first_time_array), binwidth=0.2, discrete=True, shrink=0.8)
+    ax = sns.histplot(data=np.abs(act_first_time_array), binwidth=1, discrete=True, shrink=0.8) # , kde=True
     ax.set(xlabel='Time between switches',
            ylabel='Count',
            title='First switch time - '+run)
+    # plt.ylim(0, 6000)
+    plt.savefig(os.path.join(home_dir, 'pixel_activity_plot', run + 'first_switch.pdf'))
     plt.show()
+    
+    
+    print('Mean value of period:',  np.nanmean(np.abs(act_first_time_array)))
+    print('Median value of period:', np.nanmedian(np.abs(act_first_time_array)))
+    
+    print('1:', np.nansum(np.abs(act_first_time_array)==1))
+    print('2:', np.nansum(np.abs(act_first_time_array)==2))
+    print('3:', np.nansum(np.abs(act_first_time_array)==3))
+    print('4:', np.nansum(np.abs(act_first_time_array)==4))
+    print('5:', np.nansum(np.abs(act_first_time_array)==5))
+    print('6:', np.nansum(np.abs(act_first_time_array)==6))
+    print('7:', np.nansum(np.abs(act_first_time_array)==7))
+    print('8:', np.nansum(np.abs(act_first_time_array)==8))
+#%%    
     
     # SWITCH ACTIVATION TIME EXCLUDING THE FIRST SWITCH
     fig5, ax = plt.subplots(tight_layout=True)
