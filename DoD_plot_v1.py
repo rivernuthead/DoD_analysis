@@ -30,11 +30,15 @@ start = time.time() # Set initial time
 run mode:
     1 = one run at time
     2 = bath process
+DoD_map_plot:
+    0 = plot DoD map OFF
+    1 = plot DoD map ON
 '''
 run_mode = 2
+DoD_map_plot = 0
 
 # SINGLE RUN NAME
-run = 'q20_1'
+run = 'q07_1'
 
 DoD_name = 'DoD_1-0'
 
@@ -63,8 +67,9 @@ NaN = -999
 # setup working directory and DEM's name
 home_dir = os.getcwd()
 DoDs_dir = os.path.join(home_dir, 'DoDs')
-
+report_dir = os.path.join(home_dir, 'output')
 run_dir = os.path.join(home_dir, 'surveys')
+main_plot_dir = os.path.join(home_dir, 'plot')
 
 
 
@@ -76,6 +81,12 @@ if run_mode ==2: # batch run mode
             RUNS = np.append(RUNS, RUN) # Append run name at RUNS array
 elif run_mode==1: # Single run mode
     RUNS=run.split() # RUNS as a single entry array, provided by run variable
+
+
+###############################################################################
+# INITIALIZE ARRAYS
+
+
 
 
 #%%
@@ -93,20 +104,20 @@ for run in RUNS:
     print()
     # setup working directory and DEM's name
     input_dir = os.path.join(home_dir, 'surveys', run)
-    report_dir = os.path.join(home_dir, 'output', run)
+    report_path = os.path.join(report_dir, run)
     plot_dir = os.path.join(home_dir, 'plot', run)
     DoDs_dir = os.path.join(home_dir, 'DoDs', 'DoD_'+run)
     
     # Save a report with xData as real time in minutes and the value of scour and deposition volumes for each runs
     # Check if the file already exists
-    if os.path.exists(os.path.join(report_dir, 'volume_over_time.txt')):
-        os.remove(os.path.join(report_dir, 'volume_over_time.txt'))
+    if os.path.exists(os.path.join(report_path, 'volume_over_time.txt')):
+        os.remove(os.path.join(report_path, 'volume_over_time.txt'))
     else:
         pass
 
     # CREATE FOLDERS
-    if not(os.path.exists(report_dir)):
-        os.mkdir(report_dir)
+    if not(os.path.exists(report_path)):
+        os.mkdir(report_path)
     if not(os.path.exists(DoDs_dir)):
         os.mkdir(DoDs_dir)
     if not(os.path.exists(os.path.join(DoDs_dir, 'DoDs_stack'))):
@@ -158,67 +169,64 @@ for run in RUNS:
             files2 = np.append(files2, f)
             
     files = np.append(files1,files2) # Files has been overwritten with a list of file names sorted in the right way :) 
-
-
-
-
-    DoD_filt_ult = np.loadtxt(os.path.join(DoDs_dir, DoD_name+'_filt_ult.txt'))
-    fig, ax = plt.subplots(dpi=200, tight_layout=True)
-    # im = ax.imshow(np.where(DoD_filt_isol2_gis==NaN, np.nan, DoD_filt_ult_gis), cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
-    im = ax.imshow(DoD_filt_ult, cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
-    # plt.colorbar(im)
-    plt.title(DoD_name, fontweight='bold')
-    plt.savefig(os.path.join(plot_dir, run +DoD_name+'.pdf'), dpi=1600)
-    plt.show()
-            
-            
-            
-    # PLOT OF ALL THE DIFFERENT FILTERING STAGE
-    fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7,1, tight_layout=True, figsize=(10,6))
-    fig.suptitle('Filtering process - ' + run)
     
-    # Import files:
-    DoD_raw = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_raw_gis.txt'),skiprows=8 , delimiter='\t')
-    DoD_filt_mean = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_mean_gis.txt'),skiprows=8 , delimiter='\t')
-    DoD_filt_isol = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_isol_gis.txt'),skiprows=8 , delimiter='\t')
-    DoD_filt_nature = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_nature_gis.txt'),skiprows=8 , delimiter='\t')
-    DoD_filt_fill = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_fill_gis.txt'),skiprows=8 , delimiter='\t')
-    DoD_filt_isol2 = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_isol2_gis.txt'),skiprows=8 , delimiter='\t')
-    DoD_filt_ult = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_ult_gis.txt'),skiprows=8 , delimiter='\t')
+    if DoD_map_plot == 1:
+        # PLOT ONE DoD AT THE FINAL FILTERING STAGE
+        DoD_filt_ult = np.loadtxt(os.path.join(DoDs_dir, DoD_name+'_filt_ult.txt'))
+        fig, ax = plt.subplots(dpi=200, tight_layout=True)
+        # im = ax.imshow(np.where(DoD_filt_isol2_gis==NaN, np.nan, DoD_filt_ult_gis), cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
+        im = ax.imshow(DoD_filt_ult, cmap='RdBu',  vmin=-25, vmax=25, aspect='0.1')
+        # plt.colorbar(im)
+        plt.title(DoD_name + '-' + run, fontweight='bold')
+        plt.savefig(os.path.join(plot_dir, run + '_' + DoD_name+'.pdf'), dpi=1600)
+        plt.show()
+                
+        # PLOT OF ALL THE DIFFERENT FILTERING STAGE
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7,1, tight_layout=True, figsize=(10,6))
+        fig.suptitle('Filtering process - ' + run)
+        
+        # Import files:
+        DoD_raw = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_raw.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_mean = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_mean.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_isol = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_isol.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_nature = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_nature.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_fill = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_fill.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_isol2 = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_isol2.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_ult = np.loadtxt(os.path.join(DoDs_dir, DoD_name + '_filt_ult.txt'),skiprows=8 , delimiter='\t')
+        
+        # Convert all zero value in np.nan to make it transparent on plots:
+        DoD_raw_plot = np.where(DoD_raw==0, np.nan, DoD_raw)
+        DoD_filt_mean_plot = np.array(np.where(DoD_filt_mean==0, np.nan, DoD_filt_mean))
+        DoD_filt_isol_plot = np.array(np.where(DoD_filt_isol==0, np.nan, DoD_filt_isol))
+        DoD_filt_nature_plot = np.array(np.where(DoD_filt_nature==0, np.nan, DoD_filt_nature))
+        DoD_filt_fill_plot = np.array(np.where(DoD_filt_fill==0, np.nan, DoD_filt_fill))
+        DoD_filt_isol2_plot = np.array(np.where(DoD_filt_isol2==0, np.nan, DoD_filt_isol2))
+        DoD_filt_ult_plot = np.array(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult))
+        
+        raw = ax1.imshow(DoD_raw_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+        ax1.set_title('raw DoD')
     
-    # Convert all zero value in np.nan to make it transparent on plots:
-    DoD_raw_plot = np.where(DoD_raw==0, np.nan, DoD_raw)
-    DoD_filt_mean_plot = np.array(np.where(DoD_filt_mean==0, np.nan, DoD_filt_mean))
-    DoD_filt_isol_plot = np.array(np.where(DoD_filt_isol==0, np.nan, DoD_filt_isol))
-    DoD_filt_nature_plot = np.array(np.where(DoD_filt_nature==0, np.nan, DoD_filt_nature))
-    DoD_filt_fill_plot = np.array(np.where(DoD_filt_fill==0, np.nan, DoD_filt_fill))
-    DoD_filt_isol2_plot = np.array(np.where(DoD_filt_isol2==0, np.nan, DoD_filt_isol2))
-    DoD_filt_ult_plot = np.array(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult))
+        filt_mean = ax2.imshow(DoD_filt_mean_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+        ax2.set_title('filt_mean')
     
-    raw = ax1.imshow(DoD_raw_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
-    ax1.set_title('raw DoD')
-
-    filt_mean = ax2.imshow(DoD_filt_mean_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
-    ax2.set_title('filt_mean')
-
-    filt_isol = ax3.imshow(DoD_filt_isol_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
-    ax3.set_title('filt_isol')
-    
-    filt_nature = ax4.imshow(DoD_filt_nature_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
-    ax4.set_title('filt_nature')
-    
-    filt_fill = ax5.imshow(DoD_filt_fill_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
-    ax5.set_title('filt_fill')
-    
-    filt_isol2 = ax6.imshow(DoD_filt_isol2_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
-    ax6.set_title('filt_isol2')
-    
-    filt_ult = ax7.imshow(DoD_filt_ult_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
-    ax7.set_title('filt_ult')
-    
-    # fig.colorbar(DoD_filt_isol2_plot)
-    plt.savefig(os.path.join(plot_dir,'filtmap_'+run +'_'+DoD_name+'_filtmap.pdf'), dpi=1000) # raster (png, jpg, rgb, tif), vector (pdf, eps), latex (pgf)
-    plt.show()
+        filt_isol = ax3.imshow(DoD_filt_isol_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+        ax3.set_title('filt_isol')
+        
+        filt_nature = ax4.imshow(DoD_filt_nature_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+        ax4.set_title('filt_nature')
+        
+        filt_fill = ax5.imshow(DoD_filt_fill_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+        ax5.set_title('filt_fill')
+        
+        filt_isol2 = ax6.imshow(DoD_filt_isol2_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+        ax6.set_title('filt_isol2')
+        
+        filt_ult = ax7.imshow(DoD_filt_ult_plot, cmap='RdBu', vmin=-50, vmax=50, aspect='0.1')
+        ax7.set_title('filt_ult')
+        
+        # fig.colorbar(DoD_filt_isol2_plot)
+        plt.savefig(os.path.join(plot_dir,'filtmap_'+run +'_'+DoD_name+'_filtmap.pdf'), dpi=1000) # raster (png, jpg, rgb, tif), vector (pdf, eps), latex (pgf)
+        plt.show()
 
     
 
@@ -227,22 +235,43 @@ for run in RUNS:
     # PLOTS
     ###########################################################################
     #Load data:
-    matrix_sco = np.loadtxt(os.path.join(report_dir, run+'_sco_report.txt'), delimiter=',')
-    matrix_dep = np.loadtxt(os.path.join(report_dir, run+'_dep_report.txt'), delimiter=',')
-    matrix_act_thickness = np.loadtxt(os.path.join(report_dir, run+'_act_thickness_report.txt'), delimiter=',')
-    matrix_morphWact = np.loadtxt(os.path.join(report_dir, run+'_morphWact_report.txt'), delimiter=',')
+    matrix_sco = np.loadtxt(os.path.join(report_path, run+'_sco_report.txt'), delimiter=',')
+    matrix_dep = np.loadtxt(os.path.join(report_path, run+'_dep_report.txt'), delimiter=',')
+    matrix_act_thickness = np.loadtxt(os.path.join(report_path, run+'_act_thickness_report.txt'), delimiter=',')
+    matrix_act_thickness_dep = np.loadtxt(os.path.join(report_path, run+'_act_thickness_report_dep.txt'), delimiter=',')
+    matrix_act_thickness_sco = np.loadtxt(os.path.join(report_path, run+'_act_thickness_report_sco.txt'), delimiter=',')
+    matrix_morphWact = np.loadtxt(os.path.join(report_path, run+'_morphWact_report.txt'), delimiter=',')
+    matrix_morphWact_sco = np.loadtxt(os.path.join(report_path, run+'_morphWact_sco_report.txt'), delimiter=',')
+    matrix_morphWact_dep = np.loadtxt(os.path.join(report_path, run+'_morphWact_dep_report.txt'), delimiter=',')
     
     
     # Define arrays for scour and volume data over time
     xData1=np.arange(1, len(files), 1)*dt_xnr # Time in Txnr
-    yData_sco=np.absolute(matrix_sco[:len(files)-1,0])
+    
+    yData_sco=np.absolute(matrix_sco[:len(files)-1,-2])
     yError_sco=matrix_sco[:len(files)-1,-1]
-    yData_dep=np.absolute(matrix_dep[:len(files)-1,0])
+    
+    yData_dep=np.absolute(matrix_dep[:len(files)-1,-2])
     yError_dep=matrix_dep[:len(files)-1,-1]
-    yData_act_thickness=matrix_act_thickness[:len(files)-1,0]
+    
+    yData_act_thickness=matrix_act_thickness[:len(files)-1,-2]
     yError_act_thickness=matrix_act_thickness[:len(files)-1,-1]
-    yData_morphWact=matrix_morphWact[:len(files)-1,0]
+    
+    yData_act_thickness_dep=matrix_act_thickness_dep[:len(files)-1,-2]
+    yError_act_thickness_dep=matrix_act_thickness_dep[:len(files)-1,-1]
+    
+    yData_act_thickness_sco=matrix_act_thickness_sco[:len(files)-1,-2]
+    yError_act_thickness_sco=matrix_act_thickness_sco[:len(files)-1,-1]
+    
+    yData_morphWact=matrix_morphWact[:len(files)-1,-2]
     yError_morphWact=matrix_morphWact[:len(files)-1,-1]
+    
+    yData_morphWact_sco=matrix_morphWact_sco[:len(files)-1,-2]
+    yError_morphWact_sco=matrix_morphWact_sco[:len(files)-1,-1]
+    
+    yData_morphWact_dep=matrix_morphWact_dep[:len(files)-1,-2]
+    yError_morphWact_dep=matrix_morphWact_dep[:len(files)-1,-1]
+    
 
     fig3, axs = plt.subplots(2,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
     fig3.suptitle(run + ' - Volume')
@@ -263,10 +292,10 @@ for run in RUNS:
     fig4, axs = plt.subplots(1,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
     axs.errorbar(xData1,yData_act_thickness, yError_act_thickness, linestyle='--', marker='^', color='purple')
     axs.set_ylim(bottom=0)
-    axs.set_title(run + '- Active thickness')
+    axs.set_title(run + '- Morphological active layer')
     axs.set_xlabel('Exner time')
     axs.set_ylabel('Active thickness [mm]')
-    plt.savefig(os.path.join(plot_dir, run +'_active_thickness.pdf'), dpi=200)
+    plt.savefig(os.path.join(plot_dir, run +'_morph_active_layer.pdf'), dpi=200)
     plt.show()
     
     fig5, axs = plt.subplots(1,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
@@ -275,43 +304,77 @@ for run in RUNS:
     axs.set_title(run + '- Morphological active width')
     axs.set_xlabel('Exner time')
     axs.set_ylabel('Morphological active Width / W [-]')
-    plt.savefig(os.path.join(plot_dir, run +'_morphWact.pdf'), dpi=200)
+    plt.savefig(os.path.join(plot_dir, run +'_morph_act_width.pdf'), dpi=200)
     plt.show()
+    
+    fig5, axs = plt.subplots(1,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
+    axs.errorbar(xData1,yData_morphWact_sco, yError_morphWact_sco, linestyle='--', marker='^', color='red', label='morphWact sco')
+    axs.errorbar(xData1,yData_morphWact_dep, yError_morphWact_dep, linestyle='--', marker='^', color='blue', label='morphWact dep')
+    axs.set_ylim(bottom=0)
+    axs.set_title(run + '- Morphological active width')
+    axs.set_xlabel('Exner time')
+    axs.set_ylabel('Morphological active Width / W [-]')
+    axs.legend()
+    plt.savefig(os.path.join(plot_dir, run +'_morph_act_width_sco_dep.pdf'), dpi=200)
+    plt.show()
+    
+    fig6, axs = plt.subplots(1,1,dpi=80, figsize=(10,6), sharex=True, tight_layout=True)
+    axs.errorbar(xData1,yData_act_thickness_sco, yError_act_thickness_sco, linestyle='--', marker='^', color='red', label='morph act layer sco')
+    axs.errorbar(xData1,yData_act_thickness_dep, yError_act_thickness_dep, linestyle='--', marker='^', color='blue', label='morph act layer dep')
+    axs.set_ylim(bottom=0)
+    axs.set_title(run + '- Morphological active layer')
+    axs.set_xlabel('Exner time')
+    axs.set_ylabel('Morphological active layer [mm]')
+    axs.legend()
+    plt.savefig(os.path.join(plot_dir, run +'_morph_act_layer_sco_dep.pdf'), dpi=200)
+    plt.show()
+    
+    # Multiple boxplot of the morphological active layer for different timestep
+    fig7, ax = plt.subplots(dpi=80, figsize=(10,6))
+    fig7.suptitle('Morphological active layer - ' + run, fontsize = 18)
+    for i in range(0, matrix_act_thickness.shape[0]):
+        bplot=ax.boxplot(matrix_act_thickness[i,:-2-i], positions=[i], widths=0.5) # Data were filtered by np.nan values
+    ax.yaxis.grid(True)
+    ax.set_xlabel('DoD timestep', fontsize=12)
+    ax.set_ylabel('Morphological active layer [mm]', fontsize=12)
+    # plt.xticks(np.arange(0,matrix_act_thickness.shape[0], 1), RUNS)
+    # if run_mode==2:
+    #     plt.savefig(os.path.join(home_dir, 'plot', 'morph_act_width_boxplot.pdf'), dpi=200)
+    plt.savefig(os.path.join(plot_dir, 'morph_act_layer_boxplot.pdf'), dpi=200)
+    plt.show()
+    
 
-
+# MORPHOLOGICAL ACTIVE WIDTH VS. DISCHARGE BOXPLOT
 morphWact_dim=[]
 for i in range(0,len(RUNS)):
-    report_dir = os.path.join(home_dir, 'output', RUNS[i])
-    morphWact = np.loadtxt(os.path.join(report_dir, RUNS[i] + '_morphWact_array.txt'), delimiter=',')
+    report_dir_data = os.path.join(home_dir, 'output', RUNS[i])
+    morphWact = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array.txt'), delimiter=',')
     morphWact_dim =np.append(morphWact_dim, len(morphWact))
     
 morphWact_matrix=np.zeros((len(RUNS), int(np.max(morphWact_dim))))
 
 for i in range(0,len(RUNS)):
-    report_dir = os.path.join(home_dir, 'output', RUNS[i])
-    morphWact = np.loadtxt(os.path.join(report_dir, RUNS[i] + '_morphWact_array.txt'), delimiter=',')
+    report_dir_data = os.path.join(home_dir, 'output', RUNS[i])
+    morphWact = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array.txt'), delimiter=',')
     morphWact_dim =len(morphWact)
-    
-    report_dir = os.path.join(home_dir, 'output', RUNS[i])
-    data=np.loadtxt(os.path.join(report_dir, RUNS[i] + '_morphWact_array.txt'), delimiter=',')
-    print(data)
-    morphWact_matrix[i,:len(data)]=data
+    morphWact_matrix[i,:len(morphWact)]=morphWact
 
 # Set zero as np.nan
 morphWact_matrix = np.where(morphWact_matrix==0, np.nan, morphWact_matrix)
 
-# Multiple boxplot
+# Multiple boxplot of the morphological active width data
 fig, ax = plt.subplots(dpi=80, figsize=(10,6))
 fig.suptitle('Dimensionless morphological active width', fontsize = 18)
 for i in range(0, len(RUNS)):
-    bplot=ax.boxplot(morphWact_matrix[i,:][~np.isnan(morphWact_matrix[i,:])]/DoD_filt_ult_plot.shape[1], positions=[i], widths=0.5) # Data were filtered by np.nan values
+    bplot=ax.boxplot(morphWact_matrix[i,:][~np.isnan(morphWact_matrix[i,:])], positions=[i], widths=0.5) # Data were filtered by np.nan values
 ax.yaxis.grid(True)
 ax.set_xlabel('Runs', fontsize=12)
 ax.set_ylabel('morphWact/W [-]', fontsize=12)
 plt.xticks(np.arange(0,len(RUNS), 1), RUNS)
-plt.savefig(os.path.join(plot_dir, 'morphWact_boxplot.pdf'), dpi=200)
+if run_mode==2:
+    plt.savefig(os.path.join(home_dir, 'plot', 'morph_act_width_boxplot.pdf'), dpi=200)
+plt.savefig(os.path.join(main_plot_dir, 'morph_act_width_boxplot.pdf'), dpi=200)
 plt.show()
-
 
 
 end = time.time()

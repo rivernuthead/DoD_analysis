@@ -58,6 +58,7 @@ DoD_plot_show_mode:
 run_mode = 1
 mask_mode = 1
 process_mode = 1
+filt_analysis = 0
 # data_interpolation_mode = 0
 # save_plot_mode = 1
 # DoD_plot_mode = 0
@@ -336,6 +337,7 @@ for run in RUNS:
         array_mask_rshp[:,int(array_mask_rshp.shape[1]/2):] = NaN
         array_mask_rshp=np.where(array_mask_rshp==NaN, np.nan, array_mask_rshp)
 
+#%%
     ###########################################################################
     # LOOP OVER ALL DEMs COMBINATIONS
     ###########################################################################
@@ -619,6 +621,7 @@ for run in RUNS:
             # DoD>0 --> Deposition, DoD<0 --> Scour
             # =+SUMIFS(A1:JS144, A1:JS144,">0")*5*50(LibreCalc function)
             
+            
             # SCOUR AND DEPOSITION MATRIX, DEPOSITION ONLY MATRIX AND SCOUR ONLY MATRIX:
             DoD_vol = np.where(np.isnan(DoD_filt_ult), 0, DoD_filt_ult) # Total volume matrix
             dep_DoD = (DoD_vol>0)*DoD_vol # Deposition only matrix
@@ -633,80 +636,86 @@ for run in RUNS:
             act_px_matrix_gis = np.where(np.isnan(act_px_matrix), NaN, act_px_matrix) # Active pixel matrix, both scour and deposition
             act_px_matrix_dep_gis = np.where(np.isnan(act_px_matrix_dep), NaN, act_px_matrix_dep) # Active deposition matrix 
             act_px_matrix_sco_gis = np.where(np.isnan(act_px_matrix_sco), NaN, act_px_matrix_sco) # Active scour matrix
-            
+
+#%%         ###################################################################
             # MORPHOLOGICAL QUANTITIES:
+            ###################################################################
+            
             tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_ult)
             
             
             
             
-            
-            # Analysis to investigate the role of the application of spatial filters at the DoD
-            # in the morphological changes calculation
-            if delta==1:
-                # DoD_raw
-                tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_raw)
-                if len(DoD_raw_morph_quant)==0:
-                    DoD_raw_morph_quant=np.append(DoD_raw_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
-                else:
-                    DoD_raw_morph_quant=np.vstack((DoD_raw_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
-                
-                # DoD_filt_mean
-                tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_mean)
-                if len(DoD_filt_mean_morph_quant)==0:
-                    DoD_filt_mean_morph_quant=np.append(DoD_filt_mean_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
-                else:
-                    DoD_filt_mean_morph_quant=np.vstack((DoD_filt_mean_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
-                
-                # DoD_filt_isol
-                tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_isol)
-                if len(DoD_filt_isol_morph_quant)==0:
-                    DoD_filt_isol_morph_quant=np.append(DoD_filt_isol_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
-                else:
-                    DoD_filt_isol_morph_quant=np.vstack((DoD_filt_isol_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
-                
-                # DoD_filt_fill
-                tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_fill)
-                if len(DoD_filt_fill_morph_quant)==0:
-                    DoD_filt_fill_morph_quant=np.append(DoD_filt_fill_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
-                else:
-                    DoD_filt_fill_morph_quant=np.vstack((DoD_filt_fill_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
-                
-                # DoD_filt_nature
-                tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_nature)
-                if len(DoD_filt_nature_morph_quant)==0:
-                    DoD_filt_nature_morph_quant=np.append(DoD_filt_nature_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
-                else:
-                    DoD_filt_nature_morph_quant=np.vstack((DoD_filt_nature_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
-                
-                # DoD_filt_isol2
-                tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_isol2)
-                if len(DoD_filt_isol2_morph_quant)==0:
-                    DoD_filt_isol2_morph_quant=np.append(DoD_filt_isol2_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
-                else:
-                    DoD_filt_isol2_morph_quant=np.vstack((DoD_filt_isol2_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
-                
-                # DoD_filt_ult
-                tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_ult)
-                if len(DoD_filt_ult_morph_quant)==0:
-                    DoD_filt_ult_morph_quant=np.append(DoD_filt_ult_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
-                else:
-                    DoD_filt_ult_morph_quant=np.vstack((DoD_filt_ult_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
+            if filt_analysis == 1:
+                # Analysis to investigate the role of the application of spatial filters at the DoD
+                # in the morphological changes calculation
+                if delta==1:
+                    # DoD_raw
+                    tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_raw)
+                    if len(DoD_raw_morph_quant)==0:
+                        DoD_raw_morph_quant=np.append(DoD_raw_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
+                    else:
+                        DoD_raw_morph_quant=np.vstack((DoD_raw_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
+                    
+                    # DoD_filt_mean
+                    tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_mean)
+                    if len(DoD_filt_mean_morph_quant)==0:
+                        DoD_filt_mean_morph_quant=np.append(DoD_filt_mean_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
+                    else:
+                        DoD_filt_mean_morph_quant=np.vstack((DoD_filt_mean_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
+                    
+                    # DoD_filt_isol
+                    tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_isol)
+                    if len(DoD_filt_isol_morph_quant)==0:
+                        DoD_filt_isol_morph_quant=np.append(DoD_filt_isol_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
+                    else:
+                        DoD_filt_isol_morph_quant=np.vstack((DoD_filt_isol_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
+                    
+                    # DoD_filt_fill
+                    tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_fill)
+                    if len(DoD_filt_fill_morph_quant)==0:
+                        DoD_filt_fill_morph_quant=np.append(DoD_filt_fill_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
+                    else:
+                        DoD_filt_fill_morph_quant=np.vstack((DoD_filt_fill_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
+                    
+                    # DoD_filt_nature
+                    tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_nature)
+                    if len(DoD_filt_nature_morph_quant)==0:
+                        DoD_filt_nature_morph_quant=np.append(DoD_filt_nature_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
+                    else:
+                        DoD_filt_nature_morph_quant=np.vstack((DoD_filt_nature_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
+                    
+                    # DoD_filt_isol2
+                    tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_isol2)
+                    if len(DoD_filt_isol2_morph_quant)==0:
+                        DoD_filt_isol2_morph_quant=np.append(DoD_filt_isol2_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
+                    else:
+                        DoD_filt_isol2_morph_quant=np.vstack((DoD_filt_isol2_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
+                    
+                    # DoD_filt_ult
+                    tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_ult)
+                    if len(DoD_filt_ult_morph_quant)==0:
+                        DoD_filt_ult_morph_quant=np.append(DoD_filt_ult_morph_quant, (tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))
+                    else:
+                        DoD_filt_ult_morph_quant=np.vstack((DoD_filt_ult_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
                 
             #Print results:
             print('Total volume:', "{:.1f}".format(tot_vol))
             print('Sum of deposition and scour volume:', "{:.1f}".format(sum_vol))
             print('Deposition volume:', "{:.1f}".format(dep_vol))
             print('Scour volume:', "{:.1f}".format(sco_vol))
+            
+            
+            # TODO Check: should this be applied only for delta==1 DoD???
 
+                
+            # Fill arrays with the values of the total, sum, deposition and scour volume
             # Append values to output data array
             volumes_array = np.append(volumes_array, tot_vol)
             sum_array = np.append(sum_array, sum_vol)
             dep_array = np.append(dep_array, dep_vol)
             sco_array = np.append(sco_array, sco_vol)
-            
-            
-            
+        
             ###################################################################
             # Active_pixel analysis
             ###################################################################
@@ -717,21 +726,21 @@ for run in RUNS:
             morph_act_area_array_sco = np.append(morph_act_area_array_sco, morph_act_area_sco) # For each DoD, append scour active area data
             
             # Morphological active width streamwise array [number of activ cells]
-            act_width_array = np.array([np.nansum(act_px_matrix/dim_y, axis=0)]) # Array of the crosswise morphological total active width in number of active cells [-]
-            act_width_array_dep = np.array([np.nansum(act_px_matrix_dep/dim_y, axis=0)]) # Array of the crosswise morphological deposition active width in number of active cells [-]
-            act_width_array_sco = np.array([np.nansum(act_px_matrix_sco/dim_y, axis=0)]) # Array of the crosswise morphological scour active width in number of active cells [-]
+            act_width_array = np.array([np.nansum(act_px_matrix/(W/(px_y/1000)), axis=0)]) # Array of the crosswise morphological total active width in number of active cells [-]
+            act_width_array_dep = np.array([np.nansum(act_px_matrix_dep/(W/(px_y/1000)), axis=0)]) # Array of the crosswise morphological deposition active width in number of active cells [-]
+            act_width_array_sco = np.array([np.nansum(act_px_matrix_sco/(W/(px_y/1000)), axis=0)]) # Array of the crosswise morphological scour active width in number of active cells [-]
             
             
             # Morphological active width [mean value, number of activ cells / channel width]
-            act_width_mean_array = np.append(act_width_mean_array, act_width_mean/dim_y) # For each DoD append total active width values [actW/W]
-            act_width_mean_array_dep = np.append(act_width_mean_array_dep, act_width_mean_dep/dim_y) # For each DoD append deposition active width values [actW/W]
-            act_width_mean_array_sco = np.append(act_width_mean_array_sco, act_width_mean_sco/dim_y) # For each DoD append scour active width values [actW/W]
+            act_width_mean_array = np.append(act_width_mean_array, act_width_mean/(W/(px_y/1000))) # For each DoD append total active width values [actW/W]
+            act_width_mean_array_dep = np.append(act_width_mean_array_dep, act_width_mean_dep/(W/(px_y/1000))) # For each DoD append deposition active width values [actW/W]
+            act_width_mean_array_sco = np.append(act_width_mean_array_sco, act_width_mean_sco/(W/(px_y/1000))) # For each DoD append scour active width values [actW/W]
             
             
             
             print('Active thickness [mm]:', act_thickness)
             print('Morphological active area (number of active cells): ', "{:.1f}".format(morph_act_area), '[-]')
-            print('Morphological active width (mean):', "{:.3f}".format(act_width_mean/dim_y), 'actW/W [-]')
+            print('Morphological active width (mean):', "{:.3f}".format(act_width_mean/(W/(px_y/1000))), 'actW/W [-]')
             print()
             
             # Create output matrix as below:
@@ -778,9 +787,9 @@ for run in RUNS:
                 matrix_act_thickness[delta-1,h]=act_thickness # Active thickness data calculated from total volume matrix [L]
                 matrix_act_thickness_dep[delta-1,h]=act_thickness_dep # Active thickness data calculated from deposition volume matrix [L]
                 matrix_act_thickness_sco[delta-1,h]=act_thickness_sco # Active thickness data calculated from scour volume matrix [L]
-                matrix_Wact[delta-1,h]=act_width_mean/dim_y
-                matrix_Wact_dep[delta-1,h]=act_width_mean_dep/dim_y
-                matrix_Wact_sco[delta-1,h]=act_width_mean_sco/dim_y
+                matrix_Wact[delta-1,h]=act_width_mean/(W/(px_y/1000))
+                matrix_Wact_dep[delta-1,h]=act_width_mean_dep/(W/(px_y/1000))
+                matrix_Wact_sco[delta-1,h]=act_width_mean_sco/(W/(px_y/1000))
                 
                 # Fill last two columns with AVERAGE of the corresponding row
                 matrix_volumes[delta-1,-2]=np.average(matrix_volumes[delta-1,:len(files)-delta]) #Total volumes

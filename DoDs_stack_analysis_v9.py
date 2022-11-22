@@ -16,7 +16,7 @@ OUTPUTS:
     
     
 """
-
+# Import
 import os
 import numpy as np
 import math
@@ -31,22 +31,26 @@ import seaborn as sns
 #%%
 start = time.time() # Set initial time
 
-# Script mode
+# SCRIPT MODE
+'''
+plot_mode:
+    ==0 plot mode OFF
+    ==1 plot mode ON
+'''
 plot_mode = 1
 
 # SINGLE RUN NAME
-
 run = 'q20_2'
 
 print('###############\n' + '#    ' + run + '    #' + '\n###############')
 # Step between surveys
 DoD_delta = 1
 
-# setup working directory and DEM's name
-home_dir = os.getcwd()
-# Source DoDs folder
-DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack')
+# FOLDER SETUP
+home_dir = os.getcwd() # Home directory
+DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Input folder
 
+###############################################################################
 # IMPORT RUN PARAMETERS from file parameters.txt
 # variable run must be as 'q' + discharge + '_' repetition number
 # Parameters.txt structure:
@@ -62,30 +66,28 @@ run_param = parameters[np.intersect1d(np.argwhere(parameters[:,1]==float(run[-1:
 dt = run_param[0,2] # dt between runs [min] (real time)
 dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner between runs)
 
+###############################################################################
+# IMPORT doD STACK AND DoD BOOL STACK
 stack_name = 'DoD_stack' + str(DoD_delta) + '_' + run + '.npy' # Define stack name
 stack_bool_name = 'DoD_stack' + str(DoD_delta) + '_bool_' + run + '.npy' # Define stack bool name
 stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
 stack_bool_path = os.path.join(DoDs_folder,stack_bool_name) # Define stack bool path
 stack = np.load(stack_path) # Load DoDs stack
 stack_bool = np.load(stack_bool_path) # Load DoDs boolean stack
+dim_t, dim_y, dim_x = stack.shape # Define time dimension, crosswise dimension and longitudinal dimension
 
-# Initialize stack
+#%%##############################################################################
+# INITIALIZE STACK AND ARRAY
 act_time_stack = np.zeros(stack.shape) # activation time stack contains the time between switches. The first layer of this stack contains the first sctivation time that is a lower limit in time because we ignore how long the pixel has keept the same nature in the past.
 switch_matrix = np.zeros(stack.shape[1:]) # This is the 2D matrix that collect the number of switch over time
 
-# Define stack dimension
-dim_t, dim_y, dim_x = stack.shape # Define time dimension, crosswise dimension and longitudinal dimension
-
-# # Mask
-# mask = np.sum(abs(stack_bool), axis=0)
-# mask = np.where(np.isnan(mask), mask,1)
 
 
 #%%####################
 # VERY FIRST STATISTICS
-#######################
 
 # Calculate the domain dimension (the number of not(np.isnan()) values)
+# These are the cell of the channel domain
 domain_pixel = dim_x*dim_y - np.sum(np.isnan(stack_bool[0,:,:]))
 
 
@@ -98,34 +100,52 @@ for t in range(0,dim_t):
     active_pixel_count_array = np.append(active_pixel_count_array, count)
 active_pixel_count_array = active_pixel_count_array/domain_pixel
 
-# Matrix of the number of times a cell has been activated
-active_pixel_count_matrix = np.nansum(abs(stack_bool), axis=0)
+###############################################################################
+# SCALAR VALUE
 
-# Pixels that are active both at the start and at the end
+# PIXELS THAT ARE ACTIVE BOTH AT THE START AND AT THE END
 active_pixel_start_end = np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:])))/domain_pixel
 
-# Pixels active only at the start
+# PIXELS ACTIVE ONLY AT THE START
 active_pixel_start_only = (np.nansum(abs(stack_bool[0,:,:])) - np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:]))))/domain_pixel
 
-# Pixels acive only at the end
+# PIXELS ACIVE ONLY AT THE END
 active_pixel_end_only = (np.nansum(abs(stack_bool[dim_t -1,:,:])) - np.nansum(abs(np.multiply(stack_bool[0,:,:],stack_bool[dim_t-1,:,:]))))/domain_pixel
 
-# Pixels active neither at the start nor at the end
+# PIXELS ACTIVE NEITHER AT THE START NOR AT THE END
 active_pixel_never = np.nansum(np.abs(stack_bool), axis=0)
 active_pixel_never = np.nansum(active_pixel_never==0)/domain_pixel
 
-
-# Active area for each DoD
+# ACTIVE AREA FOR EACH DoD
 act_A = []
 for t in range(0,dim_t):
     DoD_act_A = np.nansum(abs(stack_bool[t,:,:]))
     act_A = np.append(act_A, DoD_act_A) # Active area array for each DoD in the stack
 
-# Number of activated pixel from a DoD and the consecutive one
+# NUMBER OF ACTIVATED PIXEL FROM A DoD AND THE CONSECUTIVE ONE
 activated_pixels = []
 for t in range(0,dim_t-1):
     activated_pixel_count = np.nansum(abs(stack_bool[t+1,:,:])) - np.nansum(abs(np.multiply(stack_bool[t,:,:],stack_bool[t+1,:,:])))
     activated_pixels = np.append(activated_pixels, activated_pixel_count)
+
+###############################################################################
+# MAPS
+
+# MAP OF THE NUMBER OF TIMES A CELL HAS BEEN ACTIVATED
+active_pixel_count_matrix = np.nansum(abs(stack_bool), axis=0)
+
+# MAP OF THE CELL THAT HAVE BEEN ACTIVE (ENVELOP)
+active_envelop_matrix = np.nansum(abs(stack_bool), axis=0)
+
+# MAP OF THE DEPOSITIONAL CELL THAT HAVE BEEN ACTIVE (ENVELOP)
+active_envelop_matrix_dep = np.nansum(abs(stack_bool==+1), axis=0)
+
+# MAP OF THE SCOUR CELL THAT HAVE BEEN ACTIVE (ENVELOP)
+active_envelop_matrix_dep = np.nansum(abs(stack_bool==-1), axis=0)
+
+# MAP OF THE CELL THAT HAVE NEVER BEEN ACTIVE
+never_active_matrix = active_envelop_matrix == 0
+
 
 #%%
 # Create the data structure to perform sum, diff and mult two by two along the time axis
@@ -423,8 +443,9 @@ corresponding activation period calculation
 print('Random choice array check:')
 yy=random.randrange(dim_y)
 xx=random.randrange(dim_x)
-xx=0
-yy=9
+# Force check coordinates:
+# xx=0
+# yy=9
 print(stack_bool[:,yy,xx])
 print(act_time_stack[:,yy,xx])
 print()
