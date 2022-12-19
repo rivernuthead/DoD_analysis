@@ -107,6 +107,7 @@ for run in RUNS:
     report_path = os.path.join(report_dir, run)
     plot_dir = os.path.join(home_dir, 'plot', run)
     DoDs_dir = os.path.join(home_dir, 'DoDs', 'DoD_'+run)
+    stack_dir = os.path.join(home_dir, 'DoDs', 'DoDs_stack')
     
     # Save a report with xData as real time in minutes and the value of scour and deposition volumes for each runs
     # Check if the file already exists
@@ -243,6 +244,7 @@ for run in RUNS:
     matrix_morphWact = np.loadtxt(os.path.join(report_path, run+'_morphWact_report.txt'), delimiter=',')
     matrix_morphWact_sco = np.loadtxt(os.path.join(report_path, run+'_morphWact_sco_report.txt'), delimiter=',')
     matrix_morphWact_dep = np.loadtxt(os.path.join(report_path, run+'_morphWact_dep_report.txt'), delimiter=',')
+    stack=np.load(os.path.join(stack_dir, 'DoD_stack_'+run+'.npy'))
     
     
     # Define arrays for scour and volume data over time
@@ -343,27 +345,51 @@ for run in RUNS:
     plt.savefig(os.path.join(plot_dir, 'morph_act_layer_boxplot.pdf'), dpi=200)
     plt.show()
     
-
+###############################################################################
 # MORPHOLOGICAL ACTIVE WIDTH VS. DISCHARGE BOXPLOT
 morphWact_dim=[]
+morphWact_dim_dep=[]
+morphWact_dim_sco=[]
+
+# Check the maximum matrix dimension
 for i in range(0,len(RUNS)):
     report_dir_data = os.path.join(home_dir, 'output', RUNS[i])
-    morphWact = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array.txt'), delimiter=',')
+    morphWact = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array.txt'), delimiter=',') # Morphological active width
+    morphWact_dep = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array_dep.txt'), delimiter=',') # Morphological active width DEPOSITION
+    morphWact_sco = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array_sco.txt'), delimiter=',') # Morphological active width SCOUR
     morphWact_dim =np.append(morphWact_dim, len(morphWact))
-    
-morphWact_matrix=np.zeros((len(RUNS), int(np.max(morphWact_dim))))
+    morphWact_dim_dep =np.append(morphWact_dim, len(morphWact_dep))
+    morphWact_dim_sco =np.append(morphWact_dim, len(morphWact_sco))
+
+NaN_value = -999
+
+# Initialize report matrix
+# The matrix has the number of colums as the maximum number of columns of the dataset.
+# So I initilize it as filled with the NaN_value and then I convert NaN_value as np.nan.
+# This allows me to consider the dataset with their right dimension in number of columns.
+morphWact_matrix=np.ones((len(RUNS), int(np.max(morphWact_dim))))*NaN_value
+morphWact_matrix_dep=np.ones((len(RUNS), int(np.max(morphWact_dim_dep))))*NaN_value
+morphWact_matrix_sco=np.ones((len(RUNS), int(np.max(morphWact_dim_sco))))*NaN_value
+
 
 for i in range(0,len(RUNS)):
     report_dir_data = os.path.join(home_dir, 'output', RUNS[i])
     morphWact = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array.txt'), delimiter=',')
-    morphWact_dim =len(morphWact)
+    morphWact_dep = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array_dep.txt'), delimiter=',') # Morphological active width DEPOSITION
+    morphWact_sco = np.loadtxt(os.path.join(report_dir_data, RUNS[i] + '_morphWact_array_sco.txt'), delimiter=',') # Morphological active width SCOUR
+    # morphWact_dim =len(morphWact)
     morphWact_matrix[i,:len(morphWact)]=morphWact
+    morphWact_matrix_dep[i,:len(morphWact_dep)]=morphWact_dep
+    morphWact_matrix_sco[i,:len(morphWact_sco)]=morphWact_sco
 
-# Set zero as np.nan
-morphWact_matrix = np.where(morphWact_matrix==0, np.nan, morphWact_matrix)
+# Set NaN_value as np.nan
+morphWact_matrix = np.where(morphWact_matrix==NaN_value, np.nan, morphWact_matrix)
+morphWact_matrix_dep = np.where(morphWact_matrix_dep==NaN_value, np.nan, morphWact_matrix_dep)
+morphWact_matrix_sco = np.where(morphWact_matrix_sco==NaN_value, np.nan, morphWact_matrix_sco)
 
-# Multiple boxplot of the morphological active width data
-fig, ax = plt.subplots(dpi=80, figsize=(10,6))
+
+# MULTIPLE BOXPLOT OF THE MORPHOLOGICAL ACTIVE WIDTH DATA
+fig, ax = plt.subplots(figsize=(10,6))
 fig.suptitle('Dimensionless morphological active width', fontsize = 18)
 for i in range(0, len(RUNS)):
     bplot=ax.boxplot(morphWact_matrix[i,:][~np.isnan(morphWact_matrix[i,:])], positions=[i], widths=0.5) # Data were filtered by np.nan values
@@ -375,6 +401,27 @@ if run_mode==2:
     plt.savefig(os.path.join(home_dir, 'plot', 'morph_act_width_boxplot.pdf'), dpi=200)
 plt.savefig(os.path.join(main_plot_dir, 'morph_act_width_boxplot.pdf'), dpi=200)
 plt.show()
+
+
+# MULTIPLE BOXPLOT OF THE MORPHOLOGICAL ACTIVE WIDTH DATA FOR SCOUR AND DEPOSITION
+fig, ax = plt.subplots(figsize=(10,6))
+fig.suptitle('Dimensionless dep and scour morphological active width', fontsize = 18)
+positions = np.linspace(0,len(RUNS)*2, len(RUNS)+1)
+for i in range(0,len(RUNS)):
+    bplot_dep=ax.boxplot(morphWact_matrix_dep[i,:][~np.isnan(morphWact_matrix_dep[i,:])], positions=[int(positions[i])], widths=0.5, patch_artist=True, boxprops=dict(facecolor='b')) # Data were filtered by np.nan values
+    bplot_sco=ax.boxplot(morphWact_matrix_sco[i,:][~np.isnan(morphWact_matrix_sco[i,:])], positions=[int(positions[i])+1], widths=0.5, patch_artist=True, boxprops=dict(facecolor='r'))
+ax.yaxis.grid(True)
+ax.set_xlabel('Runs', fontsize=12)
+ax.set_ylabel('morphWact/W [-]', fontsize=12)
+plt.xticks(np.arange(0,len(RUNS)*2, 2), RUNS)
+if run_mode==2:
+    plt.savefig(os.path.join(home_dir, 'plot', 'morph_act_width_boxplot_dep_sco.pdf'), dpi=200)
+plt.savefig(os.path.join(main_plot_dir, 'morph_act_width_boxplot_dep_sco.pdf'), dpi=200)
+plt.show()
+
+
+# EVOLUTION OF THE ENVELOP OF 1 TIMESTEP DoD OVER TIME
+
 
 
 end = time.time()

@@ -65,11 +65,13 @@ process_mode = 1
 # DoD_plot_show_mode = 0
 
 # SINGLE RUN NAME
-run = 'q10_4'
+# run = ['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6']
+run = 'q10_7'
 
 # Set DEM single name to perform process to specific DEM
-DEM1_single_name = 'matrix_bed_norm_' + run +'s'+'0'+'.txt' # DEM1 name
-DEM2_single_name = 'matrix_bed_norm_' + run +'s'+'1'+'.txt' # DEM2 name
+if len(run) ==1:
+    DEM1_single_name = 'matrix_bed_norm_' + str(run) +'s'+'0'+'.txt' # DEM1 name
+    DEM2_single_name = 'matrix_bed_norm_' + str(run) +'s'+'1'+'.txt' # DEM2 name
 
 # Filtering process thresholds values
 thrs_zeros = 7 # [-] isolated_killer function threshold
@@ -152,9 +154,9 @@ for run in RUNS:
     print('######')
     print()
     # setup working directory and DEM's name
-    input_dir = os.path.join(home_dir, 'DoDs', 'DoD_' + run)
-    report_dir = os.path.join(home_dir, 'output_new', run)
-    plot_dir = os.path.join(home_dir, 'plot_new', run)
+    input_dir = os.path.join(home_dir, 'DoDs', 'DoDs_' + run)
+    report_dir = os.path.join(home_dir, 'output', run)
+    plot_dir = os.path.join(home_dir, 'plot', run)
     
     # Save a report with xData as real time in minutes and the value of scour and deposition volumes for each runs
     # Check if the file already exists
@@ -400,13 +402,13 @@ for run in RUNS:
         tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_ult)
         
         DoD_name = 'DoD_' + str(DEM2_num) + '-' + str(DEM1_num)
-        DoD_raw = np.loadtxt(os.path.join(DoDs_dir,'DoD_'+run, DoD_name + '_raw.txt'),skiprows=8 , delimiter='\t')
-        DoD_filt_mean = np.loadtxt(os.path.join(DoDs_dir,'DoD_'+run, DoD_name + '_filt_mean.txt'),skiprows=8 , delimiter='\t')
-        DoD_filt_isol = np.loadtxt(os.path.join(DoDs_dir,'DoD_'+run, DoD_name + '_filt_isol.txt'),skiprows=8 , delimiter='\t')
-        DoD_filt_nature = np.loadtxt(os.path.join(DoDs_dir,'DoD_'+run, DoD_name + '_filt_nature.txt'),skiprows=8 , delimiter='\t')
-        DoD_filt_fill = np.loadtxt(os.path.join(DoDs_dir,'DoD_'+run, DoD_name + '_filt_fill.txt'),skiprows=8 , delimiter='\t')
-        DoD_filt_isol2 = np.loadtxt(os.path.join(DoDs_dir,'DoD_'+run, DoD_name + '_filt_isol2.txt'),skiprows=8 , delimiter='\t')
-        DoD_filt_ult = np.loadtxt(os.path.join(DoDs_dir,'DoD_'+run, DoD_name + '_filt_ult.txt'),skiprows=8 , delimiter='\t')
+        DoD_raw = np.loadtxt(os.path.join(DoDs_dir,'DoDs_'+run, DoD_name + '_raw.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_mean = np.loadtxt(os.path.join(DoDs_dir,'DoDs_'+run, DoD_name + '_filt_mean.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_isol = np.loadtxt(os.path.join(DoDs_dir,'DoDs_'+run, DoD_name + '_filt_isol.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_nature = np.loadtxt(os.path.join(DoDs_dir,'DoDs_'+run, DoD_name + '_filt_nature.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_fill = np.loadtxt(os.path.join(DoDs_dir,'DoDs_'+run, DoD_name + '_filt_fill.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_isol2 = np.loadtxt(os.path.join(DoDs_dir,'DoDs_'+run, DoD_name + '_filt_isol2.txt'),skiprows=8 , delimiter='\t')
+        DoD_filt_ult = np.loadtxt(os.path.join(DoDs_dir,'DoDs_'+run, DoD_name + '_filt_ult.txt'),skiprows=8 , delimiter='\t')
         
         # Convert all zero value in np.nan to make it transparent on plots:
         DoD_raw_plot = np.where(DoD_raw==0, np.nan, DoD_raw)
@@ -648,170 +650,6 @@ for run in RUNS:
         
 
 
-        # ###################################################################
-        # # STACK CONSECUTIVE DoDS IN A 3D ARRAY
-        # ###################################################################
-        # # Initialize 3D array to stack DoDs
-        # if h==0 and k==0: # initialize the first array with the DEM shape
-        #     DoD_stack1 = np.zeros([len(files)-1, dim_y, dim_x])
-        # else:
-        #     pass
-        # # Stack all the DoDs inside the 3D array
-        # if delta==1:
-        #     DoD_stack1[h,:,:] = DoD_filt_ult[:,:]
-
-        ###################################################################
-        # DoDs SAVING...
-        ###################################################################
-
-    #     os.path.join(path_out, DoD_name, )
-        
-    #     # SAVE DOD FILES...
-        
-    #     # RAW DoD
-    #     # Print raw DoD in txt file (NaN as np.nan)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'raw.txt'), DoD_raw, fmt='%0.1f', delimiter='\t')
-    #     # Printing raw DoD in txt file (NaN as -999)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'raw_gis.txt'), DoD_raw_gis, fmt='%0.1f', delimiter='\t')
-
-    #     # WEIGHTED AVERAGED DoD
-    #     # Print DoD mean in txt file (NaN as np.nan)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_mean.txt'), DoD_filt_mean , fmt='%0.1f', delimiter='\t')
-    #     # Print filtered DoD (with NaN as -999)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_mean_gis.txt'), DoD_filt_mean_gis , fmt='%0.1f', delimiter='\t')
-
-    #     # ISOLATE KILLER FUNCTION APPLIED DoD
-    #     # Print filtered DoD (with np.nan)...
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_isol.txt'), DoD_filt_isol, fmt='%0.1f', delimiter='\t')
-    #     # Print filtered DoD (with NaN as -999)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_isol_gis.txt'), DoD_filt_isol_gis, fmt='%0.1f', delimiter='\t')
-        
-    #     # NATURE CHECKER FUNCTION APPLIED DoD
-    #     # Print filtered DoD (with np.nan)...
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature.txt'), DoD_filt_nature, fmt='%0.1f', delimiter='\t')
-    #     # Print filtered DoD (with NaN as -999)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), DoD_filt_nature_gis, fmt='%0.1f', delimiter='\t')
-        
-    #     # ISOLATE FILLER FUNCTION APPLIED DoD
-    #     # Print filtered DoD (with np.nan)...
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_fill.txt'), DoD_filt_fill, fmt='%0.1f', delimiter='\t')
-    #     # Print filtered DoD (with NaN as -999)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_fill_gis.txt'), DoD_filt_fill_gis, fmt='%0.1f', delimiter='\t')
-
-    #     # SECOND ROUND OF ISOLATE KILLER FUNCTION APPLIED DoD (This is the ultimate DoD)
-    #     # Print filtered DoD (with np.nan)...
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_isol2.txt'), DoD_filt_isol2, fmt='%0.1f', delimiter='\t')
-    #     # Print filtered DoD (with NaN as -999)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_isol2_gis.txt'), DoD_filt_isol2_gis, fmt='%0.1f', delimiter='\t')
-        
-    #     # ISLAND KILLER FUNCTION APPLIED DoD (...)
-    #     # Print filtered DoD (with np.nan)...
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_ult.txt'), DoD_filt_ult, fmt='%0.1f', delimiter='\t')
-    #     # Print filtered DoD (with NaN as -999)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'filt_ult_gis.txt'), DoD_filt_ult_gis, fmt='%0.1f', delimiter='\t')
-
-    #     # ACTIVE PIXEL DoD
-    #     # Print boolean map of active pixel: 1=active, 0=not active
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'activity_map.txt'), act_px_matrix, fmt='%0.1f', delimiter='\t')
-    #     # Print boolean GIS readable map of active pixel as above (np.nan is NaN)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_gis.txt'), act_px_matrix_gis , fmt='%0.1f', delimiter='\t')
-        
-    #     # ACTIVE DEPOSITION PIXEL DoD
-    #     # Print boolean map of active pixel: 1=deposition, 0=not active or scour
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_dep.txt'), act_px_matrix_dep, fmt='%0.1f', delimiter='\t')
-    #     # Print boolean GIS readable map of active pixel as above (np.nan is NaN)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_dep_gis.txt'), act_px_matrix_dep_gis , fmt='%0.1f', delimiter='\t')
-        
-    #     # ACTIVE SCOUR PIXEL DoD
-    #     # Print boolean map of active pixel: 1=scour, 0=not active or deposition
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_sco.txt'), act_px_matrix_sco, fmt='%0.1f', delimiter='\t')
-    #     # Print boolean GIS readable map of active pixel as above (np.nan is NaN)
-    #     np.savetxt(os.path.join(path_out, DoD_name + 'activity_map_sco_gis.txt'), act_px_matrix_sco_gis, fmt='%0.1f', delimiter='\t')
-
-
-    #     # TODO Could this part be implemented as a function?
-    #     # Print DoD and filtered DoD (with NaN as -999) in a GIS readable format (ASCII grid):
-    #     with open(os.path.join(path_out, DoD_name + 'header.txt')) as f_head:
-    #         w_header = f_head.read()    # Header
-    #     with open(os.path.join(path_out, DoD_name + 'raw_gis.txt')) as f_DoD:
-    #         w_DoD_raw= f_DoD.read()
-    #     with open(os.path.join(path_out, DoD_name + 'filt_mean_gis.txt')) as f_DoD_mean:
-    #         w_DoD_mean = f_DoD_mean.read()
-    #     with open(os.path.join(path_out, DoD_name + 'filt_isol_gis.txt')) as f_DoD_isol:
-    #         w_DoD_isol = f_DoD_isol.read()
-    #     with open(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt')) as f_DoD_nature:
-    #         w_DoD_nature = f_DoD_nature.read()
-    #     with open(os.path.join(path_out, DoD_name + 'filt_fill_gis.txt')) as f_DoD_fill:
-    #         w_DoD_fill = f_DoD_fill.read()
-    #     with open(os.path.join(path_out, DoD_name + 'filt_isol2_gis.txt')) as f_DoD_isol2:
-    #         w_DoD_isol2 = f_DoD_isol2.read()
-    #     with open(os.path.join(path_out, DoD_name + 'filt_ult_gis.txt')) as f_DoD_ult:
-    #         w_DoD_ult = f_DoD_ult.read()
-    #     with open(os.path.join(path_out, DoD_name + 'activity_map_gis.txt')) as f_DoD_act_map:
-    #         w_DoD_act_map = f_DoD_act_map.read()
-    #     with open(os.path.join(path_out, DoD_name + 'activity_map_dep_gis.txt')) as f_DoD_act_map_dep:
-    #         w_DoD_act_map_dep = f_DoD_act_map_dep.read()
-    #     with open(os.path.join(path_out, DoD_name + 'activity_map_sco_gis.txt')) as f_DoD_act_map_sco:
-    #         w_DoD_act_map_sco = f_DoD_act_map_sco.read()
-
-    #         # Print GIS readable raster
-    #         DoD_raw_gis = w_header + w_DoD_raw
-    #         DoD_mean_gis = w_header + w_DoD_mean
-    #         DoD_isol_gis = w_header + w_DoD_isol
-    #         DoD_nature_gis = w_header + w_DoD_nature
-    #         DoD_fill_gis = w_header + w_DoD_fill
-    #         DoD_isol2_gis = w_header + w_DoD_isol2
-    #         DoD_ult_gis = w_header + w_DoD_ult
-    #         DoD_act_map_gis = w_header + w_DoD_act_map
-    #         DoD_act_map_dep_gis = w_header + w_DoD_act_map_dep
-    #         DoD_act_map_sco_gis = w_header + w_DoD_act_map_sco
-
-    #     with open(os.path.join(path_out, DoD_name + 'raw_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_raw_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'filt_mean_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_mean_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'filt_isol_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_isol_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_nature_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'filt_fill_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_fill_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'filt_isol2_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_isol2_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'filt_ult_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_ult_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'activity_map_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_act_map_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'activity_map_dep_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_act_map_dep_gis)
-    #     with open(os.path.join(path_out, DoD_name + 'activity_map_sco_gis.txt'), 'w') as fp:
-    #         fp.write(DoD_act_map_sco_gis)
-    
-    # ###################################################################
-    # # DoDs STACK SAVING...
-    # ###################################################################
-    # '''
-    # INPUTS:
-    #     DoD_stack1 : 3D numpy array stack
-    #         Stack on which each 1-step DoD has been saved (with extra domain cell as np.nan)
-    # OUTPUTS SAVED FILES:
-    #     DoD_stack1 : 3D numpy array stack
-    #         Stack on which DoDs are stored as they are, with np.nan
-    #     DoD_stack1_bool : 3D numpy array stack
-    #         Stack on which DoDs are stored as -1, 0, +1 data, also with np.nan
-    # '''
-
-    # # Save 3D array as binary file
-    # np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack1_"+run+".npy"), DoD_stack1)
-    
-    # # Create 3D array where 1=dep, -1=sco and 0=no_changes
-    # DoD_stack1_bool = np.where(DoD_stack1>0, 1, DoD_stack1)
-    # DoD_stack1_bool = np.where(DoD_stack1_bool<0, -1, DoD_stack1_bool)
-    
-    # # Save 3D "boolean" array as binary file
-    # np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack1_bool_"+run+".npy"), DoD_stack1_bool)
-
-
     # Fill DoD lenght array
     DoD_length_array = np.append(DoD_length_array, DoD_length)
 
@@ -994,23 +832,67 @@ for run in RUNS:
 DoD_length_array = np.append(DoD_length_array, DoD_length)
 
 
-if run_mode==2:
-    # Print vulume teporal scale report
-    volume_temp_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
-    # Write temporl scale report as:
-    # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
-    with open(os.path.join(report_dir, 'volume_temp_scale_report.txt'), 'w') as fp:
-        fp.write(volume_temp_scale_report_header)
-        fp.writelines(['\n'])
-        for i in range(0,len(RUNS)):
-            for j in range(0, volume_temp_scale_report.shape[1]+1):
-                if j == 0:
-                    fp.writelines([RUNS[i]+', '])
-                else:
-                    fp.writelines(["%.3f, " % float(volume_temp_scale_report[i,j-1])])
-            fp.writelines(['\n'])
-    fp.close()
+# if run_mode==2:
+#     # Print vulume teporal scale report
+#     volume_temp_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
+#     # Write temporl scale report as:
+#     # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
+#     with open(os.path.join(report_dir, 'volume_temp_scale_report.txt'), 'w') as fp:
+#         fp.write(volume_temp_scale_report_header)
+#         fp.writelines(['\n'])
+#         for i in range(0,len(RUNS)):
+#             for j in range(0, volume_temp_scale_report.shape[1]+1):
+#                 if j == 0:
+#                     fp.writelines([RUNS[i]+', '])
+#                 else:
+#                     fp.writelines(["%.3f, " % float(volume_temp_scale_report[i,j-1])])
+#             fp.writelines(['\n'])
+#     fp.close()
 
+#%%############################################################################
+# STACK ANALYSIS
+
+# for run in RUNS:
+#     stack_dir = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Define the stack directory
+#     stack=np.load(os.path.join(stack_dir, 'DoD_stack_'+run+'.npy')) # Load the stack
+#     # Create stack bool
+#     stack_bool=np.where(stack>0, 1, stack)
+#     stack_bool=np.where(stack_bool<0, -1, stack_bool)
+    
+    
+#     DoD_length = stack.shape[2] # Define the DoD length L in number of cells
+#     DoD_width = stack.shape[1] # Define the DoD width W in number of cells
+    
+    
+#     # COMPUTE THE MORPHOLOGICAL ACTIVE WIDTH EVOLUTIO FOR INCREASING TIMESTEPS
+#     envelop_morph_actW_array=[] # This array will contain the morph_actW/W value at increasing delta
+#     d=0 # Initialize delta=0
+#     for t in range(0, stack.shape[0]-d):
+#         # For each available DoD the envelop is calculated dor all the DoD of a given delta
+#         envelop=np.nansum(np.abs(stack_bool[:,:,:,d]), axis=0) # Calculate the envelop
+#         envelop = np.where(envelop>0,1,envelop)
+#         envelop_morph_actW = np.nansum(envelop)/DoD_length/DoD_width # Calculate the morphological active width as morph_actW/W [-]
+#         print('t:',t)
+#         print('envelop_morph_actW', envelop_morph_actW)
+#         envelop_morph_actW_array = np.append(envelop_morph_actW_array, envelop_morph_actW) # Append the morph_actW/W value
+#         d+=1
+    
+    
+#     # PLOT
+#     plot_dir = os.path.join(home_dir, 'plot', run)
+#     fig, axs = plt.subplots(1,1, figsize=(10,6), tight_layout=True)
+#     axs.plot(np.linspace(1,stack.shape[0],stack.shape[0]),envelop_morph_actW_array, linestyle='--', marker='^', color='green', label='morph_actW envelop')
+#     axs.set_ylim(bottom=0)
+#     axs.set_title(run + '- Morphological active width envelop')
+#     axs.set_xlabel('DoD timespep')
+#     axs.set_ylabel('Morphological active Width/W [-]')
+#     axs.legend()
+#     plt.savefig(os.path.join(plot_dir, run +'_envelop_morph_act_width.pdf'), dpi=200)
+#     plt.show()
+    
+    
+    
+#%%############################################################################
 end = time.time()
 print()
 print('Execution time: ', (end-start), 's')

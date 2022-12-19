@@ -58,12 +58,12 @@ def func_exp4(x,A,B):
 # SCRIPT PARAMETERS
 ###############################################################################
 start = time.time()
-N = 4 # Number of series to extract
+N = 1 # Number of series to extract
 
 # Plots mode
 plot_N_mode = 0 # Enable (1) or disable (0) plot print
 plot_mean = 1 # Plot mean interpolation
-mode_mode = 0 # what is this section????
+mode_series = 1 # This mode divided the dataset in N series and ferform the interpolation in N subset of the main dataset
 
 # Interpolation function:
 volume_func_mode = 1
@@ -112,7 +112,9 @@ for RUN in sorted(os.listdir(run_dir)):
         RUNS = np.append(RUNS, RUN)
     
 # MANUAL RUNS SELECTION
-RUNS = ['q07_1', 'q10_1', 'q10_2', 'q10_3', 'q10_4', 'q15_1', 'q15_2', 'q20_1', 'q20_2']
+# RUNS = ['q07_1', 'q10_1', 'q10_2', 'q10_3', 'q10_4', 'q15_1', 'q15_2', 'q20_1', 'q20_2']
+# RUNS = ['q10_2', 'q10_3', 'q10_4']
+# RUNS = ['q10_4']
 
 # Per ogni run leggere i dati dal file di testo dei valori di scavi, depositi e active width e active thickness.
 # I dati vengono posti all'interno di in dizionario.
@@ -124,7 +126,9 @@ param_d = {} # Dictionary of all the interpolation parameters
 # Loop over all runs
 ###############################################################################
 for run in RUNS:
-    
+    print('*************')
+    print(run)
+    print('*************')
     # Extract the number of survey files in the survey folder
     # Needed to know the dimension of the matrix
     files = []
@@ -134,7 +138,8 @@ for run in RUNS:
             files = np.append(files, f)
     file_N = files.shape[0]-1 # Number of DoD
     
-    # Load parameter matrix
+    ###########################################################################
+    # LOAD PARAMETERS MATRIX
     # discharge [l/s],repetition,run time [min],Texner discretization, Channel width [m], slome [m/m]
     parameters = np.loadtxt(os.path.join(w_dir, 'parameters.txt'),
                             delimiter=',',
@@ -146,7 +151,7 @@ for run in RUNS:
     dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner between runs)
     W = run_param[0,4] # Flume width [m]
     
-    
+    ###########################################################################
     # Create the d dictionary entry loading report files from DoD_analysis.py output folder
     d["sum_vol_data_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run, run + '_sum_vol_report.txt'), delimiter = ',')
     d["sco_data_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run, run + '_sco_report.txt'), delimiter = ',')
@@ -159,30 +164,33 @@ for run in RUNS:
     d["act_area_data_dep_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run, run + '_act_area_report_dep.txt'), delimiter = ',')
     d["act_area_data_sco_{0}".format(run)] = np.loadtxt(os.path.join(data_folder, run, run + '_act_area_report_sco.txt'), delimiter = ',')
     
-    # Fill int_d dictionary with an extraction of scour, deposition and morphological active width reports
-    # The script create a number of N indipendent sereis of data and append the last file_N - N as the averaged values.
-    # For N = 4 and file_N = 9
-    # DoD step0 | 1-0  | 2-1 |  3-2 |  4-3 |  5-4   6-5   7-6   8-7   9-8   average0   STDEV
-    # DoD step1 | 2-0  | 3-1 |  4-2 |  5-3 |  6-4   7-5   8-6   9-7         average1   STDEV
-    # DoD step2 | 3-0  | 4-1 |  5-2 |  6-3 |  7-4   8-5   9-6               average2   STDEV
-    # DoD step3 | 4-0  | 5-1 |  6-2 |  7-3 |  8-4   9-5                     average3   STDEV
-    # DoD step4 | 5-0  | 6-1 |  7-2 |  8-3 |  9-4                           average4   STDEV
-    # DoD step5   6-0   7-1   8-2   9-3                                   | average5 | STDEV
-    # DoD step6   7-0   8-1   9-2                                         | average6 | STDEV
-    # DoD step7   8-0   9-1                                               | average7 | STDEV
-    # DoD step8   9-0                                                     | average8 | STDEV
-    # as:
-    # |   1-0    |    2-1   |    3-2   |    4-3   |
-    # |   2-0    |    3-1   |    4-2   |    5-3   |
-    # |   3-0    |    4-1   |    5-2   |    6-3   |
-    # |   4-0    |    5-1   |    6-2   |    7-3   |
-    # |   5-0    |    6-1   |    7-2   |    8-3   |
-    # | average5 | average5 | average5 | average5 |
-    # | average6 | average6 | average6 | average6 |
-    # | average7 | average7 | average7 | average7 |
-    # | average8 | average8 | average8 | average8 |
-    
-    # Create dictionary entries with zeros
+    '''
+    Fill int_d dictionary with an extraction of scour, deposition and morphological active width reports
+    The script create a number of N indipendent sereis of data and append the last file_N - N as the averaged values.
+    For N = 4 and file_N = 9
+    DoD step0 | 1-0  | 2-1 |  3-2 |  4-3 |  5-4   6-5   7-6   8-7   9-8   average0   STDEV
+    DoD step1 | 2-0  | 3-1 |  4-2 |  5-3 |  6-4   7-5   8-6   9-7         average1   STDEV
+    DoD step2 | 3-0  | 4-1 |  5-2 |  6-3 |  7-4   8-5   9-6               average2   STDEV
+    DoD step3 | 4-0  | 5-1 |  6-2 |  7-3 |  8-4   9-5                     average3   STDEV
+    DoD step4 | 5-0  | 6-1 |  7-2 |  8-3 |  9-4                           average4   STDEV
+    DoD step5   6-0   7-1   8-2   9-3                                   | average5 | STDEV
+    DoD step6   7-0   8-1   9-2                                         | average6 | STDEV
+    DoD step7   8-0   9-1                                               | average7 | STDEV
+    DoD step8   9-0                                                     | average8 | STDEV
+    as:
+    |   1-0    |    2-1   |    3-2   |    4-3   |
+    |   2-0    |    3-1   |    4-2   |    5-3   |
+    |   3-0    |    4-1   |    5-2   |    6-3   |
+    |   4-0    |    5-1   |    6-2   |    7-3   |
+    |   5-0    |    6-1   |    7-2   |    8-3   |
+    | average5 | average5 | average5 | average5 |
+    | average6 | average6 | average6 | average6 |
+    | average7 | average7 | average7 | average7 |
+    | average8 | average8 | average8 | average8 |
+    '''
+   
+    ###########################################################################
+    # CREATE DICTIONARY ENTRIES WITH ZEROS
     int_d["int_sum_vol_data_{0}".format(run)] = np.zeros((file_N, N))
     int_d["int_sco_data_{0}".format(run)] = np.zeros((file_N, N))
     int_d["int_dep_data_{0}".format(run)] = np.zeros((file_N, N))
@@ -194,7 +202,8 @@ for run in RUNS:
     int_d["int_act_area_data_dep_{0}".format(run)] = np.zeros((file_N, N))
     int_d["int_act_area_data_sco_{0}".format(run)] = np.zeros((file_N, N))
     
-    # Fill int_d dictionary with data as above
+    ###########################################################################
+    # FILL INT_D DICTIONARY WITH DATA AS ABOVE
     # When the dictionary is filled it's possible to perform interpolation
     # Serie1 Serie2 Serie3 Serie4 Mean
     for i in range(0,N):
@@ -259,11 +268,6 @@ for run in RUNS:
         sum_vol_mean_ic=np.array([np.min(sum_vol_yData_mean),np.min(xData)]) # Initial deposition parameter guess
         sum_vol_mean_par, sum_vol_mean_intCurve, sum_vol_mean_covar, sum_vol_mean_params_interp =  interpolate(func_exp3, xData, sum_vol_yData_mean, ic=sum_vol_mean_ic, bounds=(-np.inf, np.inf))
     
-    # if i == 0:
-    #     sum_vol_mean_params = sum_vol_mean_params_interp
-    # else:
-    #     params = sum_vol_mean_params_interp
-    #     sum_vol_mean_params = np.row_stack((sum_vol_mean_params,params))
     
     # DEPOSITION VOLUME INTERPOLATION
     if volume_func_mode == 1:
@@ -276,11 +280,6 @@ for run in RUNS:
         dep_mean_ic=np.array([np.min(dep_yData_mean),np.min(xData)]) # Initial deposition parameter guess
         dep_mean_par, dep_mean_intCurve, dep_mean_covar, dep_mean_params_interp =  interpolate(func_exp3, xData, dep_yData_mean, ic=dep_mean_ic, bounds=(-np.inf, np.inf))
     
-    # if i == 0:
-    #     dep_mean_params = dep_mean_params_interp
-    # else:
-    #     params = dep_mean_params_interp
-    #     dep_mean_params = np.row_stack((dep_mean_params,params))
     
     # SCOUR VOLUME INTERPOLATION
     if volume_func_mode == 1:
@@ -293,11 +292,6 @@ for run in RUNS:
         sco_mean_ic=np.array([np.min(sco_yData_mean),np.min(xData)]) # Initial scoosition parameter guess
         sco_mean_par, sco_mean_intCurve, sco_mean_covar, sco_mean_params_interp =  interpolate(func_exp3, xData, sco_yData_mean, ic=sco_mean_ic, bounds=(-np.inf, np.inf))
     
-    # if i == 0:
-    #     sco_mean_params = sco_mean_params_interp
-    # else:
-    #     params = sco_mean_params_interp
-    #     sco_mean_params = np.row_stack((sco_mean_params,params))
         
     # MORPHOLOGICAL ACTIVE WIDTH INTERPOLATION
     if volume_func_mode == 1:
@@ -310,12 +304,6 @@ for run in RUNS:
         morphWact_mean_ic=np.array([np.min(morphWact_yData_mean),np.min(xData)]) # Initial morphWactosition parameter guess
         morphWact_mean_par, morphWact_mean_intCurve, morphWact_mean_covar, morphWact_mean_params_interp =  interpolate(func_exp3, xData, morphWact_yData_mean, ic=morphWact_mean_ic, bounds=(-np.inf, np.inf))
     
-    # if i == 0:
-    #     morphWact_mean_params = morphWact_mean_params_interp
-    # else:
-    #     params = morphWact_mean_params_interp
-    #     morphWact_mean_params = np.row_stack((morphWact_mean_params,params))
-    
     # ACTIVE THICKNESS INTERPOLATION
     if volume_func_mode == 1:
         act_thickness_mean_ic=np.array([np.max(act_thickness_yData_mean), np.min(xData)]) # Initial act_thicknessosition parameter guess
@@ -326,12 +314,6 @@ for run in RUNS:
     elif volume_func_mode == 3:
         act_thickness_mean_ic=np.array([np.min(act_thickness_yData_mean),np.min(xData)]) # Initial act_thicknessosition parameter guess
         act_thickness_mean_par, act_thickness_mean_intCurve, act_thickness_mean_covar, act_thickness_mean_params_interp =  interpolate(func_exp3, xData, act_thickness_yData_mean, ic=act_thickness_mean_ic, bounds=(-np.inf, np.inf))
-    
-    # if i == 0:
-    #     act_thickness_mean_params = act_thickness_mean_params_interp
-    # else:
-    #     params = act_thickness_mean_params_interp
-    #     act_thickness_mean_params = np.row_stack((act_thickness_mean_params,params))
     
     # ACTIVE DEPOSITION THICKNESS INTERPOLATION
     if volume_func_mode == 1:
@@ -344,12 +326,6 @@ for run in RUNS:
         act_thickness_dep_mean_ic=np.array([np.min(act_thickness_yData_dep_mean),np.min(xData)]) # Initial act_thicknessosition parameter guess
         act_thickness_dep_mean_par, act_thickness_dep_mean_intCurve, act_thickness_dep_mean_covar, act_thickness_dep_mean_params_interp =  interpolate(func_exp3, xData, act_thickness_yData_dep_mean, ic=act_thickness_dep_mean_ic, bounds=(-np.inf, np.inf))
     
-    # if i == 0:
-    #     act_thickness_mean_params = act_thickness_mean_params_interp
-    # else:
-    #     params = act_thickness_mean_params_interp
-    #     act_thickness_mean_params = np.row_stack((act_thickness_mean_params,params))
-        
     # ACTIVE SCOUR THICKNESS INTERPOLATION
     if volume_func_mode == 1:
         act_thickness_sco_mean_ic=np.array([np.max(act_thickness_yData_sco_mean), np.min(xData)]) # Initial act_thicknessosition parameter guess
@@ -360,13 +336,7 @@ for run in RUNS:
     elif volume_func_mode == 3:
         act_thickness_sco_mean_ic=np.array([np.min(act_thickness_yData_sco_mean),np.min(xData)]) # Initial act_thicknessosition parameter guess
         act_thickness_sco_mean_par, act_thickness_sco_mean_intCurve, act_thickness_sco_mean_covar, act_thickness_sco_mean_params_interp =  interpolate(func_exp3, xData, act_thickness_yData_sco_mean, ic=act_thickness_sco_mean_ic, bounds=(-np.inf, np.inf))
-    
-    # if i == 0:
-    #     act_thickness_mean_params = act_thickness_mean_params_interp
-    # else:
-    #     params = act_thickness_mean_params_interp
-    #     act_thickness_mean_params = np.row_stack((act_thickness_mean_params,params))
-        
+      
     # ACTIVE AREA INTERPOLATION
     if volume_func_mode == 1:
         act_area_mean_ic=np.array([np.max(act_area_yData_mean), np.min(xData)]) # Initial act_areaosition parameter guess
@@ -378,12 +348,6 @@ for run in RUNS:
         act_area_mean_ic=np.array([np.min(act_area_yData_mean),np.min(xData)]) # Initial act_areaosition parameter guess
         act_area_mean_par, act_area_mean_intCurve, act_area_mean_covar, act_area_mean_params_interp =  interpolate(func_exp3, xData, act_area_yData_mean, ic=act_area_mean_ic, bounds=(-np.inf, np.inf))
     
-    # if i == 0:
-    #     act_area_mean_params = act_area_mean_params_interp
-    # else:
-    #     params = act_area_mean_params_interp
-    #     act_area_mean_params = np.row_stack((act_area_mean_params,params))
-        
     # ACTIVE DEPOSITION AREA INTERPOLATION
     if volume_func_mode == 1:
         act_area_dep_mean_ic=np.array([np.max(act_area_dep_yData_mean), np.min(xData)]) # Initial act_area_deposition parameter guess
@@ -394,12 +358,6 @@ for run in RUNS:
     elif volume_func_mode == 3:
         act_area_dep_mean_ic=np.array([np.min(act_area_dep_yData_mean),np.min(xData)]) # Initial act_area_deposition parameter guess
         act_area_dep_mean_par, act_area_dep_mean_intCurve, act_area_dep_mean_covar, act_area_dep_mean_params_interp =  interpolate(func_exp3, xData, act_area_dep_yData_mean, ic=act_area_dep_mean_ic, bounds=(-np.inf, np.inf))
-    
-    # if i == 0:
-    #     act_area_dep_mean_params = act_area_dep_mean_params_interp
-    # else:
-    #     params = act_area_dep_mean_params_interp
-    #     act_area_dep_mean_params = np.row_stack((act_area_dep_mean_params,params))
         
     # ACTIVE SCOUR AREA INTERPOLATION
     if volume_func_mode == 1:
@@ -412,17 +370,10 @@ for run in RUNS:
         act_area_sco_mean_ic=np.array([np.min(act_area_sco_yData_mean),np.min(xData)]) # Initial act_area_scoosition parameter guess
         act_area_sco_mean_par, act_area_sco_mean_intCurve, act_area_sco_mean_covar, act_area_sco_mean_params_interp =  interpolate(func_exp3, xData, act_area_sco_yData_mean, ic=act_area_sco_mean_ic, bounds=(-np.inf, np.inf))
     
-    # if i == 0:
-    #     act_area_sco_mean_params = act_area_sco_mean_params_interp
-    # else:
-    #     params = act_area_sco_mean_params_interp
-    #     act_area_sco_mean_params = np.row_stack((act_area_sco_mean_params,params))
-    
-    # Plot
+    # PLOT THE DATA AND THE INTERPOLATION CURVE FOR THE MEAN DATASET
     if plot_mean == 1:
         
         # Deposition volume plot - MEAN
-        # TODO
         fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(6,4))
         axs.plot(xData, dep_yData_mean, 'o', c='blue')
         axs.plot(xData, dep_mean_intCurve, c='green')
@@ -431,8 +382,9 @@ for run in RUNS:
         axs.set_ylabel('Volume V/(L*W) [mm]')
         axs.set_ylim(bottom=0)
         # axs.set_xlim(bottom=0)
-        # plt.text(np.max(xData)*0.7, np.min(dep_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(dep_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(dep_mean_params_interp[0], decimals=1)), fontdict=font)
+        plt.text(np.max(xData)*0.7, np.min(dep_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(dep_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(dep_mean_params_interp[0], decimals=1)), fontdict=font)
         plt.savefig(os.path.join(plot_dir, 'dep_interp', run + '_func_mode' + str(volume_func_mode) + 'mean_dep_interp.pdf'), dpi=200)
+        plt.savefig(os.path.join(plot_dir, 'dep_interp', run + '_func_mode' + str(volume_func_mode) + 'mean_dep_interp.png'), dpi=300)
         plt.show()
         
         # Scour volume plot - MEAN
@@ -444,8 +396,9 @@ for run in RUNS:
         axs.set_ylabel('Volume V/(L*W) [mm]')
         axs.set_ylim(bottom=0)
         # axs.set_xlim(bottom=0)
-        # plt.text(np.max(xData)*0.7, np.min(sco_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(sco_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(sco_mean_params_interp[0], decimals=1)), fontdict=font)
+        plt.text(np.max(xData)*0.7, np.min(sco_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(sco_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(sco_mean_params_interp[0], decimals=1)), fontdict=font)
         plt.savefig(os.path.join(plot_dir, 'sco_interp', run + '_func_mode' + str(volume_func_mode) + 'mean_sco_interp.pdf'), dpi=200)
+        plt.savefig(os.path.join(plot_dir, 'sco_interp', run + '_func_mode' + str(volume_func_mode) + 'mean_sco_interp.png'), dpi=300)
         plt.show()
         
         # Morphological active width plot - MEAN
@@ -457,8 +410,9 @@ for run in RUNS:
         axs.set_ylabel('Morphological active width [%]')
         axs.set_ylim(bottom=0)
         # axs.set_xlim(bottom=0)
-        # plt.text(np.max(xData)*0.7, np.min(morphWact_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(morphWact_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(morphWact_mean_params_interp[0], decimals=1)), fontdict=font)
+        plt.text(np.max(xData)*0.7, np.min(morphWact_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(morphWact_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(morphWact_mean_params_interp[0], decimals=1)), fontdict=font)
         plt.savefig(os.path.join(plot_dir, 'morphWact_interp', run + '_func_mode' + str(volume_func_mode) + 'mean_morphWact_interp.pdf'), dpi=200)
+        plt.savefig(os.path.join(plot_dir, 'morphWact_interp', run + '_func_mode' + str(volume_func_mode) + 'mean_morphWact_interp.png'), dpi=300)
         plt.show()
         
         # Active thickness plot - MAIN
@@ -470,50 +424,54 @@ for run in RUNS:
         axs.set_ylabel('Morphological active layer [mm]')
         axs.set_ylim(bottom=0)
         # axs.set_xlim(bottom=0)
-        # plt.text(np.max(xData)*0.7, np.min(act_thickness_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(act_thickness_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(act_thickness_mean_params_interp[0], decimals=1)), fontdict=font)
+        plt.text(np.max(xData)*0.7, np.min(act_thickness_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(act_thickness_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(act_thickness_mean_params_interp[0], decimals=1)), fontdict=font)
         plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(volume_func_mode) + 'mean_act_thickness_interp.pdf'), dpi=200)
+        plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(volume_func_mode) + 'mean_act_thickness_interp.png'), dpi=300)
         plt.show()
         
-        # Active deposition thickness plot - MEAN
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(6,4))
-        axs.plot(xData, act_thickness_yData_dep_mean, 'o', c='blue')
-        axs.plot(xData, act_thickness_dep_mean_intCurve, c='green')
-        axs.set_title('act_thickness dep mean interpolation ' +run)
-        axs.set_xlabel('Time [min]')
-        axs.set_ylabel('Morphological active layer [mm]')
-        axs.set_ylim(bottom=0)
-        # axs.set_xlim(bottom=0)
+        # # Active deposition thickness plot - MEAN
+        # fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(6,4))
+        # axs.plot(xData, act_thickness_yData_dep_mean, 'o', c='blue')
+        # axs.plot(xData, act_thickness_dep_mean_intCurve, c='green')
+        # axs.set_title('act_thickness dep mean interpolation ' +run)
+        # axs.set_xlabel('Time [min]')
+        # axs.set_ylabel('Morphological active layer [mm]')
+        # axs.set_ylim(bottom=0)
+        # # axs.set_xlim(bottom=0)
         # plt.text(np.max(xData)*0.7, np.min(act_thickness_dep_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(act_thickness_dep_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(act_thickness_dep_mean_params_interp[0], decimals=1)), fontdict=font)
-        plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(volume_func_mode) + 'dep_mean_act_thickness_interp.pdf'), dpi=200)
-        plt.show()
+        # plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(volume_func_mode) + 'dep_mean_act_thickness_interp.pdf'), dpi=200)
+        # plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(volume_func_mode) + 'dep_mean_act_thickness_interp.png'), dpi=300)
+        # plt.show()
         
-        # Active scour thickness plot - MEAN
-        fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(6,4))
-        axs.plot(xData, act_thickness_yData_sco_mean, 'o', c='blue')
-        axs.plot(xData, act_thickness_sco_mean_intCurve, c='green')
-        axs.set_title('act_thickness sco mean interpolation ' +run)
-        axs.set_xlabel('Time [min]')
-        axs.set_ylabel('Morphological active layer [mm]')
-        axs.set_ylim(bottom=0)
-        # axs.set_xlim(bottom=0)
+        # # Active scour thickness plot - MEAN
+        # fig1, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(6,4))
+        # axs.plot(xData, act_thickness_yData_sco_mean, 'o', c='blue')
+        # axs.plot(xData, act_thickness_sco_mean_intCurve, c='green')
+        # axs.set_title('act_thickness sco mean interpolation ' +run)
+        # axs.set_xlabel('Time [min]')
+        # axs.set_ylabel('Morphological active layer [mm]')
+        # axs.set_ylim(bottom=0)
+        # # axs.set_xlim(bottom=0)
         # plt.text(np.max(xData)*0.7, np.min(act_thickness_sco_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$=' + str(np.round(act_thickness_sco_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(act_thickness_sco_mean_params_interp[0], decimals=1)), fontdict=font)
-        plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(volume_func_mode) + 'sco_mean_act_thickness_interp.pdf'), dpi=200)
-        plt.show()
+        # plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(volume_func_mode) + 'sco_mean_act_thickness_interp.pdf'), dpi=200)
+        # plt.savefig(os.path.join(plot_dir, 'act_thickness_interp', run + '_func_mode' + str(volume_func_mode) + 'sco_mean_act_thickness_interp.png'), dpi=300)
+        # plt.show()
         
-        # Active area interpolation - MEAN
-        fig7, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(6,4))
-        axs.plot(xData, act_area_yData_mean, 'o', c='pink')
-        axs.plot(xData, act_area_mean_intCurve, c='green')
-        axs.set_title('Active area mean interpolation '+run)
-        axs.set_xlabel('Time [min]')
-        axs.set_ylabel('Active area [mm²]')
-        axs.set_ylim(bottom=0)
-        # axs.set_xlim(bottom=0)
+        # # Active area interpolation - MEAN
+        # fig7, axs = plt.subplots(1,1,dpi=200, sharex=True, tight_layout=True, figsize=(6,4))
+        # axs.plot(xData, act_area_yData_mean, 'o', c='pink')
+        # axs.plot(xData, act_area_mean_intCurve, c='green')
+        # axs.set_title('Active area mean interpolation '+run)
+        # axs.set_xlabel('Time [min]')
+        # axs.set_ylabel('Active area [mm²]')
+        # axs.set_ylim(bottom=0)
+        # # axs.set_xlim(bottom=0)
         # plt.text(np.max(xData)*0.7, np.min(act_area_mean_intCurve), 'Trun=' + str(dt) + 'min \n' + r'$\tau$='    + str(np.round(act_area_mean_params_interp[2], decimals=1)) + 'min \n' + 'A = ' + str(np.round(act_area_mean_params_interp[0], decimals=1)), fontdict=font)
-        plt.savefig(os.path.join(plot_dir, 'act_area_interp', run + '_func_mode' + str(act_area_func_mode) + 'series_' + 'mean_act_area_interp.pdf'), dpi=200)
-        plt.show()
+        # plt.savefig(os.path.join(plot_dir, 'act_area_interp', run + '_func_mode' + str(act_area_func_mode) + 'series_' + 'mean_act_area_interp.pdf'), dpi=200)
+        # plt.savefig(os.path.join(plot_dir, 'act_area_interp', run + '_func_mode' + str(act_area_func_mode) + 'series_' + 'mean_act_area_interp.png'), dpi=300)
+        # plt.show()
         
-    if mode_mode==1:    
+    if mode_series==1:    
         for i in range(0,N):
             
             xData = np.arange(1, file_N+1, 1)*dt # Time in Txnr
@@ -835,28 +793,28 @@ for run in RUNS:
     #   C
     # SD(C)
     
-        dep_params = np.transpose(dep_params)
-        sco_params = np.transpose(sco_params)
-        morphWact_params = np.transpose(morphWact_params)
-        act_thickness_params = np.transpose(act_thickness_params)
-        act_area_params = np.transpose(act_area_params)
-        
-        # Print txt reports:
-        header = 'Serie1, Serie2, Serie3, Serie4' # Report header
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_dep_int_param.txt'), dep_params, delimiter=',', header = header)
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_sco_int_param.txt'), sco_params, delimiter=',', header = header)
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(morphWact_func_mode) + '_morphWact_int_param.txt'), morphWact_params, delimiter=',', header = header)
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_thickness_func_mode) + '_act_thickness_int_param.txt'), act_thickness_params, delimiter=',', header = header)
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_area_func_mode) + '_act_area_int_param.txt'), act_area_params, delimiter=',', header = header)
-        
-        # Print txt reports for interpolation mean:
-        header_mean = 'Interpolation parameters of the mean value of each run'
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_dep_int_param_mean.txt'), dep_mean_params_interp, delimiter=',', header = header_mean)
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_sco_int_param_mean.txt'), sco_mean_params_interp, delimiter=',', header = header_mean)
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(morphWact_func_mode) + '_morphWact_int_param_mean.txt'), morphWact_mean_params_interp, delimiter=',', header = header_mean)
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_thickness_func_mode) + '_act_thickness_int_param_mean.txt'), act_thickness_mean_params_interp, delimiter=',', header = header_mean)
-        np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_area_func_mode) + '_act_area_int_param_mean.txt'), act_area_mean_params_interp, delimiter=',', header = header_mean)
-        
+    dep_params = np.transpose(dep_params)
+    sco_params = np.transpose(sco_params)
+    morphWact_params = np.transpose(morphWact_params)
+    act_thickness_params = np.transpose(act_thickness_params)
+    act_area_params = np.transpose(act_area_params)
+    
+    # Print txt reports:
+    header = 'Serie1, Serie2, Serie3, Serie4' # Report header
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_dep_int_param.txt'), dep_params, delimiter=',', header = header)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_sco_int_param.txt'), sco_params, delimiter=',', header = header)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(morphWact_func_mode) + '_morphWact_int_param.txt'), morphWact_params, delimiter=',', header = header)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_thickness_func_mode) + '_act_thickness_int_param.txt'), act_thickness_params, delimiter=',', header = header)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_area_func_mode) + '_act_area_int_param.txt'), act_area_params, delimiter=',', header = header)
+    
+    # Print txt reports for interpolation mean:
+    header_mean = 'Interpolation parameters of the mean value of each run'
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_dep_int_param_mean.txt'), dep_mean_params_interp, delimiter=',', header = header_mean)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(volume_func_mode) + '_sco_int_param_mean.txt'), sco_mean_params_interp, delimiter=',', header = header_mean)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(morphWact_func_mode) + '_morphWact_int_param_mean.txt'), morphWact_mean_params_interp, delimiter=',', header = header_mean)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_thickness_func_mode) + '_act_thickness_int_param_mean.txt'), act_thickness_mean_params_interp, delimiter=',', header = header_mean)
+    np.savetxt(os.path.join(int_report_dir, run + '_func_mode' + str(act_area_func_mode) + '_act_area_int_param_mean.txt'), act_area_mean_params_interp, delimiter=',', header = header_mean)
+    
     
 end = time.time()
 print()

@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['morph_quantities_func_v2.py', 'DoD_analysis_functions_3.py', 'interpolation_script_v3.py', 'DoD_batch_analysis_v26.py', 'DoD_filt_v1.py', 'DoD_filt_v3.py', 'DoD_analysis_v1.py', 'DoD_plot_v1.py', 'DoDs_stack_analysis_v9.py']
+recent_files = ['morph_quantities_func_v2.py', 'DoD_analysis_functions_3.py', 'interpolation_script_v3.py', 'DoD_filt_v4.py', 'DoD_analysis_v2.py', 'DoD_plot_v3.py', 'DoDs_stack_activatio_period_analysis_v1.py', 'DoDs_stack_analysis_v10_1.py', 'stack_envelope_v1.py']
 
 [main]
 version = 0.2.0

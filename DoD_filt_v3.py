@@ -58,7 +58,8 @@ DoD_plot_show_mode:
 run_mode = 1
 mask_mode = 1
 process_mode = 1
-filt_analysis = 0
+filt_analysis = 0 # Print the morphological metrics for each filtering process stage
+
 # data_interpolation_mode = 0
 # save_plot_mode = 1
 # DoD_plot_mode = 0
@@ -138,6 +139,7 @@ morphW_temp_scale_report = np.zeros((len(RUNS), 2))
 morphWact_dim = [] # Array with the dimensions of morphWact_values array
 
 DoD_length_array=[] # DoD length array
+
 
 #%%
 ###############################################################################
@@ -643,9 +645,8 @@ for run in RUNS:
             
             tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri = morph_quantities(DoD_filt_ult)
             
-            
-            
-            
+            ###################################################################
+            # Filtering process stage analysis
             if filt_analysis == 1:
                 # Analysis to investigate the role of the application of spatial filters at the DoD
                 # in the morphological changes calculation
@@ -699,8 +700,7 @@ for run in RUNS:
                     else:
                         DoD_filt_ult_morph_quant=np.vstack((DoD_filt_ult_morph_quant, np.hstack((tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri))))
                 
-            
-            
+
             # Fill arrays with the values of the total, sum, deposition and scour volume
             # Append values to output data array
             volumes_array = np.append(volumes_array, tot_vol)
@@ -889,12 +889,13 @@ for run in RUNS:
             ###################################################################
             # Initialize 3D array to stack DoDs
             if h==0 and k==0: # initialize the first array with the DEM shape
-                DoD_stack1 = np.zeros([len(files)-1, dim_y, dim_x])
+                # stack["DoD_stack_{0}".format(run, delta)] = np.zeros([len(files)-1, dim_y, dim_x])
+                DoD_stack = np.zeros([len(files)-1, dim_y, dim_x, len(files)])
+              # DoD_stack[time, Y, X, delta]
             else:
                 pass
             # Stack all the DoDs inside the 3D array
-            if delta==1:
-                DoD_stack1[h,:,:] = DoD_filt_ult[:,:]
+            DoD_stack[h,:,:, delta] = DoD_filt_ult[:,:]
 
             ###################################################################
             # DoDs SAVING...
@@ -1038,14 +1039,14 @@ for run in RUNS:
     '''
 
     # Save 3D array as binary file
-    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack1_"+run+".npy"), DoD_stack1)
+    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack_"+run+".npy"), DoD_stack)
     
     # Create 3D array where 1=dep, -1=sco and 0=no_changes
-    DoD_stack1_bool = np.where(DoD_stack1>0, 1, DoD_stack1)
-    DoD_stack1_bool = np.where(DoD_stack1_bool<0, -1, DoD_stack1_bool)
+    DoD_stack_bool = np.where(DoD_stack>0, 1, DoD_stack)
+    DoD_stack_bool = np.where(DoD_stack_bool<0, -1, DoD_stack_bool)
     
     # Save 3D "boolean" array as binary file
-    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack1_bool_"+run+".npy"), DoD_stack1_bool)
+    np.save(os.path.join(DoDs_dir, 'DoDs_stack',"DoD_stack_bool_"+run+".npy"), DoD_stack_bool)
 
 
     # Fill DoD lenght array
@@ -1206,46 +1207,47 @@ for run in RUNS:
             fp.writelines(['\n'])
         fp.writelines(['\n'])
     fp.close()
-    
-    n=0
-    for matrix in (DoD_raw_morph_quant, DoD_filt_mean_morph_quant, DoD_filt_isol_morph_quant,DoD_filt_fill_morph_quant,DoD_filt_nature_morph_quant,DoD_filt_isol2_morph_quant,DoD_filt_ult_morph_quant):
-        n+=1
-        matrix_mean = np.mean(matrix, axis=0)
-        matrix_std = np.std(matrix, axis=0)
-        if n==1:
-            matrix_stack = np.vstack((matrix_mean, matrix_std))
-        else:
-            matrix_stack = np.vstack((matrix_stack,matrix_mean, matrix_std))
-        np.savetxt(os.path.join(report_dir, 'morph_quant_report.txt'), matrix_stack, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
+
+    if filt_analysis==1:
+        n=0
+        for matrix in (DoD_raw_morph_quant, DoD_filt_mean_morph_quant, DoD_filt_isol_morph_quant,DoD_filt_fill_morph_quant,DoD_filt_nature_morph_quant,DoD_filt_isol2_morph_quant,DoD_filt_ult_morph_quant):
+            n+=1
+            matrix_mean = np.mean(matrix, axis=0)
+            matrix_std = np.std(matrix, axis=0)
+            if n==1:
+                matrix_stack = np.vstack((matrix_mean, matrix_std))
+            else:
+                matrix_stack = np.vstack((matrix_stack,matrix_mean, matrix_std))
+            np.savetxt(os.path.join(report_dir, 'morph_quant_report.txt'), matrix_stack, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
+            
+        # Save report for the analysis of the effects of spatial filter application on DoD, at different stages.
+        np.savetxt(os.path.join(report_dir, 'DoD_raw_morph_quant.txt'), DoD_raw_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
+        np.savetxt(os.path.join(report_dir, 'DoD_filt_mean_morph_quant.txt'), DoD_filt_mean_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
+        np.savetxt(os.path.join(report_dir, 'DoD_filt_isol_morph_quant.txt'), DoD_filt_isol_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
+        np.savetxt(os.path.join(report_dir, 'DoD_filt_fill_morph_quant.txt'), DoD_filt_fill_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
+        np.savetxt(os.path.join(report_dir, 'DoD_filt_nature_morph_quant.txt'), DoD_filt_nature_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
+        np.savetxt(os.path.join(report_dir, 'DoD_filt_isol2_morph_quant.txt'), DoD_filt_isol2_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
+        np.savetxt(os.path.join(report_dir, 'DoD_filt_ult_morph_quant.txt'), DoD_filt_ult_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
         
-    # Save report for the analysis of the effects of spatial filter application on DoD, at different stages.
-    np.savetxt(os.path.join(report_dir, 'DoD_raw_morph_quant.txt'), DoD_raw_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
-    np.savetxt(os.path.join(report_dir, 'DoD_filt_mean_morph_quant.txt'), DoD_filt_mean_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
-    np.savetxt(os.path.join(report_dir, 'DoD_filt_isol_morph_quant.txt'), DoD_filt_isol_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
-    np.savetxt(os.path.join(report_dir, 'DoD_filt_fill_morph_quant.txt'), DoD_filt_fill_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
-    np.savetxt(os.path.join(report_dir, 'DoD_filt_nature_morph_quant.txt'), DoD_filt_nature_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
-    np.savetxt(os.path.join(report_dir, 'DoD_filt_isol2_morph_quant.txt'), DoD_filt_isol2_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
-    np.savetxt(os.path.join(report_dir, 'DoD_filt_ult_morph_quant.txt'), DoD_filt_ult_morph_quant, header='tot_vol, sum_vol, dep_vol, sco_vol, morph_act_area, morph_act_area_dep, morph_act_area_sco, act_width_mean, act_width_mean_dep, act_width_mean_sco, act_thickness, act_thickness_dep, act_thickness_sco, bri')
-    
 DoD_length_array = np.append(DoD_length_array, DoD_length)
 
 
-if run_mode==2:
-    # Print vulume teporal scale report
-    volume_temp_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
-    # Write temporl scale report as:
-    # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
-    with open(os.path.join(report_dir, 'volume_temp_scale_report.txt'), 'w') as fp:
-        fp.write(volume_temp_scale_report_header)
-        fp.writelines(['\n'])
-        for i in range(0,len(RUNS)):
-            for j in range(0, volume_temp_scale_report.shape[1]+1):
-                if j == 0:
-                    fp.writelines([RUNS[i]+', '])
-                else:
-                    fp.writelines(["%.3f, " % float(volume_temp_scale_report[i,j-1])])
-            fp.writelines(['\n'])
-    fp.close()
+# if run_mode==2:
+#     # Print vulume teporal scale report
+#     volume_temp_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
+#     # Write temporl scale report as:
+#     # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
+#     with open(os.path.join(report_dir, 'volume_temp_scale_report.txt'), 'w') as fp:
+#         fp.write(volume_temp_scale_report_header)
+#         fp.writelines(['\n'])
+#         for i in range(0,len(RUNS)):
+#             for j in range(0, volume_temp_scale_report.shape[1]+1):
+#                 if j == 0:
+#                     fp.writelines([RUNS[i]+', '])
+#                 else:
+#                     fp.writelines(["%.3f, " % float(volume_temp_scale_report[i,j-1])])
+#             fp.writelines(['\n'])
+#     fp.close()
 
 end = time.time()
 print()

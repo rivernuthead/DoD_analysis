@@ -39,16 +39,36 @@ plot_mode:
 '''
 plot_mode = 1
 
-# SINGLE RUN NAME
-run = 'q20_2'
+delta = 1 # Delta time of the DoDs
 
-print('###############\n' + '#    ' + run + '    #' + '\n###############')
-# Step between surveys
-DoD_delta = 1
+# SINGLE RUN NAME
+run = 'q10_3'
+run_mode = 1
 
 # FOLDER SETUP
 home_dir = os.getcwd() # Home directory
+report_dir = os.path.join(home_dir, 'output')
+run_dir = os.path.join(home_dir, 'surveys')
 DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Input folder
+
+
+# Create the run name list
+RUNS=[]
+if run_mode ==2: # batch run mode
+    for RUN in sorted(os.listdir(run_dir)): # loop over surveys directories
+        if RUN.startswith('q'): # Consider only folder names starting wit q
+            RUNS = np.append(RUNS, RUN) # Append run name at RUNS array
+elif run_mode==1: # Single run mode
+    RUNS=run.split() # RUNS as a single entry array, provided by run variable
+elif run_mode==3:
+    # RUNS=['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6']
+    RUNS=['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6', 'q15_2', 'q20_2']
+print('###############\n' + '#    ' + run + '    #' + '\n###############')
+
+
+
+
+# Step between surveys
 
 ###############################################################################
 # IMPORT RUN PARAMETERS from file parameters.txt
@@ -68,12 +88,18 @@ dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner
 
 ###############################################################################
 # IMPORT doD STACK AND DoD BOOL STACK
-stack_name = 'DoD_stack' + str(DoD_delta) + '_' + run + '.npy' # Define stack name
-stack_bool_name = 'DoD_stack' + str(DoD_delta) + '_bool_' + run + '.npy' # Define stack bool name
+stack_name = 'DoD_stack' + '_' + run + '.npy' # Define stack name
+stack_bool_name = 'DoD_stack' + '_bool_' + run + '.npy' # Define stack bool name
 stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
 stack_bool_path = os.path.join(DoDs_folder,stack_bool_name) # Define stack bool path
+
 stack = np.load(stack_path) # Load DoDs stack
 stack_bool = np.load(stack_bool_path) # Load DoDs boolean stack
+
+
+stack = stack[:,:,:,delta-1]
+stack_bool = stack_bool[:,:,:,delta-1]
+
 dim_t, dim_y, dim_x = stack.shape # Define time dimension, crosswise dimension and longitudinal dimension
 
 #%%##############################################################################
@@ -128,7 +154,7 @@ for t in range(0,dim_t-1):
     activated_pixel_count = np.nansum(abs(stack_bool[t+1,:,:])) - np.nansum(abs(np.multiply(stack_bool[t,:,:],stack_bool[t+1,:,:])))
     activated_pixels = np.append(activated_pixels, activated_pixel_count)
 
-###############################################################################
+#%%############################################################################
 # MAPS
 
 # MAP OF THE NUMBER OF TIMES A CELL HAS BEEN ACTIVATED
@@ -141,10 +167,71 @@ active_envelop_matrix = np.nansum(abs(stack_bool), axis=0)
 active_envelop_matrix_dep = np.nansum(abs(stack_bool==+1), axis=0)
 
 # MAP OF THE SCOUR CELL THAT HAVE BEEN ACTIVE (ENVELOP)
-active_envelop_matrix_dep = np.nansum(abs(stack_bool==-1), axis=0)
+active_envelop_matrix_sco = np.nansum(abs(stack_bool==-1), axis=0)
 
 # MAP OF THE CELL THAT HAVE NEVER BEEN ACTIVE
 never_active_matrix = active_envelop_matrix == 0
+
+# INTERSECTION BETWEEN SCOUR AND FILL ENVELOP
+active_intersection_dep_sco = active_envelop_matrix_dep*active_envelop_matrix_sco
+
+
+###############################################################################
+# PLOT
+fig2, ax = plt.subplots(tight_layout=True, figsize=(18,3))
+active_envelop_matrix_plot = np.where(active_envelop_matrix==0, np.nan, active_envelop_matrix)
+shw_1 = ax.imshow(active_envelop_matrix_plot, cmap='viridis', vmin=0, vmax=stack_bool.shape[0], aspect='0.1') # , vmin=-50, vmax=50
+# make bar
+bar = plt.colorbar(shw_1)
+# show plot with labels
+plt.xlabel('X coordinate')
+plt.ylabel('Y coordinate')
+plt.title('Active pixel - ' + run)
+bar.set_label('')
+plt.savefig(os.path.join(home_dir, 'number_active_px_map', run +'_number_active_pixel.pdf'), dpi=200)
+plt.show()
+
+fig3, ax = plt.subplots(tight_layout=True, figsize=(18,3))
+active_envelop_matrix_dep_plot = np.where(active_envelop_matrix_dep==0, np.nan, active_envelop_matrix_dep)
+shw_dep = ax.imshow(active_envelop_matrix_dep_plot, cmap='viridis', vmin=0, vmax=stack_bool.shape[0], aspect='0.1')
+# make bar
+bar = plt.colorbar(shw_dep)
+# show plot with labels
+plt.xlabel('X coordinate')
+plt.ylabel('Y coordinate')
+plt.title('Active deposition pixel - '+run)
+bar.set_label('')
+plt.savefig(os.path.join(home_dir, 'number_active_px_map', run +'_number_active_dep_pixel.pdf'), dpi=200)
+plt.show()
+
+fig4, ax = plt.subplots(tight_layout=True, figsize=(18,3))
+active_envelop_matrix_sco_plot = np.where(active_envelop_matrix_sco==0, np.nan, active_envelop_matrix_sco)
+shw_sco = ax.imshow(active_envelop_matrix_sco_plot, cmap='viridis', vmin=0, vmax=stack_bool.shape[0], aspect='0.1')
+# make bar
+bar = plt.colorbar(shw_sco)
+# show plot with labels
+plt.xlabel('X coordinate')
+plt.ylabel('Y coordinate')
+plt.title('Active scour pixel - '+run)
+bar.set_label('')
+plt.savefig(os.path.join(home_dir, 'number_active_px_map', run +'_number_active_sco_pixel.pdf'), dpi=200)
+plt.show()
+
+fig5, ax = plt.subplots(tight_layout=True, figsize=(18,3))
+active_intersection_dep_sco_plot = np.where(active_intersection_dep_sco==0, np.nan, active_intersection_dep_sco)
+shw_inters = ax.imshow(active_intersection_dep_sco_plot, cmap='viridis', vmin=0, vmax=np.max(active_intersection_dep_sco), aspect='0.1')
+# make bar
+bar = plt.colorbar(shw_inters)
+# show plot with labels
+plt.xlabel('X coordinate')
+plt.ylabel('Y coordinate')
+plt.title('Intersection between scour and fill envelop - '+run)
+bar.set_label('')
+plt.savefig(os.path.join(home_dir, 'number_active_px_map', run +'_envelop_intersection_dep_sco.pdf'), dpi=200)
+plt.show()
+
+
+
 
 
 #%%
@@ -259,7 +346,7 @@ for x in range(0,dim_x):
                     pass
                     
             time_array = np.append(time_array, (len(slice_array)-np.sum(np.abs(time_array)))*target_sign) # By now the last period is not calculated (actually because, as the first one, it is only a lower boundary of time because it doesn't appear within two switches) so this operation appeds this value manually
-            time_array[0] = time_array[0] + np.sign(time_array[0])*n_zero # Ths operation append, if present, the number of zeroes before the first non-zero value calculated on the very first sliced array (n_zero variable)
+            # time_array[0] = time_array[0] + np.sign(time_array[0])*n_zero # Ths operation append, if present, the number of zeroes before the first non-zero value calculated on the very first sliced array (n_zero variable)
         
         ind = np.max(np.where(time_array!=0)) # This number correspond to the index of the last period in the time_array that is not reliable (as the first one)
         # So in the filling process I want to exclude the last period:
@@ -374,7 +461,7 @@ if plot_mode ==1:
     # show plot with labels
     plt.xlabel('X coordinate')
     plt.ylabel('Y coordinate')
-    plt.title(run)
+    plt.title(run + ' - Number of switch')
     bar.set_label('Number of pixel switches')
     plt.savefig(os.path.join(home_dir, 'number_active_px_map', run +'_number_switch_pixel.pdf'))
     plt.show()
@@ -405,6 +492,18 @@ if plot_mode ==1:
            ylabel='Count',
            title='First switch time - '+run)
     # plt.ylim(0, 6000)
+    # set the ticks first
+    # ax.set_xticks(range(7))
+    
+    ticks = []
+    for ti in range(0, int(np.nanmax(act_first_time_array))+1):
+        ticks = np.append(ticks, str(ti))
+        
+    # set the ticks first
+    ax.set_xticks(range(len(ticks)))
+    
+    # set the labels
+    ax.set_xticklabels(ticks)
     plt.savefig(os.path.join(home_dir, 'pixel_activity_plot', run + 'first_switch.pdf'))
     plt.show()
     
@@ -444,8 +543,8 @@ print('Random choice array check:')
 yy=random.randrange(dim_y)
 xx=random.randrange(dim_x)
 # Force check coordinates:
-# xx=0
-# yy=9
+xx=16
+yy=4
 print(stack_bool[:,yy,xx])
 print(act_time_stack[:,yy,xx])
 print()
@@ -651,31 +750,153 @@ plt.show()
 
 
 
-# Boxplot:
-fig, ax = plt.subplots(dpi=80, figsize=(10,6))
-fig.suptitle('Correlation between period lenght and volumes - '+run, fontsize = 18)  
-for m in range(int(periods_array.min()),int(periods_array.max())+1):
-    period_volume_matrix = np.vstack((periods_array, volumes_array))
-    for i in range(0,len(periods_array)):
-        if period_volume_matrix[0,i] !=m or np.isnan(period_volume_matrix[0,i]).any():
-            period_volume_matrix[:,i]=[np.nan,np.nan]
-    period_volume_matrix=period_volume_matrix[np.logical_not(np.isnan(period_volume_matrix))]  # Trim np.nan values (this procedure flatten the matrix)
-    period_volume_matrix=period_volume_matrix[period_volume_matrix!=0] # Trim zero values
-    period_volume_matrix = np.vstack((period_volume_matrix[:int(len(period_volume_matrix)*0.5)], period_volume_matrix[int(len(period_volume_matrix)*0.5):])) # Here I rebuilt the 2D Matrix
+# # Boxplot:
+# fig, ax = plt.subplots(dpi=80, figsize=(10,6))
+# fig.suptitle('Correlation between period lenght and volumes - '+run, fontsize = 18)  
+# for m in range(int(periods_array.min()),int(periods_array.max())+1):
+#     period_volume_matrix = np.vstack((periods_array, volumes_array))
+#     for i in range(0,len(periods_array)):
+#         if period_volume_matrix[0,i] !=m or np.isnan(period_volume_matrix[0,i]).any():
+#             period_volume_matrix[:,i]=[np.nan,np.nan]
+#     period_volume_matrix=period_volume_matrix[np.logical_not(np.isnan(period_volume_matrix))]  # Trim np.nan values (this procedure flatten the matrix)
+#     period_volume_matrix=period_volume_matrix[period_volume_matrix!=0] # Trim zero values
+#     period_volume_matrix = np.vstack((period_volume_matrix[:int(len(period_volume_matrix)*0.5)], period_volume_matrix[int(len(period_volume_matrix)*0.5):])) # Here I rebuilt the 2D Matrix
     
-    # bplot=ax.boxplot(period_volume_matrix[1,:], positions=[m], widths=0.5) # Data were filtered by np.nan values
-    bplot=ax.boxplot(np.log(period_volume_matrix[1,:]), positions=[m], widths=0.5) # Data were filtered by np.nan values
-ax.yaxis.grid(True)
-# ax.set_yscale('log')
-ax.set_xlabel('Time periods', fontsize=12)
-ax.set_ylabel('ln Time period volume', fontsize=12)
-plt.xticks(np.arange(int(periods_array.min()),int(periods_array.max())+1, 1))
-# plt.savefig(os.path.join(plot_dir, 'morphWact_boxplot.png'), dpi=200)
-plt.show()
+#     # bplot=ax.boxplot(period_volume_matrix[1,:], positions=[m], widths=0.5) # Data were filtered by np.nan values
+#     bplot=ax.boxplot(np.log(period_volume_matrix[1,:]), positions=[m], widths=0.5) # Data were filtered by np.nan values
+# ax.yaxis.grid(True)
+# # ax.set_yscale('log')
+# ax.set_xlabel('Time periods', fontsize=12)
+# ax.set_ylabel('ln Time period volume', fontsize=12)
+# plt.xticks(np.arange(int(periods_array.min()),int(periods_array.max())+1, 1))
+# # plt.savefig(os.path.join(plot_dir, 'morphWact_boxplot.png'), dpi=200)
+# plt.show()
 #%%
 # Inviluppo: numero di pixel che sono stati attivi almeno una volta
 sum_matrix = np.sum(np.abs(stack_bool), axis=0)
 sum_matrix = np.sum(np.where(sum_matrix!=0,1,sum_matrix))
+
+#%%############################################################################
+'''
+This section calculate the envelop of an increasing number of 1-time-step DoD
+and extract the DoD in which the 1-time-step are contained:
+For example it calculate the envelope of DoD1-0, DoD2-1 and DoD3-2 and it also
+extract the DoD3-0.
+The envelop and the averall DoD maps were then transate as boolean activity map
+where 1 means activity and 0 means inactivity.
+Making the difference between this two maps (envelope - DoD), the diff map is a
+map of 1, -1 and 0.
+1 means that that a pixel is active in the 1-time-step DoD but is not detected
+as active in the overall DoD, so it is affcted by compensation processes.
+-1 means that a pixel is detected as active in the overall DoD but not in the
+1-time-step DoD so in the 1-time-step DoD it is always under the detection
+threshold (2mm for example).
+So this map provide us 2-dimensional information about pixel that experienced
+depositional or under thrashold processes.
+
+'''
+
+for run in RUNS:
+    stack_dir = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Define the stack directory
+    stack=np.load(os.path.join(stack_dir, 'DoD_stack_'+run+'.npy')) # Load the stack
+    stack_bool=np.load(os.path.join(stack_dir, 'DoD_stack_bool_'+run+'.npy'))
+    
+    
+    
+    
+    # # import manual data
+    
+    # DoD1_0 = np.loadtxt('/home/erri/Documents/PhD/Research/5_research_repos/DoD_analysis/DoDs/DoD_q07_1/DoD_1-0_filt_ult_gis.txt', skiprows=7, delimiter='\t')
+    # DoD1_0 = np.where(DoD1_0==-999, np.nan, DoD1_0)
+    # DoD1_0 = np.where(DoD1_0<0, -1, DoD1_0)
+    # DoD1_0 = np.where(DoD1_0>0, 1, DoD1_0)
+    # DoD1_0 = abs(DoD1_0)
+    
+    # DoD2_1 = np.loadtxt('/home/erri/Documents/PhD/Research/5_research_repos/DoD_analysis/DoDs/DoD_q07_1/DoD_2-1_filt_ult_gis.txt', skiprows=7, delimiter='\t')
+    # DoD2_1 = np.where(DoD2_1==-999, np.nan, DoD2_1)
+    # DoD2_1 = np.where(DoD2_1<0, -1, DoD2_1)
+    # DoD2_1 = np.where(DoD2_1>0, 1, DoD2_1)
+    # DoD2_1 = abs(DoD2_1)
+    
+    # DoD3_2 = np.loadtxt('/home/erri/Documents/PhD/Research/5_research_repos/DoD_analysis/DoDs/DoD_q07_1/DoD_3-2_filt_ult_gis.txt', skiprows=7, delimiter='\t')
+    # DoD3_2 = np.where(DoD3_2==-999, np.nan, DoD3_2)
+    # DoD3_2 = np.where(DoD3_2<0, -1, DoD3_2)
+    # DoD3_2 = np.where(DoD3_2>0, 1, DoD3_2)
+    # DoD3_2 = abs(DoD3_2)
+    
+    # DoD2_0 = np.loadtxt('/home/erri/Documents/PhD/Research/5_research_repos/DoD_analysis/DoDs/DoD_q07_1/DoD_2-0_filt_ult_gis.txt', skiprows=7, delimiter='\t')
+    # DoD2_0 = np.where(DoD2_0==-999, np.nan, DoD2_0)
+    # DoD2_0 = np.where(DoD2_0<0, -1, DoD2_0)
+    # DoD2_0 = np.where(DoD2_0>0, 1, DoD2_0)
+    # DoD2_0 = abs(DoD2_0)
+    
+    # DoD3_0 = np.loadtxt('/home/erri/Documents/PhD/Research/5_research_repos/DoD_analysis/DoDs/DoD_q07_1/DoD_3-0_filt_ult_gis.txt', skiprows=7, delimiter='\t')
+    # DoD3_0 = np.where(DoD3_0==-999, np.nan, DoD3_0)
+    # DoD3_0 = np.where(DoD3_0<0, -1, DoD3_0)
+    # DoD3_0 = np.where(DoD3_0>0, 1, DoD3_0)
+    # DoD3_0 = abs(DoD3_0)
+    
+    
+    # DoD1_0_stack = abs(stack_bool[0,:,:,0])
+    # DoD2_1_stack = abs(stack_bool[1,:,:,0])
+    # DoD2_0_stack = abs(stack_bool[0,:,:,1])
+    # DoD3_2_stack = abs(stack_bool[2,:,:,0])
+    # DoD3_0_stack = abs(stack_bool[0,:,:,2])
+    
+    
+    
+    # stack_2_1_0 = np.stack((DoD1_0, DoD2_1, DoD3_2))
+    # stack_2_1_0_stack = abs(stack_bool[:3,:,:,0])
+    
+    
+    # envelope_2_1_0 = np.nansum(stack_2_1_0, axis=0)
+    # envelope_2_1_0_stack = np.nansum(stack_2_1_0_stack, axis=0)
+    
+    # envelope_2_1_0 = np.where(envelope_2_1_0>0, 1, 0)
+    # envelope_2_1_0_stack = np.where(envelope_2_1_0_stack>0, 1, 0)
+    
+    # diff_matrix = envelope_2_1_0 - DoD3_0
+    # diff_matrix_stack = envelope_2_1_0_stack - DoD3_0_stack
+    
+    # print('comp', np.nansum(diff_matrix==1))
+    # print('comp_stack', np.nansum(diff_matrix_stack==1))
+    # print('thrs', np.nansum(diff_matrix==-1))
+    # print('thrs', np.nansum(diff_matrix_stack==-1))
+    
+    
+        # Create output matrix as below:
+        #            t=1   t=2   t=3   t=4   t=5   t=6   t=7   t=8   t=9
+        # delta = 1  1-0   2-1   3-2   4-3   5-4   6-5   7-6   8-7   9-8  average STDEV
+        # delta = 2  2-0   3-1   4-2   5-3   6-4   7-5   8-6   9-7        average STDEV
+        # delta = 3  3-0   4-1   5-2   6-3   7-4   8-5   9-6              average STDEV
+        # delta = 4  4-0   5-1   6-2   7-3   8-4   9-5                    average STDEV
+        # delta = 5  5-0   6-1   7-2   8-3   9-4                          average STDEV
+        # delta = 6  6-0   7-1   8-2   9-3                                average STDEV
+        # delta = 7  7-0   8-1   9-2                                      average STDEV
+        # delta = 8  8-0   9-1                                            average STDEV
+        # delta = 9  9-0                                                  average STDEV
+        
+        # stack[time, x, y, delta]
+    
+    
+    # for t in range(0, stack.shape[0]-1):
+    for d in range(0, stack.shape[0]-1):
+        comp_array=[] # Initialize array where to append the number of pixel that experienced compensation
+        thrs_array=[] # Initialize array ehere to append the number of pixel that experienced threshold bias
+        for t in range(0, stack.shape[0]-1):
+            DoD_envelope = np.nansum(abs(stack_bool[:t+2,:,:,d]), axis=0) # Perform the DoD envelope
+            DoD_envelope = np.where(DoD_envelope>0, 1, DoD_envelope) # Make the envelope of DoD as a boolean map
+            DoD_boundary = abs(stack_bool[0,:,:,t+1]) # Extract the DoD within at which the envelope take place
+            diff_matrix = DoD_envelope - DoD_boundary # Perform the difference between the DoDs_envelope and the boundary DoD
+            comp = np.nansum(diff_matrix==1) # Compute the number of pixel that experience compensation
+            thrs = np.nansum(diff_matrix==-1) # Compute the number of pixel that experienced threshold bias
+            comp_array = np.append(comp_array, comp) # Append values into the array
+            thrs_array = np.append(thrs_array, thrs) # Append values into the array
+        # Save array in txt
+        np.savetxt(os.path.join(report_dir, run, run + '_' + str(d+1) + '_comp_analysis.txt'), comp_array, delimiter='\t')
+        np.savetxt(os.path.join(report_dir, run, run + '_' + str(d+1) + '_thrs_analysis.txt'), thrs_array, delimiter='\t')
+
+
 
 
 
