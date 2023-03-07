@@ -55,7 +55,7 @@ DoD_plot_show_mode:
     0 = do not show DoD plots
     1 = show DoD plots
 '''
-run_mode = 2
+run_mode = 1
 mask_mode = 1
 process_mode = 1
 # data_interpolation_mode = 0
@@ -66,7 +66,7 @@ process_mode = 1
 
 # SINGLE RUN NAME
 # run = ['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6']
-run = 'q10_7'
+run = 'q15_3'
 
 # Set DEM single name to perform process to specific DEM
 if len(run) ==1:

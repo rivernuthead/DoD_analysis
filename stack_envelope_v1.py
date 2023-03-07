@@ -50,8 +50,8 @@ plot_mode = 1
 delta = 1 # Delta time of the DoDs
 
 # SINGLE RUN NAME
-run = 'q10_4'
-run_mode = 2
+run = 'q15_3'
+run_mode = 1
 
 # FOLDER SETUP
 home_dir = os.getcwd() # Home directory
@@ -192,7 +192,7 @@ for run in RUNS:
 #%%
 ###############################################################################
 '''
-Envelope calculation for different delta
+MAW envelope considering an increasing number of DoDs
 '''
 delta=0
 
@@ -212,7 +212,7 @@ for run in RUNS:
         
         envelope_area_array = np.append(envelope_area_array, envelope_area*0.005*0.05/(stack_bool.shape[2]*0.05)/0.6) # Append increment value
     
-    np.savetxt(os.path.join(report_dir, run, run + '_envelope_area.txt'), envelope_area_array, delimiter=',')
+    np.savetxt(os.path.join(report_dir, run, run + '_envMAW.txt'), envelope_area_array, delimiter=',')
 
 #%%
 ###############################################################################

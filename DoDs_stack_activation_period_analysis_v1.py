@@ -399,33 +399,49 @@ matrix_dep = np.where(matrix_dep==0, np.nan, matrix_dep)
 matrix_sco = np.where(matrix_sco==0, np.nan, matrix_sco)
 matrix_zeros = np.where(matrix_zeros==0, np.nan, matrix_zeros)
 
+# Falttening the matrix...
 matrix_dep = matrix_dep.flatten()
 matrix_sco = matrix_sco.flatten()
 matrix_zeros = matrix_zeros.flatten()
 
+# Normalize histogram with the total number of pixel
+matrix_dep = matrix_dep/np.nansum(matrix_dep>0)
+matrix_sco = matrix_sco/np.nansum(matrix_dep>0)
+matrix_zeros = matrix_zeros/np.nansum(matrix_zeros>0)
 
 
 # PLOTS
 fig1, ax = plt.subplots(tight_layout=True)
-ax = sns.histplot(data=matrix_dep, binwidth=0.4, discrete=True, shrink=0.8)
+ax = sns.histplot(data=matrix_dep, binwidth=0.1, discrete=True, shrink=0.1)
 ax.set(xlabel='Period length [run_tmie]',
        ylabel='Frequency',
        title='Number of consecutive depositional periods - '+run)
 plt.show()
 
 fig2, ax = plt.subplots(tight_layout=True)
-ax = sns.histplot(data=matrix_sco, binwidth=0.4, discrete=True, shrink=0.8)
+ax = sns.histplot(data=matrix_sco, discrete=False)
 ax.set(xlabel='Period length [run_tmie]',
        ylabel='Frequency',
        title='Number of consecutive erosional periods - '+run)
 plt.show()
 
 fig2, ax = plt.subplots(tight_layout=True)
-ax = sns.histplot(data=matrix_zeros, binwidth=0.4, discrete=True, shrink=0.8)
+ax = sns.histplot(data=matrix_zeros, binwidth=0.1, discrete=True, shrink=0.1)
 ax.set(xlabel='Period length [run_tmie]',
        ylabel='Frequency',
        title='Number of consecutive inactivity periods - '+run)
 plt.show()
+
+#%% 
+plt.hist(matrix_dep, bins='auto')
+
+fig2, ax = plt.subplots(tight_layout=True)
+ax = sns.histplot(data=matrix_zeros, bins=50, binwidth='0.1')
+ax.set(xlabel='Period length [run_tmie]',
+       ylabel='Frequency',
+       title='Number of consecutive inactivity periods - '+run)
+plt.show()
+
 
 
 #%%

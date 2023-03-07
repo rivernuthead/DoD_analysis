@@ -34,11 +34,11 @@ DoD_map_plot:
     0 = plot DoD map OFF
     1 = plot DoD map ON
 '''
-run_mode = 2
+run_mode = 1
 DoD_map_plot = 0
 
 # SINGLE RUN NAME
-run = ['q10_4', 'q10_7']
+run = ['q15_3']
 
 DoD_name = 'DoD_1-0'
 
