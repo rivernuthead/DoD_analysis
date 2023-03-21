@@ -130,7 +130,7 @@ from scipy.ndimage import zoom
 channel = Image.open('/home/erri/Documents/PhD/Research/5_research_repos/PiQs_analysis/Photos/q07rgm/Img0001.jpg') # Open image as image
 # diff_arr = np.array(diff) # Convert image as numpy array
 envMAW = envMAW_arr
-envBAW = Image.open('/home/erri/Documents/PhD/Research/5_research_repos/PiQs_analysis/Maps/q07rgm/Img0802_thrs8_cld.tiff')
+envBAW = Image.open('/home/erri/Documents/PhD/Research/5_research_repos/PiQs_analysis/Maps/'+run+'/Img0802_thrs8_cld.tiff')
 
 envMAW = zoom(envMAW, (envBAW.size[1]/envMAW.shape[0], envBAW.size[0]/envMAW.shape[1])) 
 
