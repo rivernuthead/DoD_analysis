@@ -34,7 +34,7 @@ DoD_map_plot:
     0 = plot DoD map OFF
     1 = plot DoD map ON
 '''
-run_mode = 1
+run_mode = 2
 DoD_map_plot = 0
 
 # SINGLE RUN NAME

@@ -55,7 +55,7 @@ DoD_plot_show_mode:
     0 = do not show DoD plots
     1 = show DoD plots
 '''
-run_mode = 1
+run_mode = 2
 mask_mode = 1
 process_mode = 1
 # data_interpolation_mode = 0

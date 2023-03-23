@@ -55,10 +55,10 @@ DoD_plot_show_mode:
     0 = do not show DoD plots
     1 = show DoD plots
 '''
-run_mode = 1
+run_mode = 2
 mask_mode = 1
 process_mode = 1
-filt_analysis = 0 # Print the morphological metrics for each filtering process stage
+filt_analysis = 1 # Print the morphological metrics for each filtering process stage
 
 # data_interpolation_mode = 0
 # save_plot_mode = 1
@@ -932,7 +932,6 @@ for run in RUNS:
             # DoDs SAVING...
             ###################################################################
 
-            os.path.join(path_out, DoD_name, )
             
             # SAVE DOD FILES...
             

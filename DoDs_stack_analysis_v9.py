@@ -42,7 +42,7 @@ plot_mode = 1
 delta = 1 # Delta time of the DoDs
 
 # SINGLE RUN NAME
-run = 'q10_3'
+run = 'q07_1'
 run_mode = 1
 
 # FOLDER SETUP
