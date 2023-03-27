@@ -95,3 +95,27 @@ for run in runs:
     plt.show()
             
     
+    #%% Compute the length of consecutive active or non-active periods
+import numpy as np
+
+# Example input array
+arr = np.array([1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0 ,0])
+
+# Compute the indices where the values in arr change
+idx = np.flatnonzero(np.diff(arr, prepend=-1, append=-1))
+
+# Compute the consecutive counts for each value in arr
+consec_counts = np.diff(idx)
+
+# Collect the results for each value separately
+ones_count = consec_counts[arr[idx[:-1]] == 1]
+zeros_count = consec_counts[arr[idx[:-1]] == 0]
+
+# Output the results
+print("Consecutive ones counts:", ones_count)
+print("Consecutive zeros counts:", zeros_count)
+
+
+
+
+

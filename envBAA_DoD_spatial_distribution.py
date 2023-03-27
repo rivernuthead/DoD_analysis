@@ -31,8 +31,8 @@ start = time.time() # Set initial time
 
 
 # SINGLE RUN NAME
-runs = ['q07_1']
-# runs = ['q07_1', 'q10_2', 'q10_3', 'q15_2', 'q15_3', 'q20_2']
+# runs = ['q07_1']
+runs = ['q07_1', 'q10_2', 'q10_3', 'q15_2', 'q15_3', 'q20_2']
 
 for run in runs:
     
@@ -210,7 +210,7 @@ for run_name, set_name in zip(run_names, set_names):
     plt.title(run_name)
     plt.axis('off')
     plt.savefig(os.path.join(report_dir, set_name, run_name + '_BAA_MAA.pdf'), dpi=600 )
-    plt.show()
+#   plt.show()
     
     if set_names[index]==set_names[index+1]:
         index+=1
