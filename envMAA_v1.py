@@ -4,6 +4,22 @@
 Created on Thu Mar 23 16:24:32 2023
 
 @author: erri
+
+This script analyze the Morphological Active Area data at different timespan.
+In particular the script provides:
+    1. The value of the Morphological Active Width for different timespan and
+    for different combination of DoD with a data structure as below:
+        MAA envelope of DoD 0 and 1:	MAA envelope of DoD 1 and 2:	MAA envelope of DoD 2 and 3:	MAA envelope of DoD 3 and 4:	MAA envelope of DoD 4 and 5:	MAA envelope of DoD 5 and 6:	MAA envelope of DoD 6 and 7:	MAA envelope of DoD 7 and 8:
+        MAA envelope of DoD 0 to 2: 	MAA envelope of DoD 1 to 3: 	MAA envelope of DoD 2 to 4: 	MAA envelope of DoD 3 to 5: 	MAA envelope of DoD 4 to 6: 	MAA envelope of DoD 5 to 7: 	MAA envelope of DoD 6 to 8:	
+        MAA envelope of DoD 0 to 3: 	MAA envelope of DoD 1 to 4: 	MAA envelope of DoD 2 to 5: 	MAA envelope of DoD 3 to 6: 	MAA envelope of DoD 4 to 7: 	MAA envelope of DoD 5 to 8:		
+        MAA envelope of DoD 0 to 4:     MAA envelope of DoD 1 to 5: 	MAA envelope of DoD 2 to 6: 	MAA envelope of DoD 3 to 7: 	MAA envelope of DoD 4 to 8:			
+        MAA envelope of DoD 0 to 5:	    MAA envelope of DoD 1 to 6: 	MAA envelope of DoD 2 to 7: 	MAA envelope of DoD 3 to 8:				
+        MAA envelope of DoD 0 to 6: 	MAA envelope of DoD 1 to 7: 	MAA envelope of DoD 2 to 8:					
+        MAA envelope of DoD 0 to 7: 	MAA envelope of DoD 1 to 8:						
+        MAA envelope of DoD 0 to 8:							
+
+
+
 """
 
 # COMPUTE THE MAA ENVELOPE

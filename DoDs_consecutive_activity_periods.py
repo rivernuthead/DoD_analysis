@@ -4,6 +4,14 @@
 Created on Fri Mar 24 14:01:06 2023
 
 @author: erri
+
+Taking advantages of the period_length punction the script compute the length of
+a consecutive series of scour (-1), fill (+1) and no changes (0) along the time
+axis of aa DoDs stack.
+The script provides:
+    1. Histograms for each runds of the period length
+
+
 """
 
 # IMPORT PACKAGES
@@ -17,7 +25,7 @@ delta = 0
 
 # SINGLE RUN NAME
 runs = ['q07_1']
-runs = ['q07_1', 'q10_2', 'q10_3', 'q15_2', 'q15_3', 'q20_2']
+# runs = ['q07_1', 'q10_2', 'q10_3', 'q15_2', 'q15_3', 'q20_2']
 
 def period_length(arr):
     '''
@@ -163,7 +171,7 @@ for run in runs:
     flat_mat = flat_mat[flat_mat!=0]
 
     # compute the histogram of values
-    hist, bins = np.histogram(flat_mat, bins=range(np.min(flat_mat), np.max(flat_mat)+2))
+    hist, bins = np.histogram(flat_mat, bins=range(np.min(flat_mat), np.max(flat_mat)+2), density=True)
     
     # plot the histogram
     plt.bar(bins[:-1], hist, align='center')
@@ -179,7 +187,7 @@ for run in runs:
     flat_mat = flat_mat[flat_mat!=0]
 
     # compute the histogram of values
-    hist, bins = np.histogram(flat_mat, bins=range(np.min(flat_mat), np.max(flat_mat)+2))
+    hist, bins = np.histogram(flat_mat, bins=range(np.min(flat_mat), np.max(flat_mat)+2), density=True)
     
     # plot the histogram
     plt.bar(bins[:-1], hist, align='center')
@@ -195,7 +203,7 @@ for run in runs:
     flat_mat = flat_mat[flat_mat!=0]
 
     # compute the histogram of values
-    hist, bins = np.histogram(flat_mat, bins=range(np.min(flat_mat), np.max(flat_mat)+2))
+    hist, bins = np.histogram(flat_mat, bins=range(np.min(flat_mat), np.max(flat_mat)+2), density=True)
     
     # plot the histogram
     plt.bar(bins[:-1], hist, align='center')
