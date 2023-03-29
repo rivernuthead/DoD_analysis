@@ -179,7 +179,7 @@ for run in runs:
     plt.xlabel('Value')
     plt.ylabel('Frequency')
     plt.title('Frequency distribution of +1 periods length - ' + run)
-    plt.savefig(os.path.join(report_dir, run,run +'pos1_period_len_frequency_distribution.pdf'), dpi=200)
+    plt.savefig(os.path.join(report_dir, run,run +'_pos1_period_len_frequency_distribution.pdf'), dpi=200)
     plt.show()
     
 
@@ -195,7 +195,7 @@ for run in runs:
     plt.xlabel('Value')
     plt.ylabel('Frequency')
     plt.title('Frequency distribution of 0 periods length - ' + run)
-    plt.savefig(os.path.join(report_dir, run,run +'zero_period_len_frequency_distribution.pdf'), dpi=200)
+    plt.savefig(os.path.join(report_dir, run,run +'_zero_period_len_frequency_distribution.pdf'), dpi=200)
     plt.show()
     
     
@@ -211,6 +211,6 @@ for run in runs:
     plt.xlabel('Value')
     plt.ylabel('Frequency')
     plt.title('Frequency distribution of -1 periods length - ' + run)
-    plt.savefig(os.path.join(report_dir, run,run +'neg1_period_len_frequency_distribution.pdf'), dpi=200)
+    plt.savefig(os.path.join(report_dir, run,run +'_neg1_period_len_frequency_distribution.pdf'), dpi=200)
     plt.show()
     
