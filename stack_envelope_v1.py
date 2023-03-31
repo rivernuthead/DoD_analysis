@@ -101,7 +101,7 @@ This section calculate the envelop of an increasing number of 1-time-step DoD
 and extract the DoD in which the 1-time-step are contained:
 For example it calculate the envelope of DoD1-0, DoD2-1 and DoD3-2 and it also
 extract the DoD3-0.
-The envelop and the averall DoD maps were then transate as boolean activity map
+The envelop and the averall DoD maps were then translate as boolean activity map
 where 1 means activity and 0 means inactivity.
 Making the difference between this two maps (envelope - DoD), the diff map is a
 map of 1, -1 and 0.

@@ -53,7 +53,7 @@ DoD1_list = []
 # Loop over each 1-timespan DoD 
 for k in range(0, dim_t):
     # Append the matrix to the list
-    DoD1_list.append(abs(stack[k,:,:,0])) # append in the list consecutive 1-timespan DoD
+    DoD1_list.append(abs(stack_bool[k,:,:,0])) # append in the list consecutive 1-timespan DoD
 
 
 # Calculate the sums of adjacent matrices, three adjacent matrices, and so on
@@ -75,5 +75,5 @@ for i in range(1, len(DoD1_list)):
         
         envMAW_report[i-1,:,:,j] = sum_mat
         envMAW_sum_report[i-1,j] = np.nansum(sum_mat>0)/(dim_x*dim_y)
-        print(np.nansum(sum_mat)/(700*6295))
+        print(np.nansum(np.nansum(sum_mat>0)/(dim_x*dim_y)))
         print()
