@@ -189,6 +189,7 @@ plt.ylabel('Y coordinate')
 plt.title('Active pixel - ' + run)
 bar.set_label('')
 plt.savefig(os.path.join(home_dir, 'number_active_px_map', run +'_number_active_pixel.pdf'), dpi=200)
+plt.savefig(os.path.join(home_dir, 'number_active_px_map', run +'_number_active_pixel.png'), dpi=200)
 plt.show()
 
 fig3, ax = plt.subplots(tight_layout=True, figsize=(18,3))
@@ -716,6 +717,23 @@ ax = sns.histplot(data=np.abs(weighted_period_array), binwidth=0.4, discrete=Tru
 ax.set(xlabel='Weighted time between switches',
        ylabel='Count',
        title='First complete weighted period - '+run)
+plt.show()
+
+
+
+# SWITCH ACTIVATION WEIGHTED TIME
+data=np.abs(weighted_period_array)
+
+hist_ones, bins_ones = np.histogram(data.flatten(), bins=range(int(np.min(data.flatten())), int(np.max(data.flatten())+2)), density=True)
+
+# plot the histogram
+plt.bar(bins_ones[:-1], hist_ones, align='center', alpha=1, label='Activity')
+plt.xticks(bins_ones[:-1])
+# plt.legend()
+plt.xlabel('Value')
+plt.ylabel('Frequency')
+plt.title('Time of first compensation - ' + run)
+plt.savefig(os.path.join(report_dir,run +'Time first compensation.pdf'), dpi=300)
 plt.show()
 
 #%%
