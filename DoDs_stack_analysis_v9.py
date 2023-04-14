@@ -733,7 +733,7 @@ plt.xticks(bins_ones[:-1])
 plt.xlabel('Value')
 plt.ylabel('Frequency')
 plt.title('Time of first compensation - ' + run)
-plt.savefig(os.path.join(report_dir,run +'Time first compensation.pdf'), dpi=300)
+plt.savefig(os.path.join(report_dir,run +'_Time first compensation.pdf'), dpi=300)
 plt.show()
 
 #%%
