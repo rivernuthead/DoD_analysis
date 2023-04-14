@@ -37,7 +37,7 @@ start = time.time() # Set initial time
 
 
 # SINGLE RUN NAME
-runs = ['q07_1']
+runs = ['q15_3']
 # runs = ['q07_1', 'q10_2', 'q10_3', 'q15_2', 'q15_3', 'q20_2']
 
 for run in runs:

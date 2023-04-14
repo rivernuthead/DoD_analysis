@@ -26,7 +26,7 @@ In particular the script provides:
 import os
 import numpy as np
 
-set_name = 'q20_2'
+set_name = 'q15_3'
 ###############################################################################
 # IMPORT DoD STACK AND DoD BOOL STACK
 home_dir = os.getcwd() # Home directory
