@@ -31,7 +31,7 @@ start = time.time() # Set initial time
 
 
 # SINGLE RUN NAME
-# runs = ['q07_1']
+# runs = ['q20_2']
 runs = ['q07_1', 'q10_2', 'q10_3', 'q15_2', 'q15_3', 'q20_2']
 
 for run in runs:
@@ -130,7 +130,8 @@ set_names = ['q07_1','q07_1','q07_1','q07_1','q07_1','q07_1','q07_1','q07_1','q0
         ,'q20_2','q20_2','q20_2','q20_2','q20_2','q20_2','q20_2','q20_2','q20_2']
 # run_names = ['q07r1']
 
-
+# run_names = ['q20r1','q20r2','q20r3','q20r4','q20r5','q20r6','q20r7','q20r8','q20r9']
+# set_names = ['q20_2','q20_2','q20_2','q20_2','q20_2','q20_2','q20_2','q20_2','q20_2']
 
 index = 0
 for run_name, set_name in zip(run_names, set_names):
@@ -202,16 +203,17 @@ for run_name, set_name in zip(run_names, set_names):
     # Convert matrices to images
     img1 = plt.imshow(channel, alpha=1.0)
     # img3 = plt.imshow(np.where(np.isclose(envMAW_zoom,0, atol=1e-01), np.nan, envMAW_zoom), cmap='Greens', origin='upper', alpha=0.8)
-    img3 = plt.imshow(np.where(envMAW_zoom==0, np.nan, envMAW_zoom), cmap='coolwarm', origin='upper', alpha=0.9)
     img2 = plt.imshow(envBAW, cmap='Purples', alpha=0.4, vmin=0, vmax=1)
+    img3 = plt.imshow(np.where(envMAW_zoom==0, np.nan, envMAW_zoom), cmap='coolwarm', origin='upper', alpha=0.9)
+    
     
     
     # Set title and show the plot
     plt.title(run_name)
     plt.axis('off')
     plt.savefig(os.path.join(report_dir, set_name, run_name + '_BAA_MAA.pdf'), dpi=600 )
-#   plt.show()
-    
+    plt.show()
+        
     if set_names[index]==set_names[index+1]:
         index+=1
     elif set_names[index]!=set_names[index+1]:

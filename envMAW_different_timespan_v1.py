@@ -124,6 +124,7 @@ for run in RUNS:
     stack_bool=np.load(os.path.join(stack_dir, 'DoD_stack_bool_'+run+'.npy'))
     
     dim_t, dim_y, dim_x, dim_delta = stack.shape # Define time dimension, crosswise dimension and longitudinal dimension
+    
     # STACK DATA STRUCTURE
     # Create output matrix as below:
     #            t=1   t=2   t=3   t=4   t=5   t=6   t=7   t=8   t=9
