@@ -7,6 +7,8 @@ Created on Wed Apr 13 11:16:17 2022
 """
 
 import numpy as np
+from skimage import morphology
+import cv2
 
 
 def spatial_weighted_average(matrix, round_value, NaN):
@@ -69,6 +71,61 @@ def spatial_weighted_average(matrix, round_value, NaN):
     matrix_out_gis = np.where(np.isnan(matrix_out), NaN, matrix_out)
     
     return matrix_out, matrix_out_gis
+
+
+
+
+def remove_small_objects(matrix, object_size, connectivity):
+    '''
+    
+
+    Parameters
+    ----------
+    matrix : TYPE
+        DESCRIPTION.
+    object_size : TYPE
+        DESCRIPTION.
+    connectivity : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    matrix_out : TYPE
+        DESCRIPTION.
+
+    '''
+    # Convert matrix in bool matrix
+    matrix_bool = np.where(matrix>0, 1, 0)
+    matrix_bool = np.where(matrix<0, 1, matrix_bool)
+    matrix_bool = np.array(matrix_bool, dtype='bool') # Convert in array of bool
+    
+    matrix_mask = morphology.remove_small_objects(matrix_bool, object_size, connectivity) # Morphological analysis
+    
+    matrix_out = matrix_mask*matrix
+    
+    matrix_out_gis = np.where(np.isnan(matrix_out), -999, matrix_out)
+    
+    return matrix_out
+
+def fill_small_holes(matrix, avg_target_kernel, area_threshold, connectivity):
+    
+    # Convert matrix in bool matrix
+    matrix_bool = np.where(matrix>0, 1, 0)
+    matrix_bool = np.where(matrix<0, 1, matrix_bool)
+    matrix_bool = np.array(matrix_bool, dtype='bool') # Convert in array of bool
+    
+    # Set target
+    ker=np.ones((avg_target_kernel,avg_target_kernel), np.float32)/(avg_target_kernel**2)
+    matrix_target = cv2.filter2D(src=matrix,ddepth=-1, kernel=ker)
+    
+    # Perform morphological analysis
+    matrix_out = morphology.remove_small_objects(matrix_bool, min_size=area_threshold, connectivity=connectivity)
+    
+    matrix_out = matrix_target*matrix_out
+    
+    return matrix_out
+    
+    
 
 
 def isolated_killer(matrix, threshold, round_value, NaN):
