@@ -13,7 +13,9 @@ import cv2
 from skimage import morphology
 from PIL import Image
 import matplotlib.pyplot as plt
-from DoD_analysis_functions_3 import *
+import PyPDF2
+from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
+from DoD_analysis_functions_4 import *
 from morph_quantities_func_v2 import morph_quantities
 
 ###############################################################################
@@ -143,6 +145,11 @@ morphWact_dim = [] # Array with the dimensions of morphWact_values array
 
 DoD_length_array=[] # DoD length array
 
+merger = PyPDF2.PdfFileMerger()
+
+# # Create empty PDF file
+# with open(os.path.join(out_dir, 'my_pdf.pdf'), 'wb') as f:
+#     f.write(b'')
 
 #%%
 ###############################################################################
@@ -355,11 +362,12 @@ for run in RUNS:
     ###########################################################################
     # LOOP OVER ALL DEMs COMBINATIONS
     ###########################################################################
+    nn=0
     # Perform difference between DEMs over all the possible combination of surveys in the survey directory
     for h in range (0, len(files)-1):
         for k in range (0, len(files)-1-h):
             print(h)
-            
+            nn+=1
             DEM1_name=files[h] # Extract the DEM1 name...
             DEM2_name=files[h+1+k] #...and the DEM2 name
             comb = np.append(comb, DEM2_name + '-' + DEM1_name) # Create a list with all the available combinations of DEMs
@@ -565,7 +573,7 @@ for run in RUNS:
             counter0 = np.count_nonzero(DoD_filt_mean[np.logical_not(np.isnan(DoD_filt_mean))])
             
             # Perform the very first isolated_killer procedure
-            DoD_filt_isol, DoD_filt_isol_gis = isolated_killer(DoD_filt_mean, thrs_zeros, 1, NaN)
+            DoD_filt_isol = remove_small_objects(DoD_filt_mean, 7, 2)
             
             # After trimming al np.nan values, counter represent the number of
             # pixel not equal to zero of the DoD_filt_isol matrix
@@ -574,27 +582,35 @@ for run in RUNS:
             # pixel will not change anymore 
             while counter0-counter1!=0:
                 # Filtering...
-                DoD_filt_isol, DoD_filt_isol_gis = isolated_killer(DoD_filt_isol, thrs_zeros, 1, NaN)
+                DoD_filt_isol = remove_small_objects(DoD_filt_isol, 7, 2)
                 # Update counters:
                 counter0 = counter1
                 counter1 = np.count_nonzero(DoD_filt_isol[np.logical_not(np.isnan(DoD_filt_isol))])
-                
-            # 4- PERFORM PITTS FILLING PIXEL PROCEDURE:
+            
+            
+            # Convert matrix to be GIS-readable
+            DoD_filt_isol_gis = np.where(np.isnan(DoD_filt_isol), NaN, DoD_filt_isol)
+            
+
+            
+            # 4- PERFORM PITTS FILLING PROCEDURE:
             #---------------------------------------
             # Initialize the counter from the previous step of the filtering process
             counter0 = np.count_nonzero(DoD_filt_isol[np.logical_not(np.isnan(DoD_filt_isol))])
             # Perform the first step of the filling procedure
-            DoD_filt_fill, DoD_filt_fill_gis = isolated_filler(DoD_filt_isol, thrs_fill, 1, NaN)
+            DoD_filt_fill = fill_small_holes(DoD_filt_isol, 11, 4, 2, thrs_1)
             # Calculate the current counter
             counter1 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])
             # Perform the loop of the filtering process
             while counter0-counter1!=0:
                 # Filtering...
-                DoD_filt_fill, DoD_filt_fill_gis = isolated_filler(DoD_filt_fill, thrs_fill, 1, NaN)
+                DoD_filt_fill = fill_small_holes(DoD_filt_fill, 11, 4, 2, thrs_1)
                 # Update counters:
                 counter0=counter1
                 counter1 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])   
             
+            # Convert matrix to be GIS-readable
+            DoD_filt_fill_gis = np.where(np.isnan(DoD_filt_fill), NaN, DoD_filt_fill)
                 
             # 5- PERFORM NATURE CHECKER PIXEL PROCEDURE:
             #----------------------------------------
@@ -627,10 +643,7 @@ for run in RUNS:
             
 
             DoD_filt_isol2_gis = np.where(np.isnan(DoD_filt_isol2), NaN, DoD_filt_isol2)
-            
-            
-            
-            
+
             DoD_filt_ult = DoD_filt_isol2
             DoD_filt_ult_gis = DoD_filt_isol2_gis
             
@@ -642,8 +655,28 @@ for run in RUNS:
             plt.axis('off')
             plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.png'), dpi=600 )
             plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), dpi=600 )
+            
+            
+            # Save all the pdf chart in a report
+            if nn==1:
+                plt.savefig(os.path.join(DoDs_plot,'merged_report_plot.pdf'), dpi=600 )
             plt.show()
             
+
+            if nn>1:
+                merger = PyPDF2.PdfFileMerger()
+
+                # Open and append the existing PDF
+                with open(os.path.join(DoDs_plot,'merged_report_plot.pdf'), "rb") as existing_file:
+                    merger.append(existing_file)
+
+                # Open and append the new PDF chart
+                with open(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), "rb") as chart_file:
+                    merger.append(chart_file)
+
+                # Save the merged PDF
+                with open(os.path.join(DoDs_plot,'merged_report_plot.pdf'), "wb") as merged_file:
+                    merger.write(merged_file)
             
 
             ###################################################################
