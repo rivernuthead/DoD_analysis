@@ -145,11 +145,6 @@ morphWact_dim = [] # Array with the dimensions of morphWact_values array
 
 DoD_length_array=[] # DoD length array
 
-merger = PyPDF2.PdfFileMerger()
-
-# # Create empty PDF file
-# with open(os.path.join(out_dir, 'my_pdf.pdf'), 'wb') as f:
-#     f.write(b'')
 
 #%%
 ###############################################################################
@@ -554,26 +549,39 @@ for run in RUNS:
             # 1- PERFORM DOMAIN-WIDE WEIGHTED AVERAGE:
             # -------------------------------------
             
-            ker=np.array([[1],
+            kernel=np.array([[1],
                           [2],
-                          [1]])/4
+                          [1]])
+            ker=kernel/np.sum(kernel)
             
             DoD_filt_mean=cv2.filter2D(src=DoD_raw,ddepth=-1, kernel=ker)
-            
-            
-            # 2- PERFORM UNDER THRESHOLD ZEROING:
-            DoD_filt_mean = np.where(np.abs(DoD_filt_mean)<=thrs_1, 0, DoD_filt_mean)
             DoD_filt_mean_gis = np.where(np.isnan(DoD_filt_mean), NaN, DoD_filt_mean)
             
             
-            # 3- PERFORM ISOLATED PIXEL REMOVAL :
+            # 2- PERFORM UNDER THRESHOLD ZEROING:
+            DoD_filt_thrs = np.where(np.abs(DoD_filt_mean)<=thrs_1, 0, DoD_filt_mean)
+            DoD_filt_thrs_gis = np.where(np.isnan(DoD_filt_thrs), NaN, DoD_filt_thrs)
+            
+            # PLOT A CROSS-SECTION BEFORE AND AFTER THE AVERAGE PROCESS
+            plot1 = plt.plot(DoD_raw[:,5], label = 'raw')
+            plot2 = plt.plot(DoD_filt_mean[:,5], label = 'avg')
+            plot3 = plt.plot(DoD_filt_thrs[:,5], label = 'thrs')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name)
+            plt.legend()
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.png'), dpi=600 )
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), dpi=600 )
+            plt.show()
+            
+            
+            # 3- PERFORM ISOLATED PIXEL REMOVAL:
             #--------------------------------------------------
             # After trimming al np.nan values, counter represent the number of
             # pixel not equal to zero in the DoD_filt_mean matrix
-            counter0 = np.count_nonzero(DoD_filt_mean[np.logical_not(np.isnan(DoD_filt_mean))])
+            counter0 = np.count_nonzero(DoD_filt_thrs[np.logical_not(np.isnan(DoD_filt_thrs))])
             
             # Perform the very first isolated_killer procedure
-            DoD_filt_isol = remove_small_objects(DoD_filt_mean, 7, 2)
+            DoD_filt_isol = remove_small_objects(DoD_filt_thrs, 8, 2)
             
             # After trimming al np.nan values, counter represent the number of
             # pixel not equal to zero of the DoD_filt_isol matrix
@@ -582,7 +590,7 @@ for run in RUNS:
             # pixel will not change anymore 
             while counter0-counter1!=0:
                 # Filtering...
-                DoD_filt_isol = remove_small_objects(DoD_filt_isol, 7, 2)
+                DoD_filt_isol = remove_small_objects(DoD_filt_isol, 8, 2)
                 # Update counters:
                 counter0 = counter1
                 counter1 = np.count_nonzero(DoD_filt_isol[np.logical_not(np.isnan(DoD_filt_isol))])
@@ -598,13 +606,13 @@ for run in RUNS:
             # Initialize the counter from the previous step of the filtering process
             counter0 = np.count_nonzero(DoD_filt_isol[np.logical_not(np.isnan(DoD_filt_isol))])
             # Perform the first step of the filling procedure
-            DoD_filt_fill = fill_small_holes(DoD_filt_isol, 11, 4, 2, thrs_1)
+            DoD_filt_fill, matrix_target = fill_small_holes(DoD_filt_isol, avg_target_kernel=5, area_threshold=5, connectivity=1, filt_threshold=thrs_1)
             # Calculate the current counter
             counter1 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])
             # Perform the loop of the filtering process
             while counter0-counter1!=0:
                 # Filtering...
-                DoD_filt_fill = fill_small_holes(DoD_filt_fill, 11, 4, 2, thrs_1)
+                DoD_filt_fill, matrix_target = fill_small_holes(DoD_filt_fill, avg_target_kernel=5, area_threshold=5, connectivity=1, filt_threshold=thrs_1)
                 # Update counters:
                 counter0=counter1
                 counter1 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])   
@@ -612,19 +620,21 @@ for run in RUNS:
             # Convert matrix to be GIS-readable
             DoD_filt_fill_gis = np.where(np.isnan(DoD_filt_fill), NaN, DoD_filt_fill)
                 
+            
             # 5- PERFORM NATURE CHECKER PIXEL PROCEDURE:
             #----------------------------------------
+            # TODO THIS IS NOT ACTIVE!!
             DoD_filt_nature, DoD_filt_nature_gis = nature_checker(DoD_filt_fill, thrs_nature, 1, NaN)
             
             
-            # 6- RE-PERFORM AVOIDING ZERO-SURROUNDED PIXEL PROCEDURE:
+            # 6- RE-PERFORM ISOLATED PIXEL REMOVAL:
             #-----------------------------------------------------
             # After trimming al np.nan values, counter represent the number of
             # pixel not equal to zero o fthe DoD_filt_fill matrix
-            counter0 = np.count_nonzero(DoD_filt_nature[np.logical_not(np.isnan(DoD_filt_nature))])
+            counter0 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])
             
             # Perform the very first isolated_killer procedure
-            DoD_filt_isol2 = remove_small_objects(DoD_filt_nature, 7, 2)
+            DoD_filt_isol2 = remove_small_objects(DoD_filt_fill, 8, 2)
             
             # After trimming al np.nan values, counter represent the number of
             # pixel not equal to zero of the DoD_filt_isol2 matrix
@@ -634,37 +644,49 @@ for run in RUNS:
 
             while counter0-counter1!=0:
                 # Filtering...
-                print('test')
-                DoD_filt_isol2 = remove_small_objects(DoD_filt_isol2, 7, 2)
+                DoD_filt_isol2 = remove_small_objects(DoD_filt_isol2, 8, 2)
                 # Update counters:
                 counter0 = counter1
                 counter1 = np.count_nonzero(DoD_filt_isol2[np.logical_not(np.isnan(DoD_filt_isol2))])
-            
-            
 
             DoD_filt_isol2_gis = np.where(np.isnan(DoD_filt_isol2), NaN, DoD_filt_isol2)
+            
+            
+            DoD_filt_ult = test(DoD_filt_isol2)
+            DoD_filt_ult_gis = np.where(np.isnan(DoD_filt_ult), NaN, DoD_filt_ult)
+            
+            
+            
+            # Scale array real size
+            DoD_filt_ult_plot = repeat_columns(DoD_filt_ult, 10)
+            DoD_filt_ult_plot = np.where(DoD_filt_ult_plot==0, np.nan, DoD_filt_ult_plot)
+            
+            DoD_filt_fill_plot = repeat_columns(DoD_filt_fill, 10)
+            # DoD_filt_fill_plot = np.where(DoD_filt_fill_plot==0, np.nan, DoD_filt_fill_plot)
+            
+            
 
-            DoD_filt_ult = DoD_filt_isol2
-            DoD_filt_ult_gis = DoD_filt_isol2_gis
             
             # Plot the result for double check
-            img2 = plt.imshow(np.where(DoD_filt_nature==0, np.nan, DoD_filt_isol2), cmap='binary', origin='upper', alpha=0.8, vmin=-20, vmax=+20, aspect=0.1)
-            img1 = plt.imshow(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult), cmap='RdBu', origin='upper', alpha=1.0, vmin=-20, vmax=+20, aspect=0.1)
+            # img2 = plt.imshow(np.where(DoD_filt_fill_plot==0, np.nan, DoD_filt_fill_plot), cmap='binary', alpha=0.8, vmin=-20, vmax=+20)
+            # img1 = plt.imshow(np.where(DoD_filt_ult_plot==0, np.nan, DoD_filt_ult_plot), cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20)
+            img1 = plt.imshow(DoD_filt_ult_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+
             # Set title and show the plot
             plt.title(run + ' - ' + DoD_name)
             plt.axis('off')
-            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.png'), dpi=600 )
-            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), dpi=600 )
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), dpi=2000)
             
             
-            # Save all the pdf chart in a report
+            # CREATE A PDF REPORT TO COLLECT ALL PLOTS
             if nn==1:
-                plt.savefig(os.path.join(DoDs_plot,'merged_report_plot.pdf'), dpi=600 )
+                plt.savefig(os.path.join(DoDs_plot,'merged_report_plot.pdf'), dpi=1200 )
             plt.show()
             
 
             if nn>1:
-                merger = PyPDF2.PdfFileMerger()
+                merger = PyPDF2.PdfMerger()
 
                 # Open and append the existing PDF
                 with open(os.path.join(DoDs_plot,'merged_report_plot.pdf'), "rb") as existing_file:
@@ -1011,9 +1033,9 @@ for run in RUNS:
             
             # NATURE CHECKER FUNCTION APPLIED DoD
             # Print filtered DoD (with np.nan)...
-            np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature.txt'), DoD_filt_nature, fmt='%0.1f', delimiter='\t')
+            # np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature.txt'), DoD_filt_nature, fmt='%0.1f', delimiter='\t')
             # Print filtered DoD (with NaN as -999)
-            np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), DoD_filt_nature_gis, fmt='%0.1f', delimiter='\t')
+            # np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), DoD_filt_nature_gis, fmt='%0.1f', delimiter='\t')
             
             # ISOLATE FILLER FUNCTION APPLIED DoD
             # Print filtered DoD (with np.nan)...
@@ -1062,8 +1084,8 @@ for run in RUNS:
                 w_DoD_mean = f_DoD_mean.read()
             with open(os.path.join(path_out, DoD_name + 'filt_isol_gis.txt')) as f_DoD_isol:
                 w_DoD_isol = f_DoD_isol.read()
-            with open(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt')) as f_DoD_nature:
-                w_DoD_nature = f_DoD_nature.read()
+            # with open(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt')) as f_DoD_nature:
+            #     w_DoD_nature = f_DoD_nature.read()
             with open(os.path.join(path_out, DoD_name + 'filt_fill_gis.txt')) as f_DoD_fill:
                 w_DoD_fill = f_DoD_fill.read()
             with open(os.path.join(path_out, DoD_name + 'filt_isol2_gis.txt')) as f_DoD_isol2:
@@ -1081,7 +1103,7 @@ for run in RUNS:
                 DoD_raw_gis = w_header + w_DoD_raw
                 DoD_mean_gis = w_header + w_DoD_mean
                 DoD_isol_gis = w_header + w_DoD_isol
-                DoD_nature_gis = w_header + w_DoD_nature
+                # DoD_nature_gis = w_header + w_DoD_nature
                 DoD_fill_gis = w_header + w_DoD_fill
                 DoD_isol2_gis = w_header + w_DoD_isol2
                 DoD_ult_gis = w_header + w_DoD_ult
@@ -1095,8 +1117,8 @@ for run in RUNS:
                 fp.write(DoD_mean_gis)
             with open(os.path.join(path_out, DoD_name + 'filt_isol_gis.txt'), 'w') as fp:
                 fp.write(DoD_isol_gis)
-            with open(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), 'w') as fp:
-                fp.write(DoD_nature_gis)
+            # with open(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), 'w') as fp:
+            #     fp.write(DoD_nature_gis)
             with open(os.path.join(path_out, DoD_name + 'filt_fill_gis.txt'), 'w') as fp:
                 fp.write(DoD_fill_gis)
             with open(os.path.join(path_out, DoD_name + 'filt_isol2_gis.txt'), 'w') as fp:
@@ -1295,8 +1317,8 @@ for run in RUNS:
         n=0
         for matrix in (DoD_raw_morph_quant, DoD_filt_mean_morph_quant, DoD_filt_isol_morph_quant,DoD_filt_fill_morph_quant,DoD_filt_nature_morph_quant,DoD_filt_isol2_morph_quant,DoD_filt_ult_morph_quant):
             n+=1
-            matrix_mean = np.mean(matrix, axis=0)
-            matrix_std = np.std(matrix, axis=0)
+            matrix_mean = np.nanmean(matrix, axis=0)
+            matrix_std = np.nanstd(matrix, axis=0)
             if n==1:
                 matrix_stack = np.vstack((matrix_mean, matrix_std))
             else:
