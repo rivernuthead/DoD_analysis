@@ -648,12 +648,12 @@ for run in RUNS:
             DoD_filt_ult_gis = DoD_filt_isol2_gis
             
             # Plot the result for double check
-            img2 = plt.imshow(np.where(DoD_filt_nature==0, np.nan, DoD_filt_isol2), cmap='binary', origin='upper', alpha=1.0, vmin=-20, vmax=+20, aspect=1)
-            img1 = plt.imshow(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult), cmap='RdBu', origin='upper', alpha=1.0, vmin=-20, vmax=+20, aspect=1)
+            img2 = plt.imshow(np.where(DoD_filt_nature==0, np.nan, DoD_filt_isol2), cmap='binary', origin='upper', alpha=0.8, vmin=-20, vmax=+20, aspect=0.1)
+            img1 = plt.imshow(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult), cmap='RdBu', origin='upper', alpha=1.0, vmin=-20, vmax=+20, aspect=0.1)
             # Set title and show the plot
             plt.title(run + ' - ' + DoD_name)
             plt.axis('off')
-            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.png'), dpi=600 )
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.png'), dpi=600 )
             plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), dpi=600 )
             
             
