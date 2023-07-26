@@ -33,17 +33,23 @@ start = time.time() # Set initial time
 
 # SCRIPT MODE
 '''
+run mode:
+    0 = runs in the runs list
+    1 = one run at time
+    2 = bath process 'all the runs in the folder'
 plot_mode:
     ==0 plot mode OFF
     ==1 plot mode ON
 '''
+run_mode = 0
 plot_mode = 1
 
 delta = 1 # Delta time of the DoDs
 
 # SINGLE RUN NAME
 run = 'q15_3'
-run_mode = 1
+# ARRAY OF RUNS
+runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
 
 # FOLDER SETUP
 home_dir = os.getcwd() # Home directory
@@ -54,15 +60,17 @@ DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Input folder
 
 # Create the run name list
 RUNS=[]
-if run_mode ==2: # batch run mode
+if run_mode==0:
+    RUNS=runs
+elif run_mode ==2: # batch run mode
     for RUN in sorted(os.listdir(run_dir)): # loop over surveys directories
         if RUN.startswith('q'): # Consider only folder names starting wit q
             RUNS = np.append(RUNS, RUN) # Append run name at RUNS array
 elif run_mode==1: # Single run mode
     RUNS=run.split() # RUNS as a single entry array, provided by run variable
-elif run_mode==3:
-    # RUNS=['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6']
-    RUNS=['q07_1, q10_2', 'q10_3', 'q10_7', 'q15_2', 'q20_2']
+# elif run_mode==3:
+#     # RUNS=['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6']
+#     RUNS=['q07_1, q10_2', 'q10_3', 'q10_7', 'q15_2', 'q20_2']
 print('###############\n' + '#    ' + run + '    #' + '\n###############')
 
 

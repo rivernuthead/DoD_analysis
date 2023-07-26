@@ -31,8 +31,9 @@ start = time.time() # Set initial time
 
 '''
 run mode:
+    0 = runs in the runs list
     1 = one run at time
-    2 = bath process
+    2 = bath process 'all the runs in the folder'
 data_interpolatuon_mode:
     0 = no interpolation
     1 = data interpolation
@@ -58,7 +59,7 @@ DoD_plot_show_mode:
     0 = do not show DoD plots
     1 = show DoD plots
 '''
-run_mode = 2
+run_mode = 0
 mask_mode = 1
 process_mode = 1
 filt_analysis = 1 # Print the morphological metrics for each filtering process stage
@@ -70,7 +71,11 @@ filt_analysis = 1 # Print the morphological metrics for each filtering process s
 # DoD_plot_show_mode = 0
 
 # SINGLE RUN NAME
-run = 'q07_1'
+run = 'q20r9'
+# ARRAY OF RUNS
+runs = ['q07_1', 'q10_2', 'q15_2', 'q15_3', 'q20_2']
+runs = ['q07_1']
+# runs = ['q10_2', 'q15_2', 'q15_3', 'q20_2']
 
 # Set DEM single name to perform process to specific DEM
 if len(run) ==1:
@@ -115,7 +120,9 @@ run_dir = os.path.join(home_dir, 'surveys')
 
 # Create the run name list
 RUNS=[]
-if run_mode ==2: # batch run mode
+if run_mode==0:
+    RUNS=runs
+elif run_mode==2: # batch run mode
     for RUN in sorted(os.listdir(run_dir)): # loop over surveys directories
         if RUN.startswith('q'): # Consider only folder names starting wit q
             RUNS = np.append(RUNS, RUN) # Append run name at RUNS array
@@ -491,13 +498,17 @@ for run in RUNS:
             # Creating DoD array with np.nan instead of NaN
             DoD_raw = np.zeros(DEM1.shape)
             DoD_raw = np.where(np.logical_or(DEM1 == NaN, DEM2 == NaN), np.nan, DEM2 - DEM1)
+        
             
             # Masking with array mask
             DoD_raw = DoD_raw*array_mask_rshp_nan
+            # Scale array for plotting
+            DoD_raw_plot = rescaling_plot(DoD_raw)
             
             # Creating GIS readable DoD array (np.nan as -999)
             DoD_raw_gis = np.zeros(DoD_raw.shape)
             DoD_raw_gis = np.where(np.isnan(DoD_raw), NaN, DoD_raw)
+            
 
 
             # Count the number of pixels in the channel area
@@ -516,61 +527,42 @@ for run in RUNS:
             # DATA FILTERING...
             ###################################################################
             
-            '''
-            Output files:
-                DoD_raw: it's just the dem of difference,  DEM2-DEM1
-                DoD_raw_gis: the same for DoD_raw, but np.nan=NaN
-                
-                DoD_filt_mean: DoD_raw with a smoothing along the Y axes, see
-                    the weight in the aspatial_weighted_average function
-                DoD_filt_mean_gis: the same for DoD_filt_mean but np.nan=NaN
-                
-                DoD_filt_isol = DoD_filt_mean were the isolated_killer function
-                    was performed
-                DoD_filt_isol_gis = the same for DoD_filt_isol but np.nan=NaN
-                
-                DoD_filt_fill: DoD_filt_nature where the isolated_filler
-                    function was applied 
-                DoD_filt_fill_gis: the same for DoD_filt_fill but np.nan=NaN
-                
-                DoD_filt_nature: DoD_filt_isol where the nature_checker function
-                    was applied
-                DoD_filt_nature_gis: the same for DoD_filt_nature but np.nan=NaN
-                
-                DoD_filt_isol2: DoD_filt_fill where another round of isolated_killer
-                    function was applied
-                DoD_filt_isol2_gis: the same for DoD_filt_ult but with np.nan=NaN
-                
-                DoD_filt_ult: DoD_filt_isol2 where island_destryer function
-                    was applied
-                DoD_filt_ult_gis: the same for DoD_filt_ult but with np.nan=NaN
-            '''
             
             # 1- PERFORM DOMAIN-WIDE WEIGHTED AVERAGE:
             # -------------------------------------
             
+            # kernel=np.array([[1],
+            #                  [1],
+            #                  [2],
+            #                  [1],
+            #                  [1]])
+            
             kernel=np.array([[1],
-                          [2],
-                          [1]])
+                             [2],
+                             [1]])
             ker=kernel/np.sum(kernel)
             
             DoD_filt_mean=cv2.filter2D(src=DoD_raw,ddepth=-1, kernel=ker)
             DoD_filt_mean_gis = np.where(np.isnan(DoD_filt_mean), NaN, DoD_filt_mean)
+            DoD_filt_mean_plot = rescaling_plot(DoD_filt_mean)
             
             
             # 2- PERFORM UNDER THRESHOLD ZEROING:
             DoD_filt_thrs = np.where(np.abs(DoD_filt_mean)<=thrs_1, 0, DoD_filt_mean)
             DoD_filt_thrs_gis = np.where(np.isnan(DoD_filt_thrs), NaN, DoD_filt_thrs)
+            # Scale array for plotting
+            DoD_filt_thrs_plot = rescaling_plot(DoD_filt_thrs)
+            
             
             # PLOT A CROSS-SECTION BEFORE AND AFTER THE AVERAGE PROCESS
-            plot1 = plt.plot(DoD_raw[:,5], label = 'raw')
-            plot2 = plt.plot(DoD_filt_mean[:,5], label = 'avg')
-            plot3 = plt.plot(DoD_filt_thrs[:,5], label = 'thrs')
+            plot1 = plt.plot(DoD_raw[:,50], label = 'raw')
+            plot2 = plt.plot(DoD_filt_mean[:,50], label = 'avg')
+            plot3 = plt.plot(DoD_filt_thrs[:,50], label = 'thrs')
             # Set title and show the plot
             plt.title(run + ' - ' + DoD_name)
             plt.legend()
             # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.png'), dpi=600 )
-            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), dpi=600 )
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'section_plot.pdf'), dpi=600 )
             plt.show()
             
             
@@ -580,8 +572,8 @@ for run in RUNS:
             # pixel not equal to zero in the DoD_filt_mean matrix
             counter0 = np.count_nonzero(DoD_filt_thrs[np.logical_not(np.isnan(DoD_filt_thrs))])
             
-            # Perform the very first isolated_killer procedure
-            DoD_filt_isol = remove_small_objects(DoD_filt_thrs, 8, 2)
+            # Perform the forst iteration
+            DoD_filt_isol = remove_small_objects(DoD_filt_thrs, 8, 1)
             
             # After trimming al np.nan values, counter represent the number of
             # pixel not equal to zero of the DoD_filt_isol matrix
@@ -590,15 +582,16 @@ for run in RUNS:
             # pixel will not change anymore 
             while counter0-counter1!=0:
                 # Filtering...
-                DoD_filt_isol = remove_small_objects(DoD_filt_isol, 8, 2)
+                DoD_filt_isol = remove_small_objects(DoD_filt_isol, 8, 1)
                 # Update counters:
                 counter0 = counter1
                 counter1 = np.count_nonzero(DoD_filt_isol[np.logical_not(np.isnan(DoD_filt_isol))])
             
-            
             # Convert matrix to be GIS-readable
             DoD_filt_isol_gis = np.where(np.isnan(DoD_filt_isol), NaN, DoD_filt_isol)
             
+            # Scale array for plotting
+            DoD_filt_isol_plot = rescaling_plot(DoD_filt_isol)
 
             
             # 4- PERFORM PITTS FILLING PROCEDURE:
@@ -606,13 +599,13 @@ for run in RUNS:
             # Initialize the counter from the previous step of the filtering process
             counter0 = np.count_nonzero(DoD_filt_isol[np.logical_not(np.isnan(DoD_filt_isol))])
             # Perform the first step of the filling procedure
-            DoD_filt_fill, matrix_target = fill_small_holes(DoD_filt_isol, avg_target_kernel=5, area_threshold=5, connectivity=1, filt_threshold=thrs_1)
+            DoD_filt_fill, matrix_target = fill_small_holes(DoD_filt_isol, avg_target_kernel=5, area_threshold=8, connectivity=1, filt_threshold=thrs_1)
             # Calculate the current counter
             counter1 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])
             # Perform the loop of the filtering process
             while counter0-counter1!=0:
                 # Filtering...
-                DoD_filt_fill, matrix_target = fill_small_holes(DoD_filt_fill, avg_target_kernel=5, area_threshold=5, connectivity=1, filt_threshold=thrs_1)
+                DoD_filt_fill, matrix_target = fill_small_holes(DoD_filt_fill, avg_target_kernel=5, area_threshold=8, connectivity=1, filt_threshold=thrs_1)
                 # Update counters:
                 counter0=counter1
                 counter1 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])   
@@ -620,21 +613,25 @@ for run in RUNS:
             # Convert matrix to be GIS-readable
             DoD_filt_fill_gis = np.where(np.isnan(DoD_filt_fill), NaN, DoD_filt_fill)
                 
+            # Scale array for plotting
+            DoD_filt_fill_plot = rescaling_plot(DoD_filt_fill)
+            
             
             # 5- PERFORM NATURE CHECKER PIXEL PROCEDURE:
             #----------------------------------------
             # TODO THIS IS NOT ACTIVE!!
             DoD_filt_nature, DoD_filt_nature_gis = nature_checker(DoD_filt_fill, thrs_nature, 1, NaN)
+            DoD_filt_nature_plot = rescaling_plot(DoD_filt_nature)
             
             
             # 6- RE-PERFORM ISOLATED PIXEL REMOVAL:
             #-----------------------------------------------------
             # After trimming al np.nan values, counter represent the number of
             # pixel not equal to zero o fthe DoD_filt_fill matrix
-            counter0 = np.count_nonzero(DoD_filt_fill[np.logical_not(np.isnan(DoD_filt_fill))])
+            counter0 = np.count_nonzero(DoD_filt_nature[np.logical_not(np.isnan(DoD_filt_nature))])
             
             # Perform the very first isolated_killer procedure
-            DoD_filt_isol2 = remove_small_objects(DoD_filt_fill, 8, 2)
+            DoD_filt_isol2 = remove_small_objects(DoD_filt_nature, 15, 1)
             
             # After trimming al np.nan values, counter represent the number of
             # pixel not equal to zero of the DoD_filt_isol2 matrix
@@ -644,44 +641,159 @@ for run in RUNS:
 
             while counter0-counter1!=0:
                 # Filtering...
-                DoD_filt_isol2 = remove_small_objects(DoD_filt_isol2, 8, 2)
+                DoD_filt_isol2 = remove_small_objects(DoD_filt_isol2, 15, 1)
                 # Update counters:
                 counter0 = counter1
                 counter1 = np.count_nonzero(DoD_filt_isol2[np.logical_not(np.isnan(DoD_filt_isol2))])
 
             DoD_filt_isol2_gis = np.where(np.isnan(DoD_filt_isol2), NaN, DoD_filt_isol2)
             
+            DoD_filt_isol2_plot = rescaling_plot(DoD_filt_isol2)
             
-            DoD_filt_ult = test(DoD_filt_isol2)
-            DoD_filt_ult_gis = np.where(np.isnan(DoD_filt_ult), NaN, DoD_filt_ult)
             
+            
+            # 6- PERFORM ISOLATED PIXEL REMOVAL:
+            #-----------------------------------------------------
+            DoD_filt_isol3      = test(DoD_filt_isol2)
+            DoD_filt_isol3_gis  = np.where(np.isnan(DoD_filt_isol3), NaN, DoD_filt_isol3)
+            DoD_filt_isol3_plot = rescaling_plot(DoD_filt_isol3)
+            
+            
+            
+            # 7- RE-PERFORM ISOLATED ANISOTROPIC PIXEL REMOVAL:
+            #-----------------------------------------------------
+            # After trimming al np.nan values, counter represent the number of
+            # pixel not equal to zero o fthe DoD_filt_fill matrix
+            counter0 = np.count_nonzero(DoD_filt_isol3[np.logical_not(np.isnan(DoD_filt_isol3))])
+            
+            # Perform the first iteration
+            DoD_filt_isol4 = test2(DoD_filt_isol3)
+            
+            # After trimming al np.nan values, counter represent the number of
+            # pixel not equal to zero of the DoD_filt_isol2 matrix
+            counter1 = np.count_nonzero(DoD_filt_isol4[np.logical_not(np.isnan(DoD_filt_isol4))])
+            # Perform the isolated_killer procedure until the number of active
+            # pixel will not change anymore
+            
+            while counter0-counter1!=0:
+                # Filtering...
+                DoD_filt_isol4 = test2(DoD_filt_isol3)
+                # Update counters:
+                counter0 = counter1
+                counter1 = np.count_nonzero(DoD_filt_isol4[np.logical_not(np.isnan(DoD_filt_isol4))])
+                
+            DoD_filt_ult = DoD_filt_isol4
+            
+            # Set all the value between +/- 2mm at 2mm and keep zero as zero
+            DoD_filt_ult = np.where(np.logical_and(abs(DoD_filt_isol4)<thrs_1, DoD_filt_isol4!=0), thrs_1,DoD_filt_isol4)
+            
+            # DoD_filt_ult       = test2(DoD_filt_isol4)
+            # DoD_filt_ult = np.where(DoD_filt_ult>0, remove_small_objects(DoD_filt_ult>0, 40, 1), DoD_filt_ult)
+            # DoD_filt_ult = np.where(DoD_filt_ult<0, remove_small_objects(DoD_filt_ult<0, 40, 1), DoD_filt_ult)
+            # DoD_filt_ult = DoD_filt_ult*DoD_filt_isol4
+            DoD_filt_ult_gis   = np.where(np.isnan(DoD_filt_ult), NaN, DoD_filt_ult)
             
             
             # Scale array real size
-            DoD_filt_ult_plot = repeat_columns(DoD_filt_ult, 10)
-            DoD_filt_ult_plot = np.where(DoD_filt_ult_plot==0, np.nan, DoD_filt_ult_plot)
+            DoD_filt_ult_plot = rescaling_plot(DoD_filt_ult)
             
-            DoD_filt_fill_plot = repeat_columns(DoD_filt_fill, 10)
-            # DoD_filt_fill_plot = np.where(DoD_filt_fill_plot==0, np.nan, DoD_filt_fill_plot)
+            
+            ################
+            # Filtering process visual check
+            ################
+            
+            img2 = plt.imshow(DoD_raw_plot, cmap='binary', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            img1 = plt.imshow(DoD_filt_mean_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name[:-1])
+            plt.axis('off')
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'raw-thrs.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'raw-mean.pdf'), dpi=2000)
+            plt.show()
+            
+            img2 = plt.imshow(DoD_filt_mean_plot, cmap='binary', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            img1 = plt.imshow(DoD_filt_thrs_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name[:-1])
+            plt.axis('off')
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'raw-thrs.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'mean_thrs.pdf'), dpi=2000)
+            plt.show()
+            
+            img2 = plt.imshow(DoD_filt_thrs_plot, cmap='binary', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            img1 = plt.imshow(DoD_filt_isol_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name[:-1])
+            plt.axis('off')
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'thrs-isol.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'thrs-isol.pdf'), dpi=2000)
+            plt.show()
+            
+            img2 = plt.imshow(DoD_filt_isol_plot, cmap='binary', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            img1 = plt.imshow(DoD_filt_fill_plot, cmap='RdBu', alpha=0.5, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name[:-1])
+            plt.axis('off')
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'isol-fill.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'isol-fill.pdf'), dpi=2000)
+            plt.show()
+            
+            img2 = plt.imshow(DoD_filt_fill_plot, cmap='binary', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            img1 = plt.imshow(DoD_filt_nature_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name[:-1])
+            plt.axis('off')
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'fill-nature.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'fill-nature.pdf'), dpi=2000)
+            plt.show()
+ 
+            img2 = plt.imshow(DoD_filt_nature_plot, cmap='binary', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            img1 = plt.imshow(DoD_filt_isol2_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name[:-1])
+            plt.axis('off')
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'nature-isol2.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'nature-isol2.pdf'), dpi=2000)
+            plt.show()
+            
+            img2 = plt.imshow(DoD_filt_isol2_plot, cmap='binary', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            img1 = plt.imshow(DoD_filt_isol3_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name[:-1])
+            plt.axis('off')
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'isol2-isol3.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'isol2-isol3.pdf'), dpi=2000)
+            plt.show()
+            
+            img2 = plt.imshow(DoD_filt_isol3_plot, cmap='binary', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            img1 = plt.imshow(DoD_filt_ult_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
+            # Set title and show the plot
+            plt.title(run + ' - ' + DoD_name[:-1])
+            plt.axis('off')
+            # plt.savefig(os.path.join(DoDs_plot, DoD_name + 'isol3-isol4.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'isol3-ult.pdf'), dpi=2000)
+            plt.show()
+            
             
             
 
             
             # Plot the result for double check
-            # img2 = plt.imshow(np.where(DoD_filt_fill_plot==0, np.nan, DoD_filt_fill_plot), cmap='binary', alpha=0.8, vmin=-20, vmax=+20)
+            img2 = plt.imshow(DoD_filt_thrs_plot, cmap='binary', alpha=0.4, vmin=-20, vmax=+20)
             # img1 = plt.imshow(np.where(DoD_filt_ult_plot==0, np.nan, DoD_filt_ult_plot), cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20)
             img1 = plt.imshow(DoD_filt_ult_plot, cmap='RdBu', alpha=1.0, vmin=-20, vmax=+20, interpolation_stage='rgba')
 
             # Set title and show the plot
-            plt.title(run + ' - ' + DoD_name)
+            plt.title(run + ' - ' + DoD_name[:-1])
             plt.axis('off')
-            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.png'), dpi=2000)
-            plt.savefig(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + '_plot.png'), dpi=2000)
+            plt.savefig(os.path.join(DoDs_plot, DoD_name + '_plot.pdf'), dpi=2000)
             
             
             # CREATE A PDF REPORT TO COLLECT ALL PLOTS
             if nn==1:
-                plt.savefig(os.path.join(DoDs_plot,'merged_report_plot.pdf'), dpi=1200 )
+                plt.savefig(os.path.join(DoDs_plot,run +'_merged_report_plot.pdf'), dpi=1200 )
+                
             plt.show()
             
 
@@ -689,15 +801,15 @@ for run in RUNS:
                 merger = PyPDF2.PdfMerger()
 
                 # Open and append the existing PDF
-                with open(os.path.join(DoDs_plot,'merged_report_plot.pdf'), "rb") as existing_file:
+                with open(os.path.join(DoDs_plot,run +'_merged_report_plot.pdf'), "rb") as existing_file:
                     merger.append(existing_file)
 
                 # Open and append the new PDF chart
-                with open(os.path.join(DoDs_plot, DoD_name + 'plot.pdf'), "rb") as chart_file:
+                with open(os.path.join(DoDs_plot, DoD_name + '_plot.pdf'), "rb") as chart_file:
                     merger.append(chart_file)
 
                 # Save the merged PDF
-                with open(os.path.join(DoDs_plot,'merged_report_plot.pdf'), "wb") as merged_file:
+                with open(os.path.join(DoDs_plot,run +'_merged_report_plot.pdf'), "wb") as merged_file:
                     merger.write(merged_file)
             
 
@@ -1033,9 +1145,9 @@ for run in RUNS:
             
             # NATURE CHECKER FUNCTION APPLIED DoD
             # Print filtered DoD (with np.nan)...
-            # np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature.txt'), DoD_filt_nature, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature.txt'), DoD_filt_nature, fmt='%0.1f', delimiter='\t')
             # Print filtered DoD (with NaN as -999)
-            # np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), DoD_filt_nature_gis, fmt='%0.1f', delimiter='\t')
+            np.savetxt(os.path.join(path_out, DoD_name + 'filt_nature_gis.txt'), DoD_filt_nature_gis, fmt='%0.1f', delimiter='\t')
             
             # ISOLATE FILLER FUNCTION APPLIED DoD
             # Print filtered DoD (with np.nan)...

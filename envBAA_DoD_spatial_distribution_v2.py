@@ -109,6 +109,7 @@ for run in runs:
     # 1 timespan envelope
     for i in range(0,stack.shape[0]):
         envMAW_arr = np.nansum(np.abs(stack_bool[:stack.shape[0]-i,:,dim_x-analysis_window:,i]), axis=0) 
+        envMAW_arr = np.repeat(envMAW_arr, 10, axis=1)
         
         envMAW = Image.fromarray(np.array(envMAW_arr).astype(np.uint8))
         envMAW.save(os.path.join(report_dir, run, run + '_envMAW_' + str(i+1) + 'tsp.tiff'))
@@ -163,36 +164,56 @@ for run_name, set_name in zip(run_names, set_names):
     
     dim_t, dim_y, dim_x, dim_delta = stack.shape # Define time dimension, crosswise dimension and longitudinal dimension
     
-
+    
+    
+        
+    
     channel = Image.open('/home/erri/Documents/PhD/Research/5_research_repos/PiQs_analysis/Photos/'+ run_name+ '/Img0001.jpg') # Open image as image
     # diff_arr = np.array(diff) # Convert image as numpy array
     
-    envBAW = Image.open('/home/erri/Documents/PhD/Research/5_research_repos/PiQs_analysis/Maps/'+run_name+'/'+run_name+'_envBAW.tiff')
+    envBAW = cv2.imread('/home/erri/Documents/PhD/Research/5_research_repos/PiQs_analysis/Maps/'+run_name+'/'+run_name+'_envBAW.tiff')
+    envBAW = envBAW[:700,:6290,2] # Select the active band
     
-    envMAW = stack_bool[index,:,dim_x-analysis_window:, 0]
+    # h, w = envBAW.shape[:2]
+    # envBAW = cv2.resize(envBAW, (int(70), int(629)))
+    
+    
+    envMAW = stack_bool[index,:,:, 0]
     envMAW_arr_plot = np.where(np.isnan(envMAW), 0, envMAW)
-    envMAW_arr_plot = envMAW_arr_plot[8:,:]
+    # envMAW_arr_plot = envMAW_arr_plot[8:,:]
     
-    def add_zeros_rows(matrix, num_rows):
-        # Get the number of columns in the matrix
-        num_cols = matrix.shape[1]
+    DEM = np.loadtxt('/home/erri/Documents/PhD/Research/5_research_repos/DoD_analysis/surveys/q07_1/matrix_bed_norm_q07_1s0.txt', skiprows=8)
+    DEM = np.where(DEM==-999, np.nan, DEM)
+    # DEM = DEM[:,dim_x-analysis_window:]
+    # def add_zeros_rows(matrix, num_rows):
+    #     # Get the number of columns in the matrix
+    #     num_cols = matrix.shape[1]
         
-        # Create a new array of the appropriate size with NaN values
-        nan_rows = np.empty((num_rows, num_cols))
-        nan_rows[:] = 0
+    #     # Create a new array of the appropriate size with NaN values
+    #     nan_rows = np.empty((num_rows, num_cols))
+    #     nan_rows[:] = 0
         
-        # Stack the NaN rows onto the bottom of the matrix
-        new_matrix = np.vstack([matrix, nan_rows])
+    #     # Stack the NaN rows onto the bottom of the matrix
+    #     new_matrix = np.vstack([matrix, nan_rows])
         
-        return new_matrix
+    #     return new_matrix
     
-    envMAW_arr_plot = add_zeros_rows(envMAW_arr_plot, 100)
+    # envMAW_arr_plot = add_zeros_rows(envMAW_arr_plot, 100)
     
     
-    # envMAW_zoom = zoom(envMAW_arr_plot[6:,:], (envBAW.size[1]/envMAW_arr_plot.shape[0], envBAW.size[0]/envMAW_arr_plot.shape[1])) 
+    # # envMAW_zoom = zoom(envMAW_arr_plot[6:,:], (envBAW.size[1]/envMAW_arr_plot.shape[0], envBAW.size[0]/envMAW_arr_plot.shape[1])) 
     
-    envMAW_zoom = np.repeat(envMAW_arr_plot, 50, axis=1)
-    envMAW_zoom = np.repeat(envMAW_zoom, 5, axis=0)
+    envMAW = np.repeat(envMAW_arr_plot, 10, axis=1)
+    # envMAW_zoom = np.repeat(envMAW_zoom, 5, axis=0)
+    
+    DEM = np.repeat(DEM, 10, axis=1)
+    # DEM = np.repeat(DEM, 5, axis=0)
+    
+    
+    # CUT LASER OUTPUT TO FIT PHOTOS
+    
+    envMAW = envMAW[:,envMAW.shape[1]-1229:]
+    DEM    = DEM[:,DEM.shape[1]-1229:]
     
     def rotate_matrix(matrix, angle):
         # Get the matrix shape
@@ -206,15 +227,27 @@ for run_name, set_name in zip(run_names, set_names):
         
         return rotated_matrix
     
-    envMAW_zoom = rotate_matrix(envMAW_zoom, 0.5)
+    envBAW = rotate_matrix(envBAW, -0.4)
     
     
+    # SHIFT AND SCALE THE IMAGE
+    # Define the transformation parameters
+    scale = 0.20 # Enlargement scale
+    dx = -30 # Shift in x direction
+    dy = 6 # Shift in y direction
     
+    # Create the transformation matrix
+    M = np.float32([[scale, 0, dx], [0, scale, dy]])
+    
+    # Apply the transformation to img1 and store the result in img2
+    rows, cols = envBAW.shape
+    envBAW_sc = cv2.warpAffine(envBAW, M, (cols, rows))
+
     # Convert matrices to images
-    img1 = plt.imshow(channel, alpha=1.0)
-    # img3 = plt.imshow(np.where(np.isclose(envMAW_zoom,0, atol=1e-01), np.nan, envMAW_zoom), cmap='Greens', origin='upper', alpha=0.8)
-    img2 = plt.imshow(envBAW, cmap='Purples', alpha=0.5, vmin=0, vmax=1)
-    img3 = plt.imshow(np.where(envMAW_zoom==0, np.nan, envMAW_zoom), cmap='coolwarm', origin='upper', alpha=0.5)
+    # img1 = plt.imshow(channel, alpha=1.0)
+    img2 = plt.imshow(envBAW_sc, cmap='Purples', alpha=0.5, vmin=0, vmax=1)
+    img3 = plt.imshow(np.where(envMAW ==0, np.nan, envMAW), cmap='coolwarm', origin='upper', alpha=0.5)
+    img3 = plt.imshow(np.where(np.isnan(DEM), 100, np.nan), cmap='bone', origin='upper', alpha=1.0)
     
     
     

@@ -10,8 +10,8 @@ import time
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from DoD_analysis_functions import *
-from DoD_analysis_functions_3 import *
+# from DoD_analysis_functions import *
+# from DoD_analysis_functions_4 import *
 from morph_quantities_func_v2 import morph_quantities
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
@@ -28,8 +28,9 @@ start = time.time() # Set initial time
 
 '''
 run mode:
+    0 = runs in the runs list
     1 = one run at time
-    2 = bath process
+    2 = bath process 'all the runs in the folder'
 data_interpolatuon_mode:
     0 = no interpolation
     1 = data interpolation
@@ -55,7 +56,7 @@ DoD_plot_show_mode:
     0 = do not show DoD plots
     1 = show DoD plots
 '''
-run_mode = 2
+run_mode = 0
 mask_mode = 1
 process_mode = 1
 # data_interpolation_mode = 0
@@ -65,8 +66,9 @@ process_mode = 1
 # DoD_plot_show_mode = 0
 
 # SINGLE RUN NAME
-# run = ['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6']
 run = 'q15_3'
+# ARRAY OF RUNS
+runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
 
 # Set DEM single name to perform process to specific DEM
 if len(run) ==1:
@@ -110,7 +112,9 @@ run_dir = os.path.join(home_dir, 'surveys')
 
 # Create the run name list
 RUNS=[]
-if run_mode ==2: # batch run mode
+if run_mode==0:
+    RUNS=runs
+elif run_mode==2: # batch run mode
     for RUN in sorted(os.listdir(run_dir)): # loop over surveys directories
         if RUN.startswith('q'): # Consider only folder names starting wit q
             RUNS = np.append(RUNS, RUN) # Append run name at RUNS array

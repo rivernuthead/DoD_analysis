@@ -178,3 +178,55 @@ def test(matrix):
     return matrix_out
     
 
+def test2(matrix):
+    '''
+    This function remove peninsular pixel along the x axis
+    First it check if the upper and lower cells are zero
+    
+      0      0      0
+      0    -2.6   -3.1
+      0      0    -2.2
+      
+    If these cell are zero the function checks if the cells
+    with the same nature of the target cell are more than 4.
+    In not, the target cell is set as 0.
+    
+    Parameters
+    ----------
+    matrix : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    matrix_out : TYPE
+        DESCRIPTION.
+
+    '''
+    dim_y, dim_x = matrix.shape # Extract matrix dimensions
+    
+    matrix_out = np.copy(matrix) # Initialize output matrix as a copy of the input matrix
+    
+    # Create the analysis domain, padding value as the matrix edge:
+    matrix_dom = np.pad(matrix, 1, mode='edge') # Create neighbourhood analysis domain
+    matrix_dom = np.where(np.isnan(matrix_dom), 0, matrix_dom)
+    
+    # Cycle over all the matrix cells
+    for i in range(0,dim_y):
+        for j in range(0,dim_x):
+            if matrix[i,j]!=0 and not(np.isnan(matrix[i,j])): # If the analyzed cell value is neither zero nor np.nan
+                ker = np.array([[matrix_dom[i, j], matrix_dom[i, j + 1], matrix_dom[i, j + 2]],
+                                [matrix_dom[i + 1, j], matrix_dom[i + 1, j + 1], matrix_dom[i + 1, j + 2]],
+                                [matrix_dom[i + 2, j], matrix_dom[i + 2, j + 1], matrix_dom[i + 2, j + 2]]])
+                
+                if matrix[i,j]>0 and matrix_dom[i, j + 1]==0 and matrix_dom[i + 2, j + 1]==0 and np.count_nonzero(ker>0)<5: # If the core cell is positive and there is at least another positive cell
+                    matrix_out[i,j]=0 # Set the core cell as zero
+                elif matrix[i,j]<0 and matrix_dom[i, j + 1]==0 and matrix_dom[i + 2, j + 1]==0 and np.count_nonzero(ker<0)<5: # If the core cell is negative and there is at least another positive cell
+                    matrix_out[i,j]=0 # Set the core cell as zero
+    
+    return matrix_out
+
+
+def rescaling_plot(matrix):
+    matrix_out = np.repeat(matrix, 10, axis=1)
+    matrix_out = np.where(matrix_out==0, np.nan, matrix_out)
+    return matrix_out

@@ -10,9 +10,9 @@ import time
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from DoD_analysis_functions import *
-from DoD_analysis_functions_3 import *
-from morph_quantities_func_v2 import morph_quantities
+# from DoD_analysis_functions import *
+# from DoD_analysis_functions_3 import *
+# from morph_quantities_func_v2 import morph_quantities
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
 ###############################################################################
@@ -28,8 +28,9 @@ start = time.time() # Set initial time
 
 '''
 run mode:
+    0 = runs in the runs list
     1 = one run at time
-    2 = bath process
+    2 = bath process 'all the runs in the folder'
 DoD_map_plot:
     0 = plot DoD map OFF
     1 = plot DoD map ON
@@ -39,6 +40,8 @@ DoD_map_plot = 0
 
 # SINGLE RUN NAME
 run = ['q15_3']
+# ARRAY OF RUNS
+runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
 
 DoD_name = 'DoD_1-0'
 
@@ -75,7 +78,9 @@ main_plot_dir = os.path.join(home_dir, 'plot')
 
 # Create the run name list
 RUNS=[]
-if run_mode ==2: # batch run mode
+if run_mode==0:
+    RUNS=runs
+elif run_mode ==2: # batch run mode
     for RUN in sorted(os.listdir(run_dir)): # loop over surveys directories
         if RUN.startswith('q'): # Consider only folder names starting wit q
             RUNS = np.append(RUNS, RUN) # Append run name at RUNS array
@@ -106,7 +111,7 @@ for run in RUNS:
     input_dir = os.path.join(home_dir, 'surveys', run)
     report_path = os.path.join(report_dir, run)
     plot_dir = os.path.join(home_dir, 'plot', run)
-    DoDs_dir = os.path.join(home_dir, 'DoDs', 'DoD_'+run)
+    DoDs_dir = os.path.join(home_dir, 'DoDs', 'DoDs_'+run)
     
     # Save a report with xData as real time in minutes and the value of scour and deposition volumes for each runs
     # Check if the file already exists

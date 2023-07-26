@@ -8,9 +8,10 @@ Created on Thu Apr 15 09:44:30 2021
 import os
 import time
 import math
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
-from DoD_analysis_functions import *
+# from DoD_analysis_functions import *
 from DoD_analysis_functions_3 import *
 from morph_quantities_func_v2 import morph_quantities
 from matplotlib.colors import ListedColormap, BoundaryNorm
@@ -161,6 +162,11 @@ for run in RUNS:
     plot_dir = os.path.join(home_dir, 'plot', run)
     path_out = os.path.join(home_dir, 'DoDs', 'DoDs_'+run) # path where to save DoDs
     
+    # Check if the DoD folder already exist
+    if os.path.exists(os.path.join(DoDs_dir, 'DoDs_'+run)): # If the directory exist, remove it to clean all the old data
+        shutil.rmtree(os.path.join(DoDs_dir, 'DoDs_'+run), ignore_errors=False, onerror=None)
+    
+    
     # Save a report with xData as real time in minutes and the value of scour and deposition volumes for each runs
     # Check if the file already exists
     if os.path.exists(os.path.join(report_dir, 'volume_over_time.txt')):
@@ -175,6 +181,8 @@ for run in RUNS:
         os.mkdir(DoDs_dir)
     if os.path.exists(os.path.join(DoDs_dir, 'DoDs_'+run)): # If the directory exist, remove it to clean all the old data
         os.removedirs(os.path.join(DoDs_dir, 'DoDs_'+run))
+    if os.path.exists(os.path.join(DoDs_dir, 'DoDs_'+run)): # If the directory exist, remove it to clean all the old data
+        shutil.rmtree(os.path.join(DoDs_dir, 'DoDs_'+run), ignore_errors=False, onerror=None)
     if not(os.path.exists(os.path.join(DoDs_dir, 'DoDs_'+run))): # If the directory does not exist, create it
         os.mkdir(os.path.join(DoDs_dir, 'DoDs_'+run))
     if not(os.path.exists(os.path.join(DoDs_dir, 'DoDs_stack'))):
@@ -614,13 +622,13 @@ for run in RUNS:
             
             # # PERFORM ISLAND DESTROYER PIXEL PROCEDURE:
             # #------------------------------------------
-            # DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_isol2, 8, 1, NaN) # First step of filtering process
+            DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_isol2, 8, 1, NaN) # First step of filtering process
             
-            # for w in range(3,15): # Repeat the filtering process with windows from dimension 2 to 14
-            #     DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_ult, w, 1, NaN)
+            for w in range(3,15): # Repeat the filtering process with windows from dimension 2 to 14
+                DoD_filt_ult, DoD_filt_ult_gis = island_destroyer(DoD_filt_ult, w, 1, NaN)
 
             # skip the islan destroyer pixel procedure
-            DoD_filt_ult, DoD_filt_ult_gis = DoD_filt_isol2, DoD_filt_isol2_gis            
+            # DoD_filt_ult, DoD_filt_ult_gis = DoD_filt_isol2, DoD_filt_isol2_gis            
 
 
             ###################################################################
