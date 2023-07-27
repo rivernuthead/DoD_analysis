@@ -26,15 +26,12 @@ import os
 import cv2
 import numpy as np
 from PIL import Image
-import time
-import math
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import scipy.ndimage
 import PyPDF2
-from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
 
-from scipy import ndimage
+
 def downsample_matrix_interpolation(matrix, factor):
     # Get the shape of the original matrix
     height, width = matrix.shape
