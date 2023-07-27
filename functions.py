@@ -73,3 +73,70 @@ def img_scaling_to_DEM(image, scale, dx, dy, rot_angle):
     image_rsh = image_rsh[:y_lim, :x_lim]
 
     return image_rsh
+
+
+def downsample_matrix(matrix, kernel_size, factor):
+    # Perform convolution with the kernel for block averaging
+    kernel = np.ones((kernel_size, kernel_size)) / (kernel_size ** 2)
+    convolved_matrix = convolve2d(matrix, kernel, mode='same', boundary='symm')
+
+    # Perform downsampling with the given factor
+    downsampled_matrix = convolved_matrix[::factor, ::factor]
+
+    return downsampled_matrix
+
+def check_integer(number):
+    if isinstance(number, int):
+        print(f"{number} is an integer.")
+    else:
+        print(f"{number} is not an integer.")
+
+
+
+def non_overlapping_average(image, kernel_size):
+    # Get the shape of the input image
+    height, width = image.shape
+
+    if isinstance(height / kernel_size, int) or isinstance(width / kernel_size, int):
+        print("Warning: kernel size does not fit the image size: the function will ignore the remaining pixels at the right and bottom edges")
+    # else:
+    #     print(f"{number} is not an integer.")
+
+    # Calculate the new dimensions for the non-overlapping blocks
+    new_height = height // kernel_size
+    new_width = width // kernel_size
+
+    # Reshape the image into non-overlapping blocks
+    blocks = image[:new_height * kernel_size, :new_width * kernel_size].reshape(new_height, kernel_size, new_width, kernel_size)
+
+    # Calculate the average within each block
+    block_averages = blocks.mean(axis=(1, 3))
+
+    return block_averages
+
+
+def update_matrix_dimensions(matrix1, matrix2):
+    # Calculate the maximum dimensions
+    max_rows = max(matrix1.shape[0], matrix2.shape[0])
+    max_cols = max(matrix1.shape[1], matrix2.shape[1])
+
+    # Create new matrices with NaN values and the new dimensions
+    updated_matrix1 = np.full((max_rows, max_cols), np.nan)
+    updated_matrix2 = np.full((max_rows, max_cols), np.nan)
+
+    # Copy the original data to the new matrices
+    updated_matrix1[:matrix1.shape[0], :matrix1.shape[1]] = matrix1
+    updated_matrix2[:matrix2.shape[0], :matrix2.shape[1]] = matrix2
+
+    return updated_matrix1, updated_matrix2
+
+def cut_matrices_to_minimum_dimension(matrix1, matrix2):
+    # Calculate the minimum dimensions (number of columns and rows)
+    min_cols = min(matrix1.shape[1], matrix2.shape[1])
+    min_rows = min(matrix1.shape[0], matrix2.shape[0])
+    
+    # Cut both matrices to match the new dimensions
+    matrix1_cut = matrix1[:min_rows, :min_cols]
+    matrix2_cut = matrix2[:min_rows, :min_cols]
+    
+    return matrix1_cut, matrix2_cut

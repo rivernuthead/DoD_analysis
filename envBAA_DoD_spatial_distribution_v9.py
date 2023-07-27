@@ -31,7 +31,7 @@ from scipy.stats import gaussian_kde
 import scipy.ndimage
 import PyPDF2
 
-
+//@follow_up 
 def downsample_matrix_interpolation(matrix, factor):
     # Get the shape of the original matrix
     height, width = matrix.shape
