@@ -5,12 +5,12 @@ Created on Wed Mar 29 11:40:06 2023
 
 @author: erri
 
-This script calculate the MAA envelope considering, to calculate it, DoDs
+This script calculate the MAA envelope using DoDs
 taken at different timespan. In particular this script calculate the MAW
-envelope considering  using 8 DoDs taken at a timespan of 0.5 Txnr, 4 DoDs
-taken at a timespan of 1.0 Txnr, 2 DoD's taken at a timespan of 2 Txnr and 
+envelope using 8 DoDs taken at a timespan of 0.5 Txnr, 4 DoDs
+taken at a timespan of 1.0 Txnr, 2 DoDs taken at a timespan of 2 Txnr and 
 1 DoD taken at a timespan of 4 Txnr.
-This would hepl me to understand the influence of the survey frequancy in the
+This would hepl me to understand the influence of the survey frequency in the
 computation of the MAW. 
 
 """
@@ -22,8 +22,10 @@ import matplotlib.pyplot as plt
 
 
 # SINGLE RUN NAME
-# RUNS = ['q15_3']
-RUNS = ['q07_1', 'q10_2', 'q15_2', 'q15_3', 'q20_2']
+# RUNS = ['q15_2']
+# RUNS = ['q07_1', 'q10_2', 'q15_2', 'q15_3', 'q20_2']
+# RUNS = ['q10_3']
+RUNS = ['q07_1']
 
 # FOLDER SETUP
 home_dir = os.getcwd() # Home directory
@@ -41,7 +43,7 @@ fig, ax = plt.subplots()
 
 
 for run in RUNS:
-    stack_dir = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Define the stack directory
+    stack_dir = os.path.join(home_dir, 'output','DoDs', 'DoDs_stack') # Define the stack directory
     stack=np.load(os.path.join(stack_dir, 'DoD_stack_'+run+'.npy')) # Load the stack
     stack_bool=np.load(os.path.join(stack_dir, 'DoD_stack_bool_'+run+'.npy'))
     
@@ -76,8 +78,8 @@ for run in RUNS:
         envelope_volumes = np.nansum(abs(stack[:d, :,:,ts-1]), axis=0)
         envMAV = np.append(envMAV, np.nansum(envelope_volumes)*dim_x*dim_y)
     
-    np.savetxt(os.path.join(report_dir, run,run+ 'envMAW_different_timespan.txt'), envMAW, delimiter=',')
-    np.savetxt(os.path.join(report_dir, run,run+ 'envMAV_different_timespan.txt'), envMAV, delimiter=',')
+    np.savetxt(os.path.join(report_dir, 'report_'+run,run+ 'envMAW_different_timespan.txt'), envMAW, delimiter=',')
+    np.savetxt(os.path.join(report_dir, 'report_'+run,run+ 'envMAV_different_timespan.txt'), envMAV, delimiter=',')
         
     
     
@@ -119,7 +121,7 @@ fig, ax = plt.subplots()
 
 
 for run in RUNS:
-    stack_dir = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Define the stack directory
+    stack_dir = os.path.join(home_dir, 'output','DoDs', 'DoDs_stack') # Define the stack directory
     stack=np.load(os.path.join(stack_dir, 'DoD_stack_'+run+'.npy')) # Load the stack
     stack_bool=np.load(os.path.join(stack_dir, 'DoD_stack_bool_'+run+'.npy'))
     
@@ -158,8 +160,8 @@ for run in RUNS:
         envMAV_sco = np.append(envMAV_sco, np.nansum(envelope_volumes_sco)*px*py/1e06)
     
     # np.savetxt(os.path.join(report_dir, run,run+ 'envMAW_different_timespan.txt'), envMAW, delimiter=',')
-    np.savetxt(os.path.join(report_dir, run,run+ 'envMAV_fill_different_timespan.txt'), envMAV_fill, delimiter=',')
-    np.savetxt(os.path.join(report_dir, run,run+ 'envMAV_sco_different_timespan.txt'), envMAV_sco, delimiter=',')
+    np.savetxt(os.path.join(report_dir, 'report_'+run,run+ 'envMAV_fill_different_timespan.txt'), envMAV_fill, delimiter=',')
+    np.savetxt(os.path.join(report_dir, 'report_'+run,run+ 'envMAV_sco_different_timespan.txt'), envMAV_sco, delimiter=',')
         
     
     

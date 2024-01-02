@@ -46,10 +46,10 @@ plot_mode = 1
 
 delta = 1 # Delta time of the DoDs
 
-# SINGLE RUN NAME
-run = 'q15_3'
+# # SINGLE RUN NAME
+# run = 'q15_3'
 # ARRAY OF RUNS
-runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
+RUNS = ['q07_1', 'q10_2', 'q10_3', 'q10_4', 'q15_3', 'q20_2']
 
 # FOLDER SETUP
 home_dir = os.getcwd() # Home directory
@@ -57,42 +57,42 @@ report_dir = os.path.join(home_dir, 'output')
 run_dir = os.path.join(home_dir, 'surveys')
 DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Input folder
 
-
-# Create the run name list
-RUNS=[]
-if run_mode==0:
-    RUNS=runs
-elif run_mode ==2: # batch run mode
-    for RUN in sorted(os.listdir(run_dir)): # loop over surveys directories
-        if RUN.startswith('q'): # Consider only folder names starting wit q
-            RUNS = np.append(RUNS, RUN) # Append run name at RUNS array
-elif run_mode==1: # Single run mode
-    RUNS=run.split() # RUNS as a single entry array, provided by run variable
-# elif run_mode==3:
-#     # RUNS=['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6']
-#     RUNS=['q07_1, q10_2', 'q10_3', 'q10_7', 'q15_2', 'q20_2']
-print('###############\n' + '#    ' + run + '    #' + '\n###############')
-
-
-
-
-# Step between surveys
-
-###############################################################################
-# IMPORT RUN PARAMETERS from file parameters.txt
-# variable run must be as 'q' + discharge + '_' repetition number
-# Parameters.txt structure:
-# discharge [l/s],repetition,run time [min],Texner discretization [-], Channel width [m], slope [m/m]
-# Load parameter matrix:
-parameters = np.loadtxt(os.path.join(home_dir, 'parameters.txt'),
-                        delimiter=',',
-                        skiprows=1)
-# Extract run parameter depending by run name
-run_param = parameters[np.intersect1d(np.argwhere(parameters[:,1]==float(run[-1:])),np.argwhere(parameters[:,0]==float(run[1:3])/10)),:]
-
-# Run time data
-dt = run_param[0,2] # dt between runs [min] (real time)
-dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner between runs)
+for run in RUNS:
+    # # Create the run name list
+    # RUNS=[]
+    # if run_mode==0:
+    #     RUNS=runs
+    # elif run_mode ==2: # batch run mode
+    #     for RUN in sorted(os.listdir(run_dir)): # loop over surveys directories
+    #         if RUN.startswith('q'): # Consider only folder names starting wit q
+    #             RUNS = np.append(RUNS, RUN) # Append run name at RUNS array
+    # elif run_mode==1: # Single run mode
+    #     RUNS=run.split() # RUNS as a single entry array, provided by run variable
+    # elif run_mode==3:
+    #     # RUNS=['q10_2', 'q10_3', 'q10_4', 'q10_5', 'q10_6']
+    #     RUNS=['q07_1, q10_2', 'q10_3', 'q10_7', 'q15_2', 'q20_2']
+    print('###############\n' + '#    ' + run + '    #' + '\n###############')
+    
+    
+    
+    
+    # Step between surveys
+    
+    ###############################################################################
+    # IMPORT RUN PARAMETERS from file parameters.txt
+    # variable run must be as 'q' + discharge + '_' repetition number
+    # Parameters.txt structure:
+    # discharge [l/s],repetition,run time [min],Texner discretization [-], Channel width [m], slope [m/m]
+    # Load parameter matrix:
+    parameters = np.loadtxt(os.path.join(home_dir, 'parameters.txt'),
+                            delimiter=',',
+                            skiprows=1)
+    # Extract run parameter depending by run name
+    run_param = parameters[np.intersect1d(np.argwhere(parameters[:,1]==float(run[-1:])),np.argwhere(parameters[:,0]==float(run[1:3])/10)),:]
+    
+    # Run time data
+    dt = run_param[0,2] # dt between runs [min] (real time)
+    dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner between runs)
 
 
 #%%############################################################################
@@ -105,7 +105,7 @@ The envelop and the averall DoD maps were then translate as boolean activity map
 where 1 means activity and 0 means inactivity.
 Making the difference between this two maps (envelope - DoD), the diff map is a
 map of 1, -1 and 0.
-1 means that that a pixel is active in the 1-time-step DoD but is not detected
+1 means that a pixel is active in the 1-time-step DoD but is not detected
 as active in the overall DoD, so it is affcted by compensation processes.
 -1 means that a pixel is detected as active in the overall DoD but not in the
 1-time-step DoD so in the 1-time-step DoD it is always under the detection

@@ -88,6 +88,29 @@ dt_xnr = run_param[0,3] # temporal discretization in terms of Exner time (Texner
 
 ###############################################################################
 # IMPORT doD STACK AND DoD BOOL STACK
+
+'''
+DoD input stack structure:
+    
+    DoD_stack[time,y,x,delta]
+    DoD_stack_bool[time,y,x,delta]
+    
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - >    delta
+    |  DoD 1-0  DoD 2-0  DoD 3-0  DoD 4-0  DoD 5-0  DoD 6-0  DoD 7-0  DoD 8-0  DoD 9-0
+    |  DoD 2-1  DoD 3-1  DoD 4-1  DoD 5-1  DoD 6-1  DoD 7-1  DoD 8-1  DoD 9-1
+    |  DoD 3-2  DoD 4-2  DoD 5-2  DoD 6-2  DoD 7-2  DoD 8-2  DoD 9-2
+    |  DoD 4-3  DoD 5-3  DoD 6-3  DoD 7-3  DoD 8-3  DoD 9-3
+    |  DoD 5-4  DoD 6-4  DoD 7-4  DoD 8-4  DoD 9-4
+    |  DoD 6-5  DoD 7-5  DoD 8-5  DoD 9-5
+    |  DoD 7-6  DoD 8-6  DoD 9-6
+    |  DoD 8-7  DoD 9-7
+    |  DoD 9-8
+    |
+    v
+    time
+        
+'''
+
 stack_name = 'DoD_stack' + '_' + run + '.npy' # Define stack name
 stack_bool_name = 'DoD_stack' + '_bool_' + run + '.npy' # Define stack bool name
 stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
@@ -415,6 +438,7 @@ act_time_array = act_time_stack[1:,:,:].flatten() # Unroll all active time exlud
 act_time_array = act_time_array[act_time_array !=0] # Trim zero values
 act_time_array = act_time_array[np.logical_not(np.isnan(act_time_array))] # Trim nan values
 
+
         
 #%%
 ###########
@@ -533,6 +557,8 @@ if plot_mode ==1:
     
     
     
+
+
 #%%
 '''
 This section could help you to have a double check on the period calcultaion
@@ -565,6 +591,9 @@ print('mean [min] = ', np.mean(np.abs(act_time_array)*dt))
 print('STD [min] = ', np.std(act_time_array*dt))
 print()
 
+
+
+
 #%%
 '''
 In this section I will try to eliminate the very short periods from the
@@ -593,6 +622,11 @@ ax.set(xlabel='Time between switches',
        ylabel='Count',
        title='Activation period - '+run)
 plt.show()
+
+
+
+
+
 
 #%%
 '''

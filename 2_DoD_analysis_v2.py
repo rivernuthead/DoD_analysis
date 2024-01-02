@@ -66,9 +66,13 @@ process_mode = 1
 # DoD_plot_show_mode = 0
 
 # SINGLE RUN NAME
-run = 'q15_3'
+run = 'q15_2'
 # ARRAY OF RUNS
-runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
+runs = ['q07_1', 'q10_2', 'q10_3', 'q10_4', 'q15_2', 'q15_3', 'q20_2']
+# runs = ['q07_1', 'q10_2', 'q15_2', 'q20_2']
+# runs = ['q07_1']
+# runs = ['q10_3', 'q10_4']
+# runs = ['q10_2']
 
 # Set DEM single name to perform process to specific DEM
 if len(run) ==1:
@@ -104,7 +108,7 @@ if not(os.path.exists(out_dir)):
 if not(os.path.exists(plot_out_dir)):
     os.mkdir(plot_out_dir)
     
-DoDs_dir = os.path.join(home_dir, 'DoDs')
+DoDs_dir = os.path.join(home_dir, 'output', 'DoDs')
 
 run_dir = os.path.join(home_dir, 'surveys')
 
@@ -158,7 +162,7 @@ for run in RUNS:
     print('######')
     print()
     # setup working directory and DEM's name
-    input_dir = os.path.join(home_dir, 'DoDs', 'DoDs_' + run)
+    input_dir = os.path.join(home_dir,'output', 'DoDs', 'DoDs_' + run)
     report_dir = os.path.join(home_dir, 'output', run)
     plot_dir = os.path.join(home_dir, 'plot', run)
     
@@ -286,6 +290,17 @@ for run in RUNS:
     DoD_filt_nature_morph_quant = []
     DoD_filt_isol2_morph_quant = []
     DoD_filt_ult_morph_quant = []
+    
+    # DoDs values histogram
+    DoD_flat_array1 = []
+    DoD_flat_array2 = []
+    DoD_flat_array3 = []
+    DoD_flat_array4 = []
+    DoD_flat_array5 = []
+    DoD_flat_array6 = []
+    DoD_flat_array7 = []
+    DoD_flat_array8 = []
+    DoD_flat_array9 = []
 
     ###########################################################################
     # CHECK DEMs SHAPE
@@ -378,6 +393,10 @@ for run in RUNS:
            
         
         DoD_filt_ult = DoD
+        
+
+                
+        
 
         ###################################################################
         # TOTAL VOLUMES, DEPOSITION VOLUMES AND SCOUR VOLUMES
@@ -422,6 +441,57 @@ for run in RUNS:
         DoD_filt_fill_plot = np.array(np.where(DoD_filt_fill==0, np.nan, DoD_filt_fill))
         DoD_filt_isol2_plot = np.array(np.where(DoD_filt_isol2==0, np.nan, DoD_filt_isol2))
         DoD_filt_ult_plot = np.array(np.where(DoD_filt_ult==0, np.nan, DoD_filt_ult))
+        
+        
+        
+        ###################################################################
+        # DoD HISTOGRAM
+        ###################################################################
+        
+        # Remove NaN and zeros values from the matrix
+        DoD_flat = DoD[~np.isnan(DoD) & (DoD!=0)]
+        DoD_flat = DoD_flat
+        
+        if delta==1:
+            DoD_flat_array1 = np.append(DoD_flat_array1, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array1, decimals=2))
+        if delta==2:
+            DoD_flat_array2 = np.append(DoD_flat_array2, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array2, decimals=2))
+        if delta==3:
+            DoD_flat_array3 = np.append(DoD_flat_array3, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array3, decimals=2))
+        if delta==4:
+            DoD_flat_array4 = np.append(DoD_flat_array4, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array4, decimals=2))
+        if delta==5:
+            DoD_flat_array5 = np.append(DoD_flat_array5, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array5, decimals=2))
+        if delta==6:
+            DoD_flat_array6= np.append(DoD_flat_array6, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array6, decimals=2))
+        if delta==7:
+            DoD_flat_array7 = np.append(DoD_flat_array7, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array7, decimals=2))
+        if delta==8:
+            DoD_flat_array8 = np.append(DoD_flat_array8, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array8, decimals=2))
+        if delta==9:
+            DoD_flat_array9 = np.append(DoD_flat_array9, DoD_flat)
+            np.save(os.path.join(report_dir, run+'_DoD_overall_values_timespan'+str(delta)+'.npy'), np.round(DoD_flat_array9, decimals=2))
+        
+        
+        
+            
+            
+        # Create the dataset of: values, row and column index
+        result = []
+        matrix = np.where(np.isnan(DoD), 0, DoD)
+        for row_index, row in enumerate(matrix):
+            for col_index, value in enumerate(row):
+                result.append([value, row_index, col_index])
+    
+        
         
         
         # Analysis to investigate the role of the application of spatial filters at the DoD
@@ -836,66 +906,45 @@ for run in RUNS:
 DoD_length_array = np.append(DoD_length_array, DoD_length)
 
 
-# if run_mode==2:
-#     # Print vulume teporal scale report
-#     volume_temp_scale_report_header = 'run name, B_dep [min], SD(B_dep) [min], B_sco [min], SD(B_sco) [min]'
-#     # Write temporl scale report as:
-#     # run name, B_dep, SD(B_dep), B_sco, SD(B_sco)
-#     with open(os.path.join(report_dir, 'volume_temp_scale_report.txt'), 'w') as fp:
-#         fp.write(volume_temp_scale_report_header)
-#         fp.writelines(['\n'])
-#         for i in range(0,len(RUNS)):
-#             for j in range(0, volume_temp_scale_report.shape[1]+1):
-#                 if j == 0:
-#                     fp.writelines([RUNS[i]+', '])
-#                 else:
-#                     fp.writelines(["%.3f, " % float(volume_temp_scale_report[i,j-1])])
-#             fp.writelines(['\n'])
-#     fp.close()
+#%%
+'''
+This section compute the histogram of the distribution of
+frequency of the values of the merged DoDs at timespan 1, timespan 2, ..., timespan 9
+Given that the DoF of the single DoDs at the same timespan are quite similar,
+we decided to compute an overall distribution for each timespan
+'''
 
-#%%############################################################################
-# STACK ANALYSIS
+DoD_flat_array = DoD_flat_array1
+timespan = 1
 
-# for run in RUNS:
-#     stack_dir = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Define the stack directory
-#     stack=np.load(os.path.join(stack_dir, 'DoD_stack_'+run+'.npy')) # Load the stack
-#     # Create stack bool
-#     stack_bool=np.where(stack>0, 1, stack)
-#     stack_bool=np.where(stack_bool<0, -1, stack_bool)
-    
-    
-#     DoD_length = stack.shape[2] # Define the DoD length L in number of cells
-#     DoD_width = stack.shape[1] # Define the DoD width W in number of cells
-    
-    
-#     # COMPUTE THE MORPHOLOGICAL ACTIVE WIDTH EVOLUTIO FOR INCREASING TIMESTEPS
-#     envelop_morph_actW_array=[] # This array will contain the morph_actW/W value at increasing delta
-#     d=0 # Initialize delta=0
-#     for t in range(0, stack.shape[0]-d):
-#         # For each available DoD the envelop is calculated dor all the DoD of a given delta
-#         envelop=np.nansum(np.abs(stack_bool[:,:,:,d]), axis=0) # Calculate the envelop
-#         envelop = np.where(envelop>0,1,envelop)
-#         envelop_morph_actW = np.nansum(envelop)/DoD_length/DoD_width # Calculate the morphological active width as morph_actW/W [-]
-#         print('t:',t)
-#         print('envelop_morph_actW', envelop_morph_actW)
-#         envelop_morph_actW_array = np.append(envelop_morph_actW_array, envelop_morph_actW) # Append the morph_actW/W value
-#         d+=1
-    
-    
-#     # PLOT
-#     plot_dir = os.path.join(home_dir, 'plot', run)
-#     fig, axs = plt.subplots(1,1, figsize=(10,6), tight_layout=True)
-#     axs.plot(np.linspace(1,stack.shape[0],stack.shape[0]),envelop_morph_actW_array, linestyle='--', marker='^', color='green', label='morph_actW envelop')
-#     axs.set_ylim(bottom=0)
-#     axs.set_title(run + '- Morphological active width envelop')
-#     axs.set_xlabel('DoD timespep')
-#     axs.set_ylabel('Morphological active Width/W [-]')
-#     axs.legend()
-#     plt.savefig(os.path.join(plot_dir, run +'_envelop_morph_act_width.pdf'), dpi=200)
-#     plt.show()
-    
-    
-    
+
+# Histogram
+# Define the number of bins and the range for your histogram
+num_bins = 120
+hist_range = (-40, 40)  # Range of values to include in the histogram
+
+# Step 4: Compute the histogram data using numpy.histogram
+hist, bin_edges = np.histogram(DoD_flat_array, bins=num_bins, range=hist_range)
+
+# Normalize the hist array
+hist=hist/np.nansum(hist)
+
+# Plot the histogram 
+plt.figure(figsize=(8, 6))
+plt.bar(bin_edges[:-1], hist, width=(hist_range[1] - hist_range[0]) / num_bins, edgecolor='black')
+plt.xlabel('Value')
+plt.ylabel('Frequency')
+plt.ylim(0, 0.11)
+# plt.title(run + ' - DoD ' + str(DEM2_num) + '-' + str(DEM1_num))
+plt.title(run + ' - Overall DoD values  timespan ' + str(timespan) )
+plt.grid(True)
+plt.savefig(os.path.join(plot_dir,run+'_delta'+ str(timespan) + '_DoD_overall_hist.pdf'))
+plt.show()
+
+
+
+
+
 #%%############################################################################
 end = time.time()
 print()

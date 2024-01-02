@@ -26,16 +26,20 @@ In particular the script provides:
 import os
 import numpy as np
 
-set_name = 'q15_3'
+set_name = 'q10_4'
 ###############################################################################
 # IMPORT DoD STACK AND DoD BOOL STACK
+# Define folders
 home_dir = os.getcwd() # Home directory
 DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Input folder
+# Define names
 stack_name = 'DoD_stack' + '_' + set_name + '.npy' # Define stack name
 stack_bool_name = 'DoD_stack' + '_bool_' + set_name + '.npy' # Define stack bool name
+# Defien paths
 stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
 stack_bool_path = os.path.join(DoDs_folder,stack_bool_name) # Define stack bool path
 
+# LOAD STACK AND BOOL STACK
 stack = np.load(stack_path) # Load DoDs stack
 stack_bool = np.load(stack_bool_path) # Load DoDs boolean stack
 
@@ -56,7 +60,7 @@ for k in range(0, dim_t):
     DoD1_list.append(abs(stack_bool[k,:,:,0])) # append in the list consecutive 1-timespan DoD
 
 
-# Calculate the sums of adjacent matrices, three adjacent matrices, and so on
+# Calculate the sums of two adjacent matrices, three adjacent matrices, and so on
 for i in range(1, len(DoD1_list)):
     for j in range(len(DoD1_list) - i):
         if i == 1:

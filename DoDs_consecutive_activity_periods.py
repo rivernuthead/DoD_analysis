@@ -5,9 +5,9 @@ Created on Fri Mar 24 14:01:06 2023
 
 @author: erri
 
-Taking advantages of the period_length punction the script compute the length of
+Taking advantages of the period_length function the script compute the length of
 a consecutive series of scour (-1), fill (+1) and no changes (0) along the time
-axis of aa DoDs stack.
+axis of a DoDs stack.
 The script provides:
     1. Histograms for each runds of the period length
 
@@ -107,7 +107,7 @@ for run in runs:
     home_dir = os.getcwd() # Home directory
     report_dir = os.path.join(home_dir, 'output')
     run_dir = os.path.join(home_dir, 'surveys')
-    DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Input folder
+    DoDs_folder = os.path.join(home_dir,'output', 'DoDs', 'DoDs_stack') # Input folder
     
     # if not(os.path.exists(os.path.join(report_dir, run,  'stack_analysis'))):
     #     os.mkdir(os.path.join(report_dir, run,  'stack_analysis'))
@@ -115,7 +115,6 @@ for run in runs:
     
     ###############################################################################
     # IMPORT DoD STACK AND DoD BOOL STACK
-    DoDs_folder = os.path.join(home_dir, 'DoDs', 'DoDs_stack') # Input folder
     stack_name = 'DoD_stack' + '_' + run + '.npy' # Define stack name
     stack_bool_name = 'DoD_stack' + '_bool_' + run + '.npy' # Define stack bool name
     stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
@@ -128,10 +127,6 @@ for run in runs:
     stack_bool=stack_bool[:,:,:,delta]
     
     dim_t, dim_y, dim_x, dim_delta = stack.shape # Define time dimension, crosswise dimension and longitudinal dimension
-    
-
-
-
 
     # # example numpy array to test teh function
     # arr = np.array([ 1,  1,  1, -1, -1, -1,  0,  0,  0,  0])

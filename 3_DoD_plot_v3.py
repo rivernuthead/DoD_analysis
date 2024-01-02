@@ -41,7 +41,8 @@ DoD_map_plot = 0
 # SINGLE RUN NAME
 run = ['q15_3']
 # ARRAY OF RUNS
-runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
+# runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
+runs = ['q10_3', 'q10_4']
 
 DoD_name = 'DoD_1-0'
 
