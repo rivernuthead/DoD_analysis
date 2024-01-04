@@ -149,10 +149,7 @@ def sign_inversion_distances(arr):
 
 import numpy as np
 
-# stack_bool = np.array([0,0,0,0,0,1,1,0,0,0,1,0,0,0,1,1,1,0,0,0,1,1,1,1,1,1,0,1,0,0,0]) # Test array
-raw_slice_array = np.array([0, 0, 0, 0, 0, -1, -1, 0, 0, 0, 1, 0, 0, 0, 1,1, 1, 0, 0, 0, -1, -1, -1, 1, 1, 1, 0, 1, 0, 0, 0])  # Test array
-# stack_bool = np.array([1, -1,  0,  0,  0,  1,  0,  0,  0]) # Test array
-# stack_bool = np.array([0, 0,  1, -1,  0,  0,  0,  -1,  0,  0]) # Test array
+
 
 def switch_period_analysis(arr, analysis_list):
     raw_slice_array = arr
@@ -252,23 +249,28 @@ def switch_period_analysis(arr, analysis_list):
 
 #-----------------------------------------------------------------------------#
 #------------------------------------TEST-------------------------------------#
-          
-analysis_list = ['switch_number', 'consecutive_numbers']
 
-time_array, consecutive_ones_array, consecutive_zeros_array, consecutive_minus_ones_array, n_zero = switch_period_analysis(raw_slice_array, analysis_list)
+# stack_bool = np.array([0,0,0,0,0,1,1,0,0,0,1,0,0,0,1,1,1,0,0,0,1,1,1,1,1,1,0,1,0,0,0]) # Test array
+# raw_slice_array = np.array([0, 0, 0, 0, 0, -1, -1, 0, 0, 0, 1, 0, 0, 0, 1,1, 1, 0, 0, 0, -1, -1, -1, 1, 1, 1, 0, 1, 0, 0, 0])  # Test array
+# stack_bool = np.array([1, -1,  0,  0,  0,  1,  0,  0,  0]) # Test array
+# stack_bool = np.array([0, 0,  1, -1,  0,  0,  0,  -1,  0,  0]) # Test array
 
-distances_array, switch_counter = switch_distance(activity_cluster(raw_slice_array))
+# analysis_list = ['switch_number', 'consecutive_numbers']
+
+# time_array, consecutive_ones_array, consecutive_zeros_array, consecutive_minus_ones_array, n_zero = switch_period_analysis(raw_slice_array, analysis_list)
+
+# distances_array, switch_counter = switch_distance(activity_cluster(raw_slice_array))
             
 
 
-print(raw_slice_array)
-print(n_zero)
-print(time_array)
-print(consecutive_minus_ones_array)
-print(consecutive_zeros_array)
-print(consecutive_ones_array)
-print(distances_array)
-print(switch_counter)
+# print(raw_slice_array)
+# print(n_zero)
+# print(time_array)
+# print(consecutive_minus_ones_array)
+# print(consecutive_zeros_array)
+# print(consecutive_ones_array)
+# print(distances_array)
+# print(switch_counter)
 
 '''
 n_0: int - Number of zeros before the first non-zero value

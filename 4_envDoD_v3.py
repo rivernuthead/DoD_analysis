@@ -53,11 +53,15 @@ for run in runs:
     # IMPORT DoD STACK AND DoD BOOL STACK
     home_dir = os.getcwd() # Home directory
     output_folder = os.path.join(home_dir,'output','report_'+run, 'envelopes')
+    
     DoDs_folder = os.path.join(home_dir, 'output', 'DoDs', 'DoDs_stack') # Input folder
     stack_name = 'DoD_stack' + '_' + run + '.npy' # Define stack name
     stack_bool_name = 'DoD_stack' + '_bool_' + run + '.npy' # Define stack bool name
     stack_path = os.path.join(DoDs_folder,stack_name) # Define stack path
     stack_bool_path = os.path.join(DoDs_folder,stack_bool_name) # Define stack bool path
+    
+    if not(os.path.exists(output_folder)):
+        os.mkdir(output_folder)
     
     stack = np.load(stack_path) # Load DoDs stack
     stack_bool = np.load(stack_bool_path) # Load DoDs boolean stack

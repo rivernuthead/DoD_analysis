@@ -7,9 +7,9 @@ Created on Thu Oct 26 14:56:12 2023
 
 Aims:
     1. Scour and deposition dynamics and trajectories: cell by cell what happen
-    a time t+1 to a pixel that at time t was i.e. scour?
-    2. What is the probability for a scour pixel at time t to become a deppixel
-    at time t+1?
+    at time t+1 to a pixel that at time t was i.e. scour?
+    2. What is the probability for a scour pixel at time t to become a dep 
+    pixel at time t+1?
     3. There are more likely to be trajectories for DoD values? 
 
 Description:

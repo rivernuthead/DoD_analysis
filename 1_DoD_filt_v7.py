@@ -191,6 +191,8 @@ for run in RUNS:
         os.mkdir(os.path.join(DoDs_dir, 'DoDs_stack'))
     if not(os.path.exists(plot_dir)):
         os.mkdir(plot_dir)
+    if not(os.path.exists(os.path.join(home_dir, 'output', 'DoDs', 'DoDs_maps'))):
+        os.mkdir(os.path.join(home_dir, 'output', 'DoDs', 'DoDs_maps'))
     if not(os.path.exists(os.path.join(home_dir, 'output', 'DoDs', 'DoDs_maps', run))):
         os.mkdir(os.path.join(home_dir, 'output', 'DoDs', 'DoDs_maps', run))
 

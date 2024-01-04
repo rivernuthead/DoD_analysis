@@ -6,11 +6,10 @@ Created on Thu Oct 26 14:56:12 2023
 @author: erri
 
 Aims:
-    1. Scour and deposition dynamics and trajectories: cell by cell what happen
-    at time t+1 to a pixel that at time t was i.e. scour?
-    2. What is the probability for a scour pixel at time t to become a dep 
-    pixel at time t+1?
-    3. There are more likely to be trajectories for DoD values? 
+    1. pots stacked bars chart with the class percentage of pixels that ens up
+        in Scour, Deposition or No-changes.
+    2. pots bars chart with the class percentage of pixels that ens up
+        in Scour, Deposition or No-changes.
 
 Description:
 this script takes as input the DoD stack for each discharge.
@@ -400,7 +399,7 @@ for run in runs:
                 plt.title(run + ' - Class interval: ' + class_labels[i] + ' - Timespan: ' + str(timespan))
                 # plt.xticks(bin_edges)
                 # Save the figure to a file (e.g., 'scatter_plot.png')
-                plt.savefig(os.path.join(output_dir, run + '_' + str(i) + '_overall_dest_probability_timespan' + str(timespan)+'.pdf'), dpi=300)
+                # plt.savefig(os.path.join(output_dir, run + '_' + str(i) + '_overall_dest_probability_timespan' + str(timespan)+'.pdf'), dpi=300)
                 
                 
                 # Show the plot
@@ -484,9 +483,9 @@ for run in runs:
             index = np.arange(len(classes)) * (bar_width * 3 + class_distance)
             
             # Create the bar chart
-            plt.bar(index - bar_width, null, width=bar_width, label='Entry 1', color='g')
-            plt.bar(index, sco, width=bar_width, label='Entry 2', color='r')
-            plt.bar(index + bar_width, dep, width=bar_width, label='Entry 3', color='b')
+            plt.bar(index - bar_width, null, width=bar_width, label='N', color='g')
+            plt.bar(index, sco, width=bar_width, label='S', color='r')
+            plt.bar(index + bar_width, dep, width=bar_width, label='D', color='b')
             
             # Configure the chart
             plt.xlabel('Classes')
