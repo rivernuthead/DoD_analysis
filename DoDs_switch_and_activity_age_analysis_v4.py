@@ -34,13 +34,13 @@ run_mode=[
 # SINGLE RUN NAME
 # runs = ['q07_1']
 # runs = ['q10_2']
-# runs = ['q10_3']
+runs = ['q10_3']
 # runs = ['q10_4']
 # runs = ['q15_2']
 # runs = ['q15_3']
 # runs = ['q20_2']
 # runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
-runs = ['q07_1', 'q10_2', 'q10_3', 'q10_4', 'q15_2', 'q15_3', 'q20_2']
+# runs = ['q07_1', 'q10_2', 'q10_3', 'q10_4', 'q15_2', 'q15_3', 'q20_2']
 
 # DoD timespan
 t_span = 0
@@ -153,11 +153,11 @@ for run in runs:
             '''
     
     # SAVE OUTPUT
-    np.save(os.path.join(output_dir, run + 'n_zeros.npy'), n_0_matrix)
-    np.save(os.path.join(output_dir, run + 'time_stack.npy'), time_stack)
-    np.save(os.path.join(output_dir, run + 'consecutive_minus_ones_stack.npy'), consecutive_minus_ones_stack)
-    np.save(os.path.join(output_dir, run + 'consecutive_zeros_stack.npy'), consecutive_zeros_stack)
-    np.save(os.path.join(output_dir, run + 'consecutive_ones_stack.npy'), consecutive_ones_stack)
-    np.save(os.path.join(output_dir, run + 'distances_stack.npy'), distances_stack)
-    np.save(os.path.join(output_dir, run + 'switch_matrix.npy'), switch_matrix)
+    np.save(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_n_zeros.npy'), n_0_matrix)
+    np.save(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_time_stack.npy'), time_stack)
+    np.save(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_consecutive_minus_ones_stack.npy'), consecutive_minus_ones_stack)
+    np.save(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_consecutive_zeros_stack.npy'), consecutive_zeros_stack)
+    np.save(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_consecutive_ones_stack.npy'), consecutive_ones_stack)
+    np.save(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_distances_stack.npy'), distances_stack)
+    np.save(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_switch_matrix.npy'), switch_matrix)
     

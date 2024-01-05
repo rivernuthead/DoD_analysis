@@ -155,5 +155,5 @@ for set_name in set_names:
     COMPUTE THE NEW ACTIVATED AREA FOR EACH DoD
     '''
     # 1=activated, -1=deactivated, 0=no_changes
-    stack_diff = stack_act[1:] - stack_act[:-1]
+    stack_diff = stack_act[1:,:,:,:] - stack_act[:-1,:,:,:]
     np.save(os.path.join(home_dir, 'output','report_'+set_name, set_name + '_diff_stack.npy'),stack_diff)

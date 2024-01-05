@@ -29,21 +29,22 @@ start = time.time() # Set initial time
 
 plot_mode=[
     'periods_dist',
+    'switch_number_dist'
     ]
 
 # SINGLE RUN NAME
-# runs = ['q07_1']
+runs = ['q07_1']
 # runs = ['q10_2']
-# runs = ['q10_3']
+runs = ['q10_3']
 # runs = ['q10_4']
 # runs = ['q15_2']
 # runs = ['q15_3']
 # runs = ['q20_2']
 # runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
-runs = ['q07_1', 'q10_2', 'q10_3', 'q10_4', 'q15_2', 'q15_3', 'q20_2']
+# runs = ['q07_1', 'q10_2', 'q10_3', 'q10_4', 'q15_2', 'q15_3', 'q20_2']
 
 # DoD timespan
-t_span = 0
+t_span = 3
 
 '''
 INPUT:
@@ -148,15 +149,14 @@ for run in runs:
     switch_counter: int - Number of switches
     '''
     
-    n_0_matrix = np.load(os.path.join(output_dir, run + 'n_zeros.npy'))
-    time_stack = np.load(os.path.join(output_dir, run + 'time_stack.npy'))
-    consecutive_minus_ones_stack = np.load(os.path.join(output_dir, run + 'consecutive_minus_ones_stack.npy'))
-    consecutive_zeros_stack = np.load(os.path.join(output_dir, run + 'consecutive_zeros_stack.npy'))
-    consecutive_ones_stack = np.load(os.path.join(output_dir, run + 'consecutive_ones_stack.npy'))
-    distances_stack = np.load(os.path.join(output_dir, run + 'distances_stack.npy'))
-    switch_matrix = np.load(os.path.join(output_dir, run + 'switch_matrix.npy'))
-    
-    
+    n_0_matrix = np.load(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_n_zeros.npy'))
+    time_stack = np.load(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_time_stack.npy'))
+    consecutive_minus_ones_stack = np.load(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_consecutive_minus_ones_stack.npy'))
+    consecutive_zeros_stack = np.load(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_consecutive_zeros_stack.npy'))
+    consecutive_ones_stack = np.load(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_consecutive_ones_stack.npy'))
+    distances_stack = np.load(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_distances_stack.npy'))
+    switch_matrix = np.load(os.path.join(output_dir, run + '_tspan_' + str(t_span) + '_switch_matrix.npy'))
+
     
     ###########################################################################
     # PLOTS
@@ -193,7 +193,7 @@ for run in runs:
         # hist_array = hist_array[~np.isnan(hist_array)] # Trim np.nan
         hist_array = hist_array[(hist_array != 0) & (~np.isnan(hist_array))] # Trim np.nan and zeros
         hist, bin_edges = np.histogram(hist_array, bins=num_bins_overall, range=hist_range)
-        dist_time_matrix = hist/mean_activity_area # Divide the number of switch by the mean active area
+        # dist_time_matrix = hist/mean_activity_area # Divide the number of switch by the mean active area
         dist_time_matrix = hist/np.nansum(hist)
         
         # Define colors based on x-axis values
@@ -210,7 +210,7 @@ for run in runs:
         plt.text(dep_median + 0.5, max(dist_time_matrix) + 0.01, 'median: ' + str(dep_median), color='blue')
         
         # Add a chart title
-        plt.title(run)
+        plt.title(run + ' - time span: ' + str(t_span))
         
         # Set the y axis limits
         lower_limit = 0.0
@@ -221,13 +221,62 @@ for run in runs:
         plt.xticks(np.linspace(-10, 10 ,21))
         
         # Add labels and legend
-        plt.xlabel('Activity periods duration')
+        plt.xlabel('Time span between switches')
         plt.ylabel('Y Values')
         # plt.legend(fontsize=8)
         
         # Save the figure to a file (e.g., 'scatter_plot.png')
-        plt.savefig(os.path.join(plot_dir, run + '_activity_periods_distribution.pdf'), dpi=300)
+        plt.savefig(os.path.join(plot_dir, run + '_tspan' + str(t_span) + '_activity_periods_distribution.pdf'), dpi=300)
         # plt.savefig(os.path.join(report_dir, 'overall_distribution' ,run + '_'+str(i)+ '_overall_dist_chart.pdf'), dpi=300)
         plt.show()
         
         print()
+        
+        
+    if 'switch_number_dist' in plot_mode:
+        
+        # COMPUTE SWITCH NUMBER DISTRIBUTION
+        
+        
+        # COMPUTE THE DISTRIBUTION
+        num_bins_overall = 10
+        hist_range = (1, 10)
+        x_values = np.linspace(1, 10, num_bins_overall)
+        
+        hist_array = np.copy(switch_matrix)
+        hist_array = hist_array[(hist_array != 0) & (~np.isnan(hist_array))] # Trim np.nan and zeros
+        median = np.median(hist_array)
+        hist, bin_edges = np.histogram(hist_array, bins=num_bins_overall, range=hist_range)
+        # dist_switch_matrix = hist/mean_activity_area # Divide the number of switch by the mean active area
+        dist_switch_matrix = hist/np.nansum(hist)
+        
+        # PLOT THE DISTRIBUTION
+        plt.bar(x_values, dist_switch_matrix, label='switch number', color='green', linewidth=0.6)
+        
+        # Set the y-axis ticks at intervals of 0.5
+        plt.xticks(np.linspace(1, 10 ,10))
+        
+        # Insert medians line
+        plt.axvline(x=median, color='green', linestyle='--')
+        
+        # Inser text
+        plt.text(median +0.05, max(dist_switch_matrix) + 0.01, 'median: ' + str(median), color='green')
+        
+        # Add a chart title
+        plt.title(run + ' - time span: ' + str(t_span))
+        
+        # Set the y axis limits
+        lower_limit = 0.0
+        upper_limit = 0.5
+        plt.ylim(lower_limit,upper_limit)
+        
+        # Add labels and legend
+        plt.xlabel('Number of switches')
+        plt.ylabel('Y Values')
+        # plt.legend(fontsize=8)
+        
+        # Save the figure to a file (e.g., 'scatter_plot.png')
+        plt.savefig(os.path.join(plot_dir, run + '_tspan' + str(t_span) + '_switch_number_distribution.pdf'), dpi=300)
+        # plt.savefig(os.path.join(report_dir, 'overall_distribution' ,run + '_'+str(i)+ '_overall_dist_chart.pdf'), dpi=300)
+        plt.show()
+        

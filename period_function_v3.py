@@ -111,6 +111,8 @@ def switch_distance(arr):
     
     if arr[0]==0:
         switch_counter += -1
+    
+    switch_counter = switch_counter*(switch_counter>0)
     return  np.array(distances), switch_counter
 #-----------------------------------------------------------------------------#
 #------------------------------------TEST-------------------------------------#
