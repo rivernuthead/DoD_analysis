@@ -12,11 +12,15 @@ import matplotlib.pyplot as plt
 
 
 runs = ['q07_1', 'q10_2', 'q10_3', 'q10_4', 'q15_2', 'q20_2']
-runs = ['q07_1', 'q10_2', 'q15_2', 'q20_2']
+runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
 # runs = ['q20_2']
 for timespan in range(10):
     
-    timespan=0
+    '''
+    SET TIMESPAN EQUAL TO ZERO TO PERFORM ALL THE ANALYSIS AT THE FINEST
+    TIMESPAN
+    '''
+    timespan=0 
     
     # Create the figure and axis
     fig, ax = plt.subplots()

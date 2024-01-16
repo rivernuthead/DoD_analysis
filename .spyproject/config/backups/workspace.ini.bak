@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['DoD_analysis_functions_4.py', 'functions.py', '1_DoD_filt_v7.py', '2_DoD_analysis_v2.py', '3_DoD_reports_generator_v1.py', '4_envDoD_v3.py', 'untitled9.py', 'period_function_v3.py', 'DoDs_switch_and_activity_age_analysis_v4.py', 'DoDs_switch_and_activity_age_analysis_PLOT_v2.py', 'DoDs_stack_pixel_age_analysis_v1.py', 'PiQs_image_positioning_test_v2.py', 'envBAA_DoD_spatial_distribution_v11.py', 'DoD_value_distribution_v2.py', 'compensation_thrs_effects_v6.py', 'DoD_value_destination_distribution_v1.py', 'DoD_value_distribution_in_time_v10.py']
+recent_files = ['DoD_analysis_functions_4.py', 'functions.py', '1_DoD_filt_v7.py', '2_DoD_analysis_v2.py', '3_DoD_reports_generator_v1.py', '4_envDoD_v3.py', 'period_function_v3.py', 'DoDs_switch_and_activity_age_analysis_v4.py', 'DoDs_switch_and_activity_age_analysis_PLOT_v2.py', 'DoDs_activated_deactivated_area_v1.py', 'PiQs_image_positioning_test_v2.py', 'envBAA_DoD_spatial_distribution_v11.py', 'DoD_value_distribution_v2.py', 'compensation_thrs_effects_v6.py', 'DoD_value_destination_distribution_v1.py', 'DoD_value_distribution_in_time_v10.py']
 
 [main]
 version = 0.2.0

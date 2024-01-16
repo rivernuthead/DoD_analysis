@@ -117,13 +117,17 @@ def switch_distance(arr):
 #-----------------------------------------------------------------------------#
 #------------------------------------TEST-------------------------------------#
 # arr = np.array([0, 0, 1, 0, 0, -1, -1, 0, 0, 0, 1, 0, 0, 0, 1,1, 1, 0, 0, 0, -1, -1, -1, 1, 1, 1, 0, 1, 0, 0, 0])
-# # arr = np.array([np.nan, -1, -1, -1, -1, -1, -1, -1])
-# # arr = np.array([-1, -1, -1, -1, -1, -1, -1, -1])   
+# # # arr = np.array([np.nan, -1, -1, -1, -1, -1, -1, -1])
+# # # arr = np.array([-1, -1, -1, -1, -1, -1, -1, -1])   
         
 # distances, switch_counter = switch_distance(arr)
+# distance_cluster, switch_cluster = switch_distance(activity_cluster(arr))
 
 # print(distances)
 # print(switch_counter)
+# print()
+# print(distance_cluster)
+# print(switch_cluster)
         
 #%%888888888888888888888888888888888888888888888888888888888888888888888888888#
 import numpy as np

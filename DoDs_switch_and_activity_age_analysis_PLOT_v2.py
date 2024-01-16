@@ -21,6 +21,8 @@ import os
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+from scipy.stats import poisson
+from scipy.optimize import curve_fit
 from period_function_v3 import *
 
 
@@ -29,22 +31,24 @@ start = time.time() # Set initial time
 
 plot_mode=[
     'periods_dist',
-    'switch_number_dist'
+    # 'switch_number_dist',
+    'poisson_dist'
     ]
 
 # SINGLE RUN NAME
 runs = ['q07_1']
 # runs = ['q10_2']
-runs = ['q10_3']
+# runs = ['q10_3']
 # runs = ['q10_4']
 # runs = ['q15_2']
 # runs = ['q15_3']
 # runs = ['q20_2']
-# runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
+runs = ['q07_1', 'q10_2', 'q15_3', 'q20_2']
+runs = ['q10_3', 'q10_2', 'q10_4']  
 # runs = ['q07_1', 'q10_2', 'q10_3', 'q10_4', 'q15_2', 'q15_3', 'q20_2']
 
-# DoD timespan
-t_span = 3
+# DEFINE DoD TIMESPAN
+t_span = 0
 
 '''
 INPUT:
@@ -76,6 +80,8 @@ activated_px   = []
 deactivated_px = []
       
 for run in runs:
+    print()
+    print()
     print(run, ' is running...')
     # FOLDER SETUP
     home_dir = os.getcwd() # Home directory
@@ -163,24 +169,35 @@ for run in runs:
     ###########################################################################
     
     if 'periods_dist' in plot_mode:
+        
         # COMPUTE SCOUR AND DEPOSITION MEDIAN
-        time_array_cld  = time_stack[(time_stack != 0) & (~np.isnan(time_stack))] # Trim np.nan and zeros
-        sco_time_array  = time_array_cld*(time_array_cld<0)
-        sco_time_array  = sco_time_array[sco_time_array != 0]
-        dep_time_array = time_array_cld*(time_array_cld>0)
-        dep_time_array  = dep_time_array[dep_time_array != 0]
-        sco_median      = np.median(sco_time_array)
-        dep_median      = np.median(dep_time_array)
-        sco_percentile_25 = np.percentile(sco_time_array, 25)
+        time_array_cld    = time_stack[(time_stack != 0) & (~np.isnan(time_stack))] # Trim np.nan and zeros
+        sco_time_array    = time_array_cld*(time_array_cld<0)
+        sco_time_array    = sco_time_array[sco_time_array != 0]
+        dep_time_array    = time_array_cld*(time_array_cld>0)
+        dep_time_array    = dep_time_array[dep_time_array != 0]
+        sco_median        = np.median(sco_time_array)
+        dep_median        = np.median(dep_time_array)
+        sco_mean          = np.mean(sco_time_array)
+        dep_mean          = np.mean(dep_time_array)
+        sco_percentile_25 = np.percentile(sco_time_array,25)
         dep_percentile_75 = np.percentile(dep_time_array,75)
+        sco_percentile_10 = np.percentile(sco_time_array,10)
+        dep_percentile_90 = np.percentile(dep_time_array,90)
         
         # PRINT SCOUR AND DEPOSITION MEDIAN
+        print('Periods length')
         print('Scour median: ', sco_median)
         print('Deposition median: ', dep_median)
+        print('Scour mean: ', sco_mean)
+        print('Deposition mean: ', dep_mean)
         print('Scour 25° percentile: ', sco_percentile_25)
         print('Deposition 75° percentile: ', dep_percentile_75)
+        print('Scour 10° percentile: ', sco_percentile_10)
+        print('Deposition 90° percentile: ', dep_percentile_90)
         
-        report = np.array([sco_median, dep_median, sco_percentile_25, dep_percentile_75])
+        report = np.array([sco_median, dep_median, sco_percentile_25, dep_percentile_75, sco_percentile_10, dep_percentile_90])
+        print('sco_median, dep_median, sco_percentile_25, dep_percentile_75, sco_percentile_10, dep_percentile_90')
         print(report)
         
         # COMPUTE THE DISTRIBUTION
@@ -233,6 +250,112 @@ for run in runs:
         print()
         
         
+        
+        # POISSON DISTRIBUTION FITTING - SCOUR AND DEPOSITION
+        
+        data_sco = np.copy(abs(sco_time_array))
+        data_dep = np.copy(dep_time_array)
+        
+        # HIST
+        sco_hist_array = data_sco[(data_sco != 0) & (~np.isnan(data_sco))] # Trim np.nan and zeros
+        dep_hist_array = data_dep[(data_dep != 0) & (~np.isnan(data_dep))] # Trim np.nan and zeros
+        
+        sco_hist, bin_edges = np.histogram(sco_hist_array, bins=dim_t, range=hist_range)
+        dep_hist, bin_edges = np.histogram(dep_hist_array, bins=dim_t, range=hist_range)
+        
+        sco_hist = sco_hist/np.nansum(sco_hist)
+        dep_hist = dep_hist/np.nansum(dep_hist)
+        
+        # POISSON DIST
+        if 'poisson_dist' in plot_mode:
+            
+            # the bins have to be kept as a positive integer because poisson is a positive integer distribution
+            bins = np.arange(10) + 0.5
+            
+            
+            # plot poisson-deviation with fitted parameter
+            x_plot = np.arange(1, 10)
+            
+            
+            
+            # Create subplots with 1 row and 2 columns
+            fig, axs = plt.subplots(1, 2, figsize=(10, 4))
+            
+            
+            sco_entries, bin_edges, patches = axs[0].hist(data_sco, bins=bins, density=True, label="Scour", width=0.8, color='red')
+            dep_entries, bin_edges, patches = axs[1].hist(data_dep, bins=bins, density=True, label="Fill", width=0.8, color='blue')
+            
+            # calculate bin centers
+            middles_bins = (bin_edges[1:] + bin_edges[:-1]) * 0.5
+            
+            
+            def fit_function(k, lamb):
+                # The parameter lamb will be used as the fit parameter
+                return poisson.pmf(k, lamb)
+            
+            
+            # fit with curve_fit
+            sco_parameters, sco_cov_matrix = curve_fit(fit_function, middles_bins, sco_entries)
+            dep_parameters, dep_cov_matrix = curve_fit(fit_function, middles_bins, dep_entries)
+            
+            
+            
+            
+            # # Plot the first histogram
+            # axs[0].bar(x_plot, sco_hist)
+            
+            axs[0].plot(
+                    x_plot,
+                    fit_function(x_plot, *sco_parameters),
+                    marker="D",
+                    linestyle="-",
+                    color="green",
+                    label="Fit result",
+                    )
+            
+            axs[1].plot(
+                    x_plot,
+                    fit_function(x_plot, *dep_parameters),
+                    marker="D",
+                    linestyle="-",
+                    color="green",
+                    label="Fit result",
+                    )
+            
+            # Add text in a box in the upper right corner
+            sco_text_content = 'Poisson parameter: ' + str(np.round(sco_parameters,3))
+            dep_text_content = 'Poisson parameter: ' + str(np.round(dep_parameters,3))
+            
+            box_properties = dict(boxstyle='round', facecolor='white', edgecolor='black', alpha=0.7)
+            
+            axs[0].annotate(sco_text_content, xy=(0.95, 0.75), xycoords='axes fraction',
+                          fontsize=10, ha='right', va='top', bbox=box_properties)
+            axs[1].annotate(dep_text_content, xy=(0.95, 0.75), xycoords='axes fraction',
+                          fontsize=10, ha='right', va='top', bbox=box_properties)
+            
+            
+            # Modify the x-axis tick distance in both subplots
+            tick_distance = 1
+            axs[0].set_xticks(x_plot[::tick_distance])
+            axs[0].set_xticklabels(x_plot[::tick_distance])
+            axs[1].set_xticks(x_plot[::tick_distance])
+            axs[1].set_xticklabels(x_plot[::tick_distance])
+            
+            plt.suptitle(run + ' _ Switch number - Poisson distribution fit')
+            
+            
+            axs[0].legend()
+            axs[1].legend()
+            
+            # Save the figure to a file (e.g., 'scatter_plot.png')
+            plt.savefig(os.path.join(plot_dir, run + '_tspan' + str(t_span) + '_sco_dep_distribution_poisson.pdf'), dpi=300)
+            
+            plt.show()
+            
+            
+            
+        
+        
     if 'switch_number_dist' in plot_mode:
         
         # COMPUTE SWITCH NUMBER DISTRIBUTION
@@ -275,8 +398,69 @@ for run in runs:
         plt.ylabel('Y Values')
         # plt.legend(fontsize=8)
         
+        
         # Save the figure to a file (e.g., 'scatter_plot.png')
         plt.savefig(os.path.join(plot_dir, run + '_tspan' + str(t_span) + '_switch_number_distribution.pdf'), dpi=300)
         # plt.savefig(os.path.join(report_dir, 'overall_distribution' ,run + '_'+str(i)+ '_overall_dist_chart.pdf'), dpi=300)
         plt.show()
         
+        # COMPUTE NUMBER OF SWITCHES ANALYSIS
+        dist_switch_median = np.median(hist_array)
+        dist_switch_5      = np.percentile(hist_array, 5)
+        dist_switch_25     = np.percentile(hist_array, 25)
+        dist_switch_75     = np.percentile(hist_array,75)
+        dist_switch_95     = np.percentile(hist_array, 95)
+        
+        
+        # PRINT SCOUR AND DEPOSITION MEDIAN
+        print('Number of switch distribution')
+        
+        report = np.array([dist_switch_5, dist_switch_25, dist_switch_median, dist_switch_75, dist_switch_95])
+        print('dist_switch_5, dist_switch_25, dist_switch_median, dist_switch_75, dist_switch_95')
+        print(report)
+        
+        if 'poisson_dist' in plot_mode:
+            
+            
+            data_set = hist_array
+            
+            # the bins have to be kept as a positive integer because poisson is a positive integer distribution
+            bins = np.arange(10) + 0.5
+            entries, bin_edges, patches = plt.hist(data_set, bins=bins, density=True, label="Data", width=0.8)
+            
+            # calculate bin centers
+            middles_bins = (bin_edges[1:] + bin_edges[:-1]) * 0.5
+            
+            
+            def fit_function(k, lamb):
+                # The parameter lamb will be used as the fit parameter
+                return poisson.pmf(k, lamb)
+            
+            
+            # fit with curve_fit
+            parameters, cov_matrix = curve_fit(fit_function, middles_bins, entries)
+            
+            # plot poisson-deviation with fitted parameter
+            x_plot = np.arange(1, 10)
+            
+            plt.xticks(np.linspace(1, 10 ,10))
+            
+            plt.plot(
+                x_plot,
+                fit_function(x_plot, *parameters),
+                marker="D",
+                linestyle="-",
+                color="red",
+                label="Fit result",
+            )
+            
+            # Add text in a box in the upper right corner
+            text_content = 'Poisson parameter: ' + str(np.round(parameters,3))
+            box_properties = dict(boxstyle='round', facecolor='white', edgecolor='black', alpha=0.7)
+            
+            plt.annotate(text_content, xy=(0.95, 0.75), xycoords='axes fraction',
+                         fontsize=10, ha='right', va='top', bbox=box_properties)
+
+            plt.title(run + ' _ Switch number - Poisson distribution fit')
+            plt.legend()
+            plt.show()
