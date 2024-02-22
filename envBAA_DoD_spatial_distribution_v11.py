@@ -6,7 +6,7 @@ Created on Mon May 30 14:11:51 2022
 @author: erri
 
 The aims of this script are:
-    1. Produce overlapping maps of the mein measures taken in the lab.
+    1. Produce overlapping maps of the main measures taken in the lab.
        In particular this script overlaps DoD, BAA and DEM map
     2. Perform analysis on the overlapped data to investigate the relations
        between morphological changes, bed elevation end bedload activity

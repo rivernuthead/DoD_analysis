@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 
 
 #%%
-runs = ['q07_1', 'q10_2','q10_3','q10_4', 'q15_2','q15_3', 'q20_2']
+# runs = ['q07_1', 'q10_2','q10_3','q10_4', 'q15_2','q15_3', 'q20_2']
 
 # runs = ['q10_2','q10_3','q10_4', 'q15_2','q15_3', 'q20_2']
 
@@ -50,7 +50,7 @@ runs = ['q07_1', 'q10_2','q10_3','q10_4', 'q15_2','q15_3', 'q20_2']
 
 # runs = ['q15_3']
 
-# runs = ['q07_1']
+runs = ['q07_1']
 
 # delta = 1
 
@@ -62,8 +62,8 @@ plot_mode = [
              ]
 
 num_bins = 11
-bin_edges = [-60.0,-8.6,-5.8,-4.0,-2.6,-1.3,1.3,2.3,3.7,5.5,8.3,60.0]
-class_labels = [f"{bin_edges[i]},{bin_edges[i+1]}" for i in range(len(bin_edges) - 1)]
+DoD_bin_edges = [-60.0,-8.6,-5.8,-4.0,-2.6,-1.3,1.3,2.3,3.7,5.5,8.3,60.0]
+class_labels = [f"{DoD_bin_edges[i]},{DoD_bin_edges[i+1]}" for i in range(len(DoD_bin_edges) - 1)]
 hist_range = (-60, 60)  # Range of values to include in the histogram
 
 for run in runs:
@@ -193,88 +193,88 @@ for run in runs:
                 for x in range(data.shape[1]):
                     for y in range(data.shape[2]):
                         
-                        if bin_edges[0]<=matrix[t,x,y]<bin_edges[1]:
+                        if DoD_bin_edges[0]<=matrix[t,x,y]<DoD_bin_edges[1]:
                             dist_array_sco_class1 = np.append(dist_array_sco_class1, data[t+jump,x,y])
                             dist_array_sco_partial_class1 = np.append(dist_array_sco_partial_class1, data[t+jump,x,y])
-                        if bin_edges[1]<=matrix[t,x,y]<bin_edges[2]:
+                        if DoD_bin_edges[1]<=matrix[t,x,y]<DoD_bin_edges[2]:
                             dist_array_sco_class2 = np.append(dist_array_sco_class2, data[t+jump,x,y])
                             dist_array_sco_partial_class2 = np.append(dist_array_sco_partial_class2, data[t+jump,x,y])
-                        if bin_edges[2]<=matrix[t,x,y]<bin_edges[3]:
+                        if DoD_bin_edges[2]<=matrix[t,x,y]<DoD_bin_edges[3]:
                             dist_array_sco_class3 = np.append(dist_array_sco_class3, data[t+jump,x,y])
                             dist_array_sco_partial_class3 = np.append(dist_array_sco_partial_class3, data[t+jump,x,y])
-                        if bin_edges[3]<=matrix[t,x,y]<bin_edges[4]:
+                        if DoD_bin_edges[3]<=matrix[t,x,y]<DoD_bin_edges[4]:
                             dist_array_sco_class4 = np.append(dist_array_sco_class4, data[t+jump,x,y])
                             dist_array_sco_partial_class4 = np.append(dist_array_sco_partial_class4, data[t+jump,x,y])
-                        if bin_edges[4]<=matrix[t,x,y]<bin_edges[5]:
+                        if DoD_bin_edges[4]<=matrix[t,x,y]<DoD_bin_edges[5]:
                             dist_array_sco_class5 = np.append(dist_array_sco_class5, data[t+jump,x,y])
                             dist_array_sco_partial_class5 = np.append(dist_array_sco_partial_class5, data[t+jump,x,y])
                         if matrix[t,x,y]==0:
                             dist_array_uthrs_class = np.append(dist_array_uthrs_class, data[t+jump,x,y])
                             dist_array_uthrs_partial_class = np.append(dist_array_uthrs_partial_class, data[t+jump,x,y])
-                        if bin_edges[6]<matrix[t,x,y]<bin_edges[7]:
+                        if DoD_bin_edges[6]<matrix[t,x,y]<DoD_bin_edges[7]:
                             dist_array_dep_class6 = np.append(dist_array_dep_class6, data[t+jump,x,y])
                             dist_array_dep_partial_class6 = np.append(dist_array_dep_partial_class6, data[t+jump,x,y])
-                        if bin_edges[7]<=matrix[t,x,y]<bin_edges[8]:
+                        if DoD_bin_edges[7]<=matrix[t,x,y]<DoD_bin_edges[8]:
                             dist_array_dep_class7 = np.append(dist_array_dep_class7, data[t+jump,x,y])
                             dist_array_dep_partial_class7 = np.append(dist_array_dep_partial_class7, data[t+jump,x,y])
-                        if bin_edges[8]<=matrix[t,x,y]<bin_edges[9]:
+                        if DoD_bin_edges[8]<=matrix[t,x,y]<DoD_bin_edges[9]:
                             dist_array_dep_class8 = np.append(dist_array_dep_class8, data[t+jump,x,y])
                             dist_array_dep_partial_class8 = np.append(dist_array_dep_partial_class8, data[t+jump,x,y])
-                        if bin_edges[9]<=matrix[t,x,y]<bin_edges[10]:
+                        if DoD_bin_edges[9]<=matrix[t,x,y]<DoD_bin_edges[10]:
                             dist_array_dep_class9 = np.append(dist_array_dep_class9, data[t+jump,x,y])
                             dist_array_dep_partial_class9 = np.append(dist_array_dep_partial_class9, data[t+jump,x,y])
-                        if bin_edges[10]<=matrix[t,x,y]<=bin_edges[11]:
+                        if DoD_bin_edges[10]<=matrix[t,x,y]<=DoD_bin_edges[11]:
                             dist_array_dep_class10 = np.append(dist_array_dep_class10, data[t+jump,x,y])
                             dist_array_dep_partial_class10 = np.append(dist_array_dep_partial_class10, data[t+jump,x,y])
                             
                 hist_array = np.copy(dist_array_sco_partial_class1)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_sco_partial_class1_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_sco_partial_class2)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_sco_partial_class2_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_sco_partial_class3)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_sco_partial_class3_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_sco_partial_class4)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_sco_partial_class4_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_sco_partial_class5)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_sco_partial_class5_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_uthrs_partial_class)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_uthrs_partial_class_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_dep_partial_class6)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_dep_partial_class6_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_dep_partial_class7)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_dep_partial_class7_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_dep_partial_class8)
                 hist_array = hist_array[~np.isnan(hist_array) & (hist_array!=0)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_dep_partial_class8_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_dep_partial_class9)
                 hist_array = hist_array[~np.isnan(hist_array)] # Trim 0 and np.nan
-                hist, bin_edges = np.histogram(hist_array, bins=bin_edges, range=hist_range)
+                hist, bin_edges = np.histogram(hist_array, bins=DoD_bin_edges, range=hist_range)
                 dist_array_dep_partial_class9_matrix[t,:] = hist/np.nansum(hist)
                 
                 hist_array = np.copy(dist_array_dep_partial_class10)
