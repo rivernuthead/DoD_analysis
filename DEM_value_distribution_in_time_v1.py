@@ -6,9 +6,9 @@ Created on Thu Oct 26 14:56:12 2023
 @author: erri
 
 Aims:
-    1. pots stacked bars chart with the class percentage of pixels that ens up
+    1. plot stacked bars chart with the class percentage of pixels that ens up
         in Scour, Deposition or No-changes.
-    2. pots bars chart with the class percentage of pixels that ens up
+    2. plot bars chart with the class percentage of pixels that ens up
         in Scour, Deposition or No-changes.
 
 Description:

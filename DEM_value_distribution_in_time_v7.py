@@ -51,7 +51,7 @@ jumps = np.array([1,2,3,4,5,6,7,8])
 # jumps = np.array([2])
 
 # Initialize array
-hill_persistence = np.zeros((len(runs),len(jumps)))
+bar_top_persistence = np.zeros((len(runs),len(jumps)))
 pit_persistence = np.zeros((len(runs),len(jumps)))
 for run in runs:
     print(run, ' is running...')
@@ -206,7 +206,7 @@ for run in runs:
         # hill_persistence[runs.index(run),jump-1] = overall_dist_matrix[-1,-2] # Class 1
         # pit_persistence[runs.index(run),jump-1] = overall_dist_matrix[0,1] # Class 7
         
-        hill_persistence[runs.index(run),jump-1] = overall_dist_matrix[-1,-2] # Class 2
+        bar_top_persistence[runs.index(run),jump-1] = overall_dist_matrix[-1,-2] # Class 2
         pit_persistence[runs.index(run),jump-1] = overall_dist_matrix[0,1] # Class 6
         
         
@@ -266,7 +266,7 @@ for run in runs:
     
     header = 'rows are runs, columns are different jumps \n' + str(runs)
 
-    np.savetxt(os.path.join(home_dir, 'output', 'DEM2DEM_hill_persitence.txt'), hill_persistence, header=header, delimiter='\t')
+    np.savetxt(os.path.join(home_dir, 'output', 'DEM2DEM_bar_top_persitence.txt'), bar_top_persistence, header=header, delimiter='\t')
     np.savetxt(os.path.join(home_dir, 'output', 'DEM2DEM_pit_persitence.txt'), pit_persistence, header=header, delimiter='\t')
 
 #%%############################################################################

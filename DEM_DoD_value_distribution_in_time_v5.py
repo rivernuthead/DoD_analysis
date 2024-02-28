@@ -514,7 +514,7 @@ for run in runs:
                 class 7 and the sum of deposition in class 6 and 7
             '''
             indicator1 = np.mean(np.sum(overall_dist_matrix_cut_sum[:2,0])/np.sum(overall_dist_matrix_cut_sum[:2,1]))
-            indicator2 = np.mean(np.sum(overall_dist_matrix_cut_sum[-2:,0])/np.sum(overall_dist_matrix_cut_sum[-2:,1]))
+            indicator2 = np.mean(np.sum(overall_dist_matrix_cut_sum[-2:,1])/np.sum(overall_dist_matrix_cut_sum[-2:,0]))
             
             # Fill matrices:
             report_indicator1[runs.index(run),jump-1] = indicator1
